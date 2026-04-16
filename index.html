@@ -1,24 +1,8 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>順位トラッカー</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
-</head>
+<h1>📊 順位管理</h1>
 
-<body>
+<input type="date" id="date">
 
-<h1>📊 順位トラッカー</h1>
-
-<div class="box">
-  <input type="file" id="upload" accept="image/*">
-  <input type="date" id="date">
-  <button id="run">OCRして読み込み</button>
-</div>
-
-<h2>編集して保存</h2>
-
+<h2>入力</h2>
 <table>
 <thead>
 <tr>
@@ -30,22 +14,12 @@
 <tbody id="tbody"></tbody>
 </table>
 
-<button id="saveBtn">この内容で保存</button>
+<button onclick="save()">保存</button>
 
-<h2>📈 グラフ</h2>
+<h2>CSV</h2>
+<input type="file" id="csvFile">
+<button onclick="importCSV()">取込</button>
+<button onclick="exportCSV()">出力</button>
 
-<div class="box">
-  <input type="date" id="start">
-  <input type="date" id="end">
-  <input id="player" placeholder="名前入力">
-  <button id="showGraph">表示</button>
-</div>
-
-<canvas id="chart"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="app.js"></script>
-
-</body>
-</html>
+<h2>一覧</h2>
+<div id="list"></div>
