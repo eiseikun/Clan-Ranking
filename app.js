@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, onSnapshot, getDocs
+  getFirestore, collection, addDoc, onSnapshot, getDocs,
+  query, where, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ================= Firebase =================
@@ -32,7 +33,7 @@ function initTable() {
 }
 initTable();
 
-// ================= 保存 =================
+// ================= 保存（上書き対応） =================
 window.save = async () => {
   const date = document.getElementById("date").value;
   if (!date) return alert("日付を選択");
@@ -50,9 +51,20 @@ window.save = async () => {
     });
   }
 
-  await addDoc(colRef, { date, data });
+  // 🔍 同じ日付を検索
+  const q = query(colRef, where("date", "==", date));
+  const snap = await getDocs(q);
 
-  alert("保存完了！");
+  if (!snap.empty) {
+    // 👉 上書き
+    const docRef = snap.docs[0].ref;
+    await updateDoc(docRef, { data });
+    alert("上書き更新しました！");
+  } else {
+    // 👉 新規
+    await addDoc(colRef, { date, data });
+    alert("新規保存しました！");
+  }
 };
 
 // ================= 一覧表示 =================
@@ -83,13 +95,12 @@ onSnapshot(colRef, snap => {
   });
 });
 
-// ================= CSV取込 =================
+// ================= CSV取込（上書き対応） =================
 window.importCSV = async () => {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選択");
 
   const text = await file.text();
-
   const parsed = Papa.parse(text, { header: true });
 
   const grouped = {};
@@ -107,13 +118,23 @@ window.importCSV = async () => {
   });
 
   for (const date in grouped) {
-    await addDoc(colRef, {
-      date,
-      data: grouped[date]
-    });
+    const q = query(colRef, where("date", "==", date));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      // 👉 上書き
+      const docRef = snap.docs[0].ref;
+      await updateDoc(docRef, { data: grouped[date] });
+    } else {
+      // 👉 新規
+      await addDoc(colRef, {
+        date,
+        data: grouped[date]
+      });
+    }
   }
 
-  alert("CSV取込完了");
+  alert("CSV取込完了（上書き対応）");
 };
 
 // ================= CSV出力 =================
