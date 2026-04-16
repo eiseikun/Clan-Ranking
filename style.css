@@ -1,76 +1,138 @@
+/* ================= 基本 ================= */
 body {
-  font-family: sans-serif;
-  background: #111;
-  color: #fff;
-  padding: 10px;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
 }
 
-/* 入力 */
-.box {
+/* コンテナ */
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
+}
+
+/* タイトル */
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* カード */
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* ================= 入力 ================= */
+.top-bar {
+  display: flex;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
-/* テーブル */
+/* ================= テーブル ================= */
+.table-wrap {
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #222;
 }
 
-th, td {
+th {
+  background: #334155;
+  padding: 8px;
+}
+
+td {
   padding: 6px;
-  border-bottom: 1px solid #444;
-  text-align: center;
-}
-
-input {
-  padding: 5px;
-  margin: 3px;
+  border-bottom: 1px solid #334155;
 }
 
 /* 入力欄 */
 td input {
   width: 100%;
-  background: #333;
-  color: #fff;
+  padding: 6px;
+  border-radius: 6px;
   border: none;
+  background: #0f172a;
+  color: #fff;
 }
 
 /* 未入力強調 */
 td input:placeholder-shown {
-  background: #331111;
+  background: #3b1a1a;
 }
 
-/* ボタン */
+/* ================= ボタン ================= */
 button {
-  margin: 5px;
-  padding: 8px;
-  background: orange;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
   border: none;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
   cursor: pointer;
+  font-weight: bold;
 }
 
-/* 横スクロールカード */
+button:hover {
+  opacity: 0.9;
+}
+
+/* ================= CSV ================= */
+.csv-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ================= 一覧 ================= */
 .list {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  padding-bottom: 10px;
 }
 
-.card {
+.card .card {
   min-width: 220px;
-  background: #222;
-  padding: 10px;
-  border-radius: 8px;
 }
 
 .card h3 {
   margin: 0 0 5px;
 }
 
-/* グラフ */
+/* 各日カード */
+.list > div {
+  min-width: 220px;
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* ================= グラフ ================= */
+.graph-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
 canvas {
   background: #fff;
-  margin-top: 20px;
+  border-radius: 10px;
+}
+
+/* ================= スマホ ================= */
+@media (max-width: 600px) {
+  .top-bar,
+  .graph-bar {
+    flex-direction: column;
+  }
 }
