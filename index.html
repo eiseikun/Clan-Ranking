@@ -1,25 +1,78 @@
-<h1>📊 順位管理</h1>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>順位管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<input type="date" id="date">
+<link rel="stylesheet" href="style.css">
 
-<h2>入力</h2>
-<table>
-<thead>
-<tr>
-<th>順位</th>
-<th>名前</th>
-<th>スコア</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="app.js"></script>
+</head>
 
-<button onclick="save()">保存</button>
+<body>
 
-<h2>CSV</h2>
-<input type="file" id="csvFile">
-<button onclick="importCSV()">取込</button>
-<button onclick="exportCSV()">出力</button>
+<div class="container">
 
-<h2>一覧</h2>
-<div id="list"></div>
+  <h1>🏆 順位管理ツール</h1>
+
+  <!-- 入力エリア -->
+  <div class="card">
+    <h2>✏️ 入力</h2>
+
+    <div class="top-bar">
+      <input type="date" id="date">
+      <button onclick="save()">保存</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>順位</th>
+            <th>名前</th>
+            <th>スコア</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CSV -->
+  <div class="card">
+    <h2>📂 CSV</h2>
+
+    <div class="csv-row">
+      <input type="file" id="csvFile">
+      <button onclick="importCSV()">取込</button>
+      <button onclick="exportCSV()">出力</button>
+    </div>
+  </div>
+
+  <!-- 一覧 -->
+  <div class="card">
+    <h2>📋 記録一覧</h2>
+    <div id="list" class="list"></div>
+  </div>
+
+  <!-- グラフ -->
+  <div class="card">
+    <h2>📈 グラフ</h2>
+
+    <div class="graph-bar">
+      <input type="date" id="start">
+      <input type="date" id="end">
+      <input id="player" placeholder="名前">
+      <button onclick="showGraph()">表示</button>
+    </div>
+
+    <canvas id="chart"></canvas>
+  </div>
+
+</div>
+
+</body>
+</html>
