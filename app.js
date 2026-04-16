@@ -59,17 +59,20 @@ function renderTable(data) {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
-  data.forEach(d => {
+  // 🔥 1〜15位を必ず作る
+  for (let i = 1; i <= 15; i++) {
+    const found = data.find(d => d.rank === i);
+
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td><input class="rank" value="${d.rank}"></td>
-      <td><input class="name" value="${d.name}"></td>
-      <td><input class="score" value="${d.score}"></td>
+      <td><input class="rank" value="${i}"></td>
+      <td><input class="name" value="${found ? found.name : ""}"></td>
+      <td><input class="score" value="${found ? found.score : ""}"></td>
     `;
 
     tbody.appendChild(tr);
-  });
+  }
 }
 
 // 保存
