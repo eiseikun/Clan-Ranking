@@ -34,17 +34,16 @@ function parse(text) {
   const result = [];
 
   lines.forEach(line => {
-    line = line.trim();
+    line = line.replace(/\s+/g, " ").trim();
 
-    const scoreMatch = line.match(/([\d.]+[BT])/);
-    const rankMatch = line.match(/^(\d+)/);
+    // 例: 1位 えいせい 980B
+    const match = line.match(/^(\d+)[位]?\s*(.*?)\s*([\d.]+[BT])/);
 
-    if (!scoreMatch || !rankMatch) return;
+    if (!match) return;
 
-    const score = scoreMatch[1];
-    const rank = Number(rankMatch[1]);
-
-    let name = line.replace(rank, "").replace(score, "").trim();
+    const rank = Number(match[1]);
+    const name = match[2];
+    const score = match[3];
 
     if (rank <= 15) {
       result.push({ rank, name, score });
