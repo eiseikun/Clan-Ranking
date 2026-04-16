@@ -1,135 +1,171 @@
-let imageFile = null;
-let chart = null;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// アップロード
-document.getElementById("upload").addEventListener("change", e => {
-  imageFile = e.target.files[0];
+// ================= Firebase =================
+const app = initializeApp({
+  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
+  authDomain: "clan-ranking-661e3.firebaseapp.com",
+  projectId: "clan-ranking-661e3",
 });
 
-// OCR実行
-document.getElementById("run").addEventListener("click", async () => {
-  const date = document.getElementById("date").value;
+const db = getFirestore(app);
+const colRef = collection(db, "items");
 
-  if (!imageFile || !date) {
-    alert("画像と日付を選択してください");
-    return;
-  }
-
-  alert("読み取り開始（少し待つ）");
-
-  const { data: { text } } = await Tesseract.recognize(
-    imageFile,
-    "jpn+eng"
-  );
-
-  console.log(text);
-
-  const data = parse(text);
-  renderTable(data);
-});
-
-// OCRパース
-function parse(text) {
-  const lines = text.split("\n");
-  const result = [];
-
-  lines.forEach(line => {
-    line = line.replace(/\s+/g, " ").trim();
-
-    // 例: 1位 えいせい 980B
-    const match = line.match(/^(\d+)[位]?\s*(.*?)\s*([\d.]+[BT])/);
-
-    if (!match) return;
-
-    const rank = Number(match[1]);
-    const name = match[2];
-    const score = match[3];
-
-    if (rank <= 15) {
-      result.push({ rank, name, score });
-    }
-  });
-
-  return result;
-}
-
-// テーブル表示（編集可能）
-function renderTable(data) {
+// ================= 初期テーブル =================
+function initTable() {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
-  // 🔥 1〜15位を必ず作る
   for (let i = 1; i <= 15; i++) {
-    const found = data.find(d => d.rank === i);
-
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td><input class="rank" value="${i}"></td>
-      <td><input class="name" value="${found ? found.name : ""}"></td>
-      <td><input class="score" value="${found ? found.score : ""}"></td>
+      <td>${i}</td>
+      <td><input class="name"></td>
+      <td><input class="score"></td>
     `;
 
     tbody.appendChild(tr);
   }
 }
+initTable();
 
-// 保存
-document.getElementById("saveBtn").addEventListener("click", () => {
+// ================= 保存 =================
+window.save = async () => {
   const date = document.getElementById("date").value;
   if (!date) return alert("日付を選択");
 
-  const ranks = document.querySelectorAll(".rank");
   const names = document.querySelectorAll(".name");
   const scores = document.querySelectorAll(".score");
 
-  let data = [];
+  const data = [];
 
-  ranks.forEach((r, i) => {
-    const rank = Number(r.value);
-    const name = names[i].value.trim();
-    const score = scores[i].value.trim();
+  for (let i = 0; i < 15; i++) {
+    data.push({
+      rank: i + 1,
+      name: names[i].value,
+      score: scores[i].value
+    });
+  }
 
-    if (!rank || !name || !score) return;
-
-    data.push({ rank, name, score });
-  });
-
-  // 順位で並び替え
-  data.sort((a, b) => a.rank - b.rank);
-
-  let db = JSON.parse(localStorage.getItem("ranking") || "{}");
-  db[date] = data;
-  localStorage.setItem("ranking", JSON.stringify(db));
+  await addDoc(colRef, { date, data });
 
   alert("保存完了！");
+};
+
+// ================= 一覧表示 =================
+onSnapshot(colRef, snap => {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let all = [];
+
+  snap.forEach(doc => {
+    all.push(doc.data());
+  });
+
+  all.sort((a,b)=>a.date.localeCompare(b.date));
+
+  all.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <h3>${d.date}</h3>
+      ${d.data.map(r =>
+        `${r.rank}位 ${r.name || "-"} ${r.score || "-"}<br>`
+      ).join("")}
+    `;
+
+    list.appendChild(div);
+  });
 });
 
-// グラフ表示
-document.getElementById("showGraph").addEventListener("click", () => {
+// ================= CSV取込 =================
+window.importCSV = async () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return alert("ファイル選択");
+
+  const text = await file.text();
+
+  const parsed = Papa.parse(text, { header: true });
+
+  const grouped = {};
+
+  parsed.data.forEach(r => {
+    if (!r.date) return;
+
+    if (!grouped[r.date]) grouped[r.date] = [];
+
+    grouped[r.date].push({
+      rank: Number(r.rank),
+      name: r.name,
+      score: r.score
+    });
+  });
+
+  for (const date in grouped) {
+    await addDoc(colRef, {
+      date,
+      data: grouped[date]
+    });
+  }
+
+  alert("CSV取込完了");
+};
+
+// ================= CSV出力 =================
+window.exportCSV = async () => {
+  const snap = await getDocs(colRef);
+
+  let rows = ["date,rank,name,score"];
+
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    d.data.forEach(r => {
+      rows.push(`${d.date},${r.rank},${r.name},${r.score}`);
+    });
+  });
+
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+
+  a.href = URL.createObjectURL(blob);
+  a.download = "ranking.csv";
+  a.click();
+};
+
+// ================= グラフ =================
+let chart = null;
+
+window.showGraph = async () => {
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
-  const player = document.getElementById("player").value.trim();
+  const player = document.getElementById("player").value;
 
-  const db = JSON.parse(localStorage.getItem("ranking") || "{}");
+  const snap = await getDocs(colRef);
 
   const labels = [];
-  const ranks = [];
+  const data = [];
 
-  Object.keys(db).sort().forEach(date => {
-    if (date >= start && date <= end) {
-      const found = db[date].find(p => p.name.includes(player));
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    if (d.date >= start && d.date <= end) {
+      const found = d.data.find(p => p.name.includes(player));
       if (found) {
-        labels.push(date);
-        ranks.push(found.rank);
+        labels.push(d.date);
+        data.push(found.rank);
       }
     }
   });
 
-  drawChart(labels, ranks);
-});
+  drawChart(labels, data);
+};
 
-// グラフ描画
 function drawChart(labels, data) {
   const ctx = document.getElementById("chart");
 
