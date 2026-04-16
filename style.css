@@ -1,51 +1,76 @@
 body {
+  font-family: sans-serif;
   background: #111;
   color: #fff;
-  font-family: sans-serif;
-  padding: 20px;
+  padding: 10px;
 }
 
-h1, h2 {
-  margin-top: 20px;
-}
-
+/* 入力 */
 .box {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
-input, button {
-  margin: 5px;
-  padding: 8px;
-  border-radius: 5px;
-  border: none;
-}
-
-button {
-  background: orange;
-  color: black;
-  font-weight: bold;
-}
-
+/* テーブル */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  background: #222;
 }
 
 th, td {
+  padding: 6px;
   border-bottom: 1px solid #444;
-  padding: 8px;
+  text-align: center;
 }
 
+input {
+  padding: 5px;
+  margin: 3px;
+}
+
+/* 入力欄 */
 td input {
   width: 100%;
-  background: #222;
+  background: #333;
   color: #fff;
   border: none;
-  padding: 5px;
 }
 
+/* 未入力強調 */
+td input:placeholder-shown {
+  background: #331111;
+}
+
+/* ボタン */
+button {
+  margin: 5px;
+  padding: 8px;
+  background: orange;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 横スクロールカード */
+.list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.card {
+  min-width: 220px;
+  background: #222;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.card h3 {
+  margin: 0 0 5px;
+}
+
+/* グラフ */
 canvas {
-  margin-top: 20px;
   background: #fff;
+  margin-top: 20px;
 }
