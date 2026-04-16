@@ -1,0 +1,51 @@
+body {
+  background: #111;
+  color: #fff;
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+h1, h2 {
+  margin-top: 20px;
+}
+
+.box {
+  margin-bottom: 15px;
+}
+
+input, button {
+  margin: 5px;
+  padding: 8px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  background: orange;
+  color: black;
+  font-weight: bold;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border-bottom: 1px solid #444;
+  padding: 8px;
+}
+
+td input {
+  width: 100%;
+  background: #222;
+  color: #fff;
+  border: none;
+  padding: 5px;
+}
+
+canvas {
+  margin-top: 20px;
+  background: #fff;
+}

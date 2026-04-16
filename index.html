@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>順位トラッカー</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<h1>📊 順位トラッカー</h1>
+
+<div class="box">
+  <input type="file" id="upload" accept="image/*">
+  <input type="date" id="date">
+  <button id="run">OCRして読み込み</button>
+</div>
+
+<h2>編集して保存</h2>
+
+<table>
+<thead>
+<tr>
+<th>順位</th>
+<th>名前</th>
+<th>スコア</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+
+<button id="saveBtn">この内容で保存</button>
+
+<h2>📈 グラフ</h2>
+
+<div class="box">
+  <input type="date" id="start">
+  <input type="date" id="end">
+  <input id="player" placeholder="名前入力">
+  <button id="showGraph">表示</button>
+</div>
+
+<canvas id="chart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
