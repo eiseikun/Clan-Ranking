@@ -39,7 +39,7 @@ window.saveData = async ()=>{
   let date=document.getElementById("date").value;
   if(!date) return alert("日付必須");
 
-  date = toSlash(date); // ← 表示用に変換
+  date = toSlash(date);
 
   const data=[];
   for(let i=1;i<=15;i++){
@@ -47,15 +47,11 @@ window.saveData = async ()=>{
     data.push({rank:i,name});
   }
 
-  const snap=await getDocs(colRef);
-
-  for(const d of snap.docs){
-    if(d.data().date===date){
-      await deleteDoc(doc(db,"items",d.id));
-    }
-  }
-
-  await addDoc(colRef,{date,data});
+  // ★これだけで上書きになる
+  await setDoc(doc(db,"items",date),{
+    date,
+    data
+  });
 
   alert("登録完了");
   init();
@@ -195,19 +191,13 @@ window.importCSV = async ()=>{
 
   for(const date in map){
 
-    for(const d of snap.docs){
-      if(d.data().date===date){
-        await deleteDoc(doc(db,"items",d.id));
-      }
-    }
+  map[date].sort((a,b)=>a.rank-b.rank);
 
-    map[date].sort((a,b)=>a.rank-b.rank);
-
-    await addDoc(colRef,{
-      date,
-      data:map[date]
-    });
-  }
+  await setDoc(doc(db,"items",date),{
+    date,
+    data:map[date]
+  });
+}
 
   alert("CSV完了");
   init();
