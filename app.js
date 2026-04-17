@@ -15,7 +15,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db,"items");
 
-// ================= テーブル作成 =================
+// ================= 日付統一（重要） =================
+function normalizeDate(date){
+  return date.replace(/\//g,"-"); // 2026/04/15 → 2026-04-15
+}
+
+// ================= テーブル =================
 function createTable(data=null){
   const div=document.getElementById("table");
   div.innerHTML="";
@@ -32,7 +37,7 @@ function createTable(data=null){
 
 // ================= 保存 =================
 window.saveData = async ()=>{
-  const date=document.getElementById("date").value;
+  const date=normalizeDate(document.getElementById("date").value);
   if(!date) return alert("日付必須");
 
   const data=[];
@@ -43,7 +48,6 @@ window.saveData = async ()=>{
 
   const snap=await getDocs(colRef);
 
-  // 同日削除
   for(const d of snap.docs){
     if(d.data().date===date){
       await deleteDoc(doc(db,"items",d.id));
@@ -51,7 +55,6 @@ window.saveData = async ()=>{
   }
 
   await addDoc(colRef,{date,data});
-
   alert("登録完了");
   init();
 };
@@ -68,6 +71,8 @@ async function loadList(){
     .sort((a,b)=>b.date.localeCompare(a.date));
 
   docs.forEach(d=>{
+    if(!d.data) return; // ★防御
+
     const div=document.createElement("div");
     div.className="card";
 
@@ -81,14 +86,12 @@ async function loadList(){
       <button class="del">削除</button>
     `;
 
-    // 編集
     div.onclick=e=>{
       if(e.target.classList.contains("del")) return;
       document.getElementById("date").value=d.date;
       createTable(d.data);
     };
 
-    // 削除
     div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
       await deleteDoc(doc(db,"items",d.id));
@@ -101,8 +104,8 @@ async function loadList(){
 
 // ================= 平均順位 =================
 window.calcAvg = async ()=>{
-  const start=document.getElementById("startAvg").value;
-  const end=document.getElementById("endAvg").value;
+  const start=normalizeDate(document.getElementById("startAvg").value);
+  const end=normalizeDate(document.getElementById("endAvg").value);
 
   if(!start || !end) return alert("期間指定してください");
 
@@ -110,7 +113,7 @@ window.calcAvg = async ()=>{
 
   const docs=snap.docs
     .map(d=>d.data())
-    .filter(d=>d.date>=start && d.date<=end);
+    .filter(d=>d?.data && d.date>=start && d.date<=end);
 
   const map={};
 
@@ -140,14 +143,12 @@ window.calcAvg = async ()=>{
 function renderAverage(list){
   const el=document.getElementById("avgResult");
 
-  let html=`
-    <table class="avg-table">
-      <tr>
-        <th>順位</th>
-        <th>名前</th>
-        <th>平均順位</th>
-      </tr>
-  `;
+  if(list.length===0){
+    el.innerHTML="データなし";
+    return;
+  }
+
+  let html=`<table class="avg-table">`;
 
   list.forEach((d,i)=>{
     html+=`
@@ -163,7 +164,7 @@ function renderAverage(list){
   el.innerHTML=html;
 }
 
-// ================= CSV取込（入力欄に反映） =================
+// ================= CSV =================
 window.importCSV = async ()=>{
   const file=document.getElementById("csvFile").files[0];
   if(!file) return alert("ファイル選択して");
@@ -173,14 +174,15 @@ window.importCSV = async ()=>{
 
   const map={};
 
-  // ================= 日付ごとにまとめる =================
   rows.forEach(r=>{
     const [date,rank,name]=r.split(",");
     if(!date || !rank) return;
 
-    if(!map[date]) map[date]=[];
+    const d=normalizeDate(date);
 
-    map[date].push({
+    if(!map[d]) map[d]=[];
+
+    map[d].push({
       rank:Number(rank),
       name:name?.trim()||""
     });
@@ -188,56 +190,109 @@ window.importCSV = async ()=>{
 
   const snap=await getDocs(colRef);
 
-  // ================= 日付ごとに登録 =================
   for(const date in map){
-
-    // 既存削除（上書き）
     for(const d of snap.docs){
       if(d.data().date===date){
         await deleteDoc(doc(db,"items",d.id));
       }
     }
 
-    // 順位順に並べる
     map[date].sort((a,b)=>a.rank-b.rank);
 
-    await addDoc(colRef,{
-      date,
-      data:map[date]
-    });
+    await addDoc(colRef,{date,data:map[date]});
   }
 
   alert("CSV一括登録完了");
   init();
 };
 
-// ================= ファイル名表示 =================
-window.addEventListener("DOMContentLoaded",()=>{
-  const fileInput=document.getElementById("csvFile");
-  if(!fileInput) return;
+// ================= グラフ =================
+let chart;
 
-  fileInput.addEventListener("change",e=>{
-    const file=e.target.files[0];
-    document.getElementById("fileName").textContent=
-      file ? file.name : "未選択";
+window.drawChart = async ()=>{
+  const start=normalizeDate(document.getElementById("start").value);
+  const end=normalizeDate(document.getElementById("end").value);
+
+  if(!start || !end) return alert("期間指定して");
+
+  const snap=await getDocs(colRef);
+
+  const allData=snap.docs
+    .map(d=>d.data())
+    .filter(d=>d?.data)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const filtered=allData.filter(d=>d.date>=start && d.date<=end);
+
+  const selected=[...document.querySelectorAll("#playerList input:checked")]
+    .map(cb=>cb.value);
+
+  if(selected.length===0) return alert("メンバー選択して");
+
+  const labels=filtered.map(d=>d.date);
+
+  const datasets=selected.map((name,idx)=>{
+    const color=`hsl(${idx*60},70%,50%)`;
+
+    return {
+      label:name,
+      data:filtered.map(d=>{
+        const f=d.data.find(p=>p.name===name);
+        return f ? f.rank : null;
+      }),
+      borderColor:color,
+      spanGaps:true
+    };
   });
-});
 
-// ================= Enterで次入力 =================
-document.addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    const id=e.target.id;
+  if(chart) chart.destroy();
 
-    if(id?.startsWith("name")){
-      const num=Number(id.replace("name",""));
-      const next=document.getElementById(`name${num+1}`);
-
-      if(next){
-        next.focus();
-        e.preventDefault();
+  chart=new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{labels,datasets},
+    options:{
+      scales:{
+        y:{reverse:true}
       }
     }
-  }
+  });
+};
+
+// ================= モーダル =================
+window.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("memberBtn").onclick = async ()=>{
+    const snap=await getDocs(colRef);
+    const set=new Set();
+
+    snap.docs.forEach(d=>{
+      d.data().data?.forEach(p=>{
+        if(p.name) set.add(p.name);
+      });
+    });
+
+    const list=document.getElementById("playerList");
+    list.innerHTML="";
+
+    [...set].forEach(name=>{
+      list.innerHTML+=`
+        <label>
+          <input type="checkbox" value="${name}" checked>
+          ${name}
+        </label><br>
+      `;
+    });
+
+    document.getElementById("modal").classList.remove("hidden");
+  };
+
+  document.getElementById("closeModal").onclick = ()=>{
+    document.getElementById("modal").classList.add("hidden");
+  };
+
+  document.getElementById("selectAll").onchange = e=>{
+    document.querySelectorAll("#playerList input")
+      .forEach(cb=>cb.checked=e.target.checked);
+  };
 });
 
 // ================= 初期化 =================
@@ -247,120 +302,3 @@ async function init(){
 
 createTable();
 init();
-// ================= グラフ用データ取得 =================
-async function getAllData(){
-  const snap = await getDocs(colRef);
-
-  return snap.docs
-    .map(d => d.data())
-    .sort((a,b)=>a.date.localeCompare(b.date));
-}
-
-// ================= メンバー一覧生成 =================
-async function buildMemberList(){
-  const data = await getAllData();
-  const set = new Set();
-
-  data.forEach(d=>{
-    d.data.forEach(p=>{
-      if(p.name) set.add(p.name);
-    });
-  });
-
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
-
-  [...set].sort().forEach(name=>{
-    list.innerHTML += `
-      <label>
-        <input type="checkbox" value="${name}" checked>
-        ${name}
-      </label><br>
-    `;
-  });
-}
-
-// ================= グラフ描画 =================
-let chart;
-
-window.drawChart = async ()=>{
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-
-  if(!start || !end) return alert("期間指定して");
-
-  const allData = await getAllData();
-
-  // 期間フィルタ
-  const filtered = allData.filter(d=>d.date>=start && d.date<=end);
-
-  // 選択メンバー
-  const selected = [...document.querySelectorAll("#playerList input:checked")]
-    .map(cb=>cb.value);
-
-  if(selected.length === 0) return alert("メンバー選択して");
-
-  // 日付ラベル
-  const labels = filtered.map(d=>d.date);
-
-  // データセット作成
-  const datasets = selected.map((name,idx)=>{
-    const color = `hsl(${idx*60},70%,50%)`;
-
-    return {
-      label: name,
-      data: filtered.map(d=>{
-        const found = d.data.find(p=>p.name===name);
-        return found ? found.rank : null;
-      }),
-      borderColor: color,
-      backgroundColor: color,
-      spanGaps: true,
-      tension: 0.2
-    };
-  });
-
-  // 既存グラフ削除
-  if(chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels,
-      datasets
-    },
-    options: {
-      responsive: true,
-      plugins:{
-        legend:{
-          position:"bottom"
-        }
-      },
-      scales:{
-        y:{
-          reverse: true, // ★順位は上が1位
-          ticks:{
-            stepSize:1
-          }
-        }
-      }
-    }
-  });
-};
-
-// ================= モーダル開いた時にリスト生成 =================
-document.getElementById("memberBtn").onclick = async ()=>{
-  await buildMemberList();
-  document.getElementById("modal").classList.remove("hidden");
-};
-
-// ================= モーダル閉じる =================
-document.getElementById("closeModal").onclick = ()=>{
-  document.getElementById("modal").classList.add("hidden");
-};
-
-// ================= 全員チェック =================
-document.getElementById("selectAll").onchange = e=>{
-  document.querySelectorAll("#playerList input")
-    .forEach(cb=>cb.checked = e.target.checked);
-};
