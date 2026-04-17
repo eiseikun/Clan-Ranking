@@ -42,7 +42,7 @@ h1{
 /* 一覧（左が最新） */
 .list{
   display:flex;
-  flex-direction:row-reverse;
+  flex-direction:row;
   overflow-x:auto;
   gap:10px;
   padding-bottom:10px;
