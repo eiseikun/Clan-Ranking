@@ -14,9 +14,20 @@
 <h1>🏆 順位管理（順位のみ）</h1>
 
 <!-- CSV -->
-<div class="box">
-  <h2>CSV一括取込</h2>
-  <input type="file" id="csvFile">
+<div class="card">
+  <h2>📂 CSV一括取込</h2>
+
+  <input type="file" id="csvFile" accept=".csv" hidden>
+
+  <button onclick="document.getElementById('csvFile').click()">
+    📁 CSV選択
+  </button>
+
+  <span id="fileName">未選択</span>
+
+  <button onclick="importCSV()">
+    ⬆ CSV取込
+  </button>
 </div>
 
 <!-- 手入力 -->
