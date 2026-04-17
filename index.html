@@ -2,59 +2,49 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>順位管理ツール</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>順位管理</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>🏆 順位管理ツール</h1>
+<h1>🏆 順位管理（順位のみ）</h1>
 
-<!-- ================= 登録 ================= -->
 <div class="box">
-  <h2>✏️ 登録 / 編集</h2>
-
-  <input type="date" id="date">
+  <h2>CSV一括取込</h2>
   <input type="file" id="csvFile">
+  <button onclick="importCSV()">取込</button>
+</div>
 
-  <button onclick="loadCSV()">CSV取込</button>
+<div class="box">
+  <h2>✏️ 手動編集</h2>
+  <input type="date" id="date">
   <button onclick="saveData()">登録</button>
-
   <table id="editTable"></table>
 </div>
 
-<!-- ================= 一覧 ================= -->
 <div class="box">
-  <h2>📅 日付一覧（横スクロール）</h2>
+  <h2>📅 一覧</h2>
   <div id="list" class="horizontal"></div>
 </div>
 
-<!-- ================= 平均 ================= -->
 <div class="box">
   <h2>📊 平均順位</h2>
-
   <input type="date" id="avgStart">
   <input type="date" id="avgEnd">
   <button onclick="calcAverage()">計算</button>
-
   <div id="avgResult"></div>
 </div>
 
-<!-- ================= グラフ ================= -->
 <div class="box">
-  <h2>📈 順位変動グラフ</h2>
-
+  <h2>📈 グラフ</h2>
   <input type="date" id="start">
   <input type="date" id="end">
   <input id="players" placeholder="名前（カンマ区切り）">
-
   <button onclick="showGraph()">表示</button>
-
   <canvas id="chart"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
-
 </body>
 </html>
