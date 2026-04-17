@@ -235,3 +235,46 @@ async function loadPlayers() {
     list.appendChild(label);
   });
 }
+window.selectAll = () => {
+  document.querySelectorAll("#playerList input")
+    .forEach(cb => cb.checked = true);
+};
+
+window.clearAll = () => {
+  document.querySelectorAll("#playerList input")
+    .forEach(cb => cb.checked = false);
+};
+window.showGraph = async () => {
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+
+  const players = [...document.querySelectorAll("#playerList input:checked")]
+    .map(cb => cb.value);
+
+  if (players.length === 0) {
+    alert("誰か選択してください");
+    return;
+  }
+
+  const snap = await getDocs(colRef);
+
+  const labels = [];
+  const dataMap = {};
+
+  players.forEach(p => dataMap[p] = []);
+
+  snap.forEach(d => {
+    const data = d.data();
+
+    if (data.date >= start && data.date <= end) {
+      labels.push(data.date);
+
+      players.forEach(name => {
+        const found = data.data.find(x => x.name === name);
+        dataMap[name].push(found ? found.rank : null);
+      });
+    }
+  });
+
+  drawChart(labels, dataMap);
+};
