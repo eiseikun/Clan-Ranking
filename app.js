@@ -92,33 +92,66 @@ async function loadList(){
 // =================
 // 平均順位
 // =================
-window.calcAvg=async()=>{
-  const s=document.getElementById("startAvg").value;
-  const e=document.getElementById("endAvg").value;
+function calculateAverage() {
+  const start = document.getElementById("avgStart").value;
+  const end = document.getElementById("avgEnd").value;
 
-  const snap=await getDocs(colRef);
+  if (!start || !end) return;
 
-  const map={};
+  const dataInRange = allData.filter(d => d.date >= start && d.date <= end);
 
-  snap.forEach(d=>{
-    const data=d.data();
-    if(data.date<s||data.date>e) return;
+  const map = {};
 
-    data.data.forEach(p=>{
-      if(!map[p.name]) map[p.name]=[];
-      map[p.name].push(p.rank);
+  dataInRange.forEach(d => {
+    d.ranks.forEach((name, i) => {
+      if (!name) return;
+
+      if (!map[name]) {
+        map[name] = { total: 0, count: 0 };
+      }
+
+      map[name].total += (i + 1);
+      map[name].count++;
     });
   });
 
-  const result=Object.entries(map)
-    .map(([name,arr])=>{
-      const avg=(arr.reduce((a,b)=>a+b)/arr.length).toFixed(2);
-      return `${name}：${avg}位`;
-    });
+  // 平均計算
+  let result = Object.entries(map).map(([name, v]) => ({
+    name,
+    avg: (v.total / v.count)
+  }));
 
-  document.getElementById("avgResult").innerHTML=result.join("<br>");
-};
+  // ⭐ ここ重要：平均順位が良い順に並び替え
+  result.sort((a, b) => a.avg - b.avg);
 
+  renderAverage(result);
+}
+function renderAverage(list) {
+  const el = document.getElementById("avgResult");
+
+  let html = `
+    <table class="avg-table">
+      <tr>
+        <th>順位</th>
+        <th>名前</th>
+        <th>平均順位</th>
+      </tr>
+  `;
+
+  list.forEach((d, i) => {
+    html += `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.name}</td>
+        <td>${d.avg.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  html += "</table>";
+
+  el.innerHTML = html;
+}
 // =================
 // プレイヤー
 // =================
