@@ -8,28 +8,29 @@
   <div class="box">
     <h2>📂 CSV取込</h2>
 
-    <input type="file" id="csvFile" hidden>
+    <div class="row">
+      <input type="file" id="csvFile" accept=".csv" hidden>
 
-    <button class="main-btn" onclick="document.getElementById('csvFile').click()">
-      📁 ファイル選択
-    </button>
+      <button class="btn main" onclick="document.getElementById('csvFile').click()">
+        📁 ファイル選択
+      </button>
 
-    <span id="fileName">未選択</span>
+      <span id="fileName">未選択</span>
 
-    <button class="sub-btn" onclick="importCSV()">⬆ 取込</button>
+      <button class="btn sub" onclick="importCSV()">⬆ 取込</button>
+    </div>
   </div>
 
   <!-- 手入力 -->
   <div class="box">
-    <h2>✏️ 編集</h2>
+    <h2>✏️ 手動編集</h2>
 
     <div class="row">
       <input type="date" id="date">
-      <button onclick="newEntry()">新規入力</button>
-      <button class="main-btn" onclick="saveData()">登録</button>
+      <button class="btn main" onclick="saveData()">登録</button>
     </div>
 
-    <div id="table" class="table-input"></div>
+    <div id="table" class="rank-table"></div>
   </div>
 
   <!-- 一覧 -->
@@ -45,7 +46,7 @@
     <div class="row">
       <input type="date" id="startAvg">
       <input type="date" id="endAvg">
-      <button class="main-btn" onclick="calcAvg()">計算</button>
+      <button class="btn main" onclick="calcAvg()">計算</button>
     </div>
 
     <div id="avgResult"></div>
@@ -58,15 +59,16 @@
     <div class="row">
       <input type="date" id="start">
       <input type="date" id="end">
-      <button id="memberBtn" class="sub-btn">メンバー選択</button>
-      <button class="main-btn" onclick="drawChart()">表示</button>
+
+      <button id="memberBtn" class="btn sub">メンバー選択</button>
+      <button class="btn main" onclick="drawChart()">表示</button>
     </div>
 
     <div id="modal" class="modal hidden">
       <div class="modalContent">
         <label><input type="checkbox" id="selectAll"> 全員</label>
         <div id="playerList"></div>
-        <button id="closeModal">閉じる</button>
+        <button id="closeModal" class="btn sub">閉じる</button>
       </div>
     </div>
 
