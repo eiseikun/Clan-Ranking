@@ -212,3 +212,26 @@ window.showGraph = async () => {
     }
   });
 };
+async function loadPlayers() {
+  const snap = await getDocs(colRef);
+  const set = new Set();
+
+  snap.forEach(d => {
+    d.data().data.forEach(p => {
+      if (p.name) set.add(p.name);
+    });
+  });
+
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
+
+  [...set].sort().forEach(name => {
+    const label = document.createElement("label");
+
+    label.innerHTML = `
+      <input type="checkbox" value="${name}"> ${name}
+    `;
+
+    list.appendChild(label);
+  });
+}
