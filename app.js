@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, deleteDoc, doc
+  getFirestore, collection, addDoc, getDocs, deleteDoc, doc,setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -32,6 +32,7 @@ function createTable(data=null){
 window.saveData = async ()=>{
   let date = document.getElementById("date").value;
   if(!date) return alert("日付必須");
+
   date = toSlash(date);
 
   const data=[];
@@ -42,14 +43,12 @@ window.saveData = async ()=>{
     });
   }
 
-  const snap = await getDocs(colRef);
-  for(const d of snap.docs){
-    if(d.data().date===date){
-      await deleteDoc(doc(db,"items",d.id));
-    }
-  }
+  // 🔥 ここが最強
+  await setDoc(doc(db,"items",date), {
+    date,
+    data
+  });
 
-  await addDoc(colRef,{date,data});
   alert("登録完了");
   init();
 };
