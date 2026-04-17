@@ -36,11 +36,20 @@
 </div>
 
 <div class="box">
-  <h2>📈 グラフ</h2>
+  <h2>📈 順位変動グラフ</h2>
+
   <input type="date" id="start">
   <input type="date" id="end">
-  <input id="players" placeholder="名前（カンマ区切り）">
-  <button onclick="showGraph()">表示</button>
+
+  <div class="btnRow">
+    <button onclick="selectAll()">全選択</button>
+    <button onclick="clearAll()">全解除</button>
+  </div>
+
+  <div id="playerList" class="playerList"></div>
+
+  <button onclick="showGraph()">グラフ表示</button>
+
   <canvas id="chart"></canvas>
 </div>
 
