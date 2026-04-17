@@ -4,18 +4,18 @@ body{
   margin:0;
 }
 
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:10px;
+}
+
 h1{
   text-align:center;
   background:#222;
   color:#fff;
   padding:15px;
   margin:0;
-}
-
-.container{
-  max-width:1000px;
-  margin:auto;
-  padding:10px;
 }
 
 .box{
@@ -26,92 +26,53 @@ h1{
   box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-.row{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  align-items:center;
-}
-
-/* ボタン */
-.btn{
-  border:none;
-  padding:8px 14px;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.btn.main{
-  background:#007bff;
-  color:#fff;
-}
-
-.btn.sub{
-  background:#6c757d;
-  color:#fff;
-}
-
-/* 入力欄（順位） */
-.rank-table{
+/* 入力欄 */
+#table{
   display:grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap:8px;
-  margin-top:10px;
 }
 
-.rank-table div{
-  display:flex;
-  align-items:center;
-  gap:5px;
+@media (min-width:600px){
+  #table{
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.rank-table input{
-  width:100%;
-  padding:5px;
-}
-
-/* 一覧 */
+/* 一覧（左が最新） */
 .list{
   display:flex;
+  flex-direction:row-reverse;
   overflow-x:auto;
   gap:10px;
+  padding-bottom:10px;
 }
 
 .card{
-  min-width:180px;
+  min-width:200px;
+  flex-shrink:0;
   background:#fafafa;
   padding:10px;
   border-radius:10px;
   border:1px solid #ddd;
   cursor:pointer;
-  transition:0.2s;
-}
-
-.card:hover{
-  transform:translateY(-3px);
 }
 
 /* 平均 */
 .avg-table{
   width:100%;
   border-collapse:collapse;
-  margin-top:10px;
 }
 
 .avg-table th{
   background:#333;
   color:#fff;
-  padding:8px;
 }
 
-.avg-table td{
+.avg-table td, .avg-table th{
+  padding:8px;
   border:1px solid #ccc;
-  padding:8px;
   text-align:center;
-}
-
-.avg-table tr:nth-child(even){
-  background:#f9f9f9;
 }
 
 /* モーダル */
@@ -125,33 +86,19 @@ h1{
 .hidden{display:none;}
 
 .modalContent{
-  background:#fff;
-  padding:20px;
-  margin:50px auto;
-  width:300px;
-  max-height:70vh;
-  overflow:auto;
-  border-radius:12px;
-}
-.container{
-  max-width:1000px;
-  margin:auto;
-  padding:10px;
-}
-.modalContent{
-  background:#fff;
-  padding:20px;
-  margin:0;
-  width:300px;
-  max-height:70vh;
-  overflow:auto;
-  border-radius:12px;
-
   position:absolute;
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
+  background:#fff;
+  width:90%;
+  max-width:350px;
+  max-height:70vh;
+  overflow:auto;
+  padding:15px;
+  border-radius:12px;
 }
+
 #chart{
   margin-top:15px;
   width:100%;
