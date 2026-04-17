@@ -15,10 +15,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db,"items");
 
-// ================= 日付統一（重要） =================
-function normalizeDate(date){
-  return date.replace(/\//g,"-"); // 2026/04/15 → 2026-04-15
-}
+// ================= 日付変換 =================
+const toDate = d => new Date(d.replaceAll("/","-"));
+const toSlash = d => d.replaceAll("-","/");
 
 // ================= テーブル =================
 function createTable(data=null){
@@ -37,8 +36,10 @@ function createTable(data=null){
 
 // ================= 保存 =================
 window.saveData = async ()=>{
-  const date=normalizeDate(document.getElementById("date").value);
+  let date=document.getElementById("date").value;
   if(!date) return alert("日付必須");
+
+  date = toSlash(date); // ← 表示用に変換
 
   const data=[];
   for(let i=1;i<=15;i++){
@@ -55,6 +56,7 @@ window.saveData = async ()=>{
   }
 
   await addDoc(colRef,{date,data});
+
   alert("登録完了");
   init();
 };
@@ -68,11 +70,9 @@ async function loadList(){
 
   const docs=snap.docs
     .map(d=>({id:d.id,...d.data()}))
-    .sort((a,b)=>b.date.localeCompare(a.date));
+    .sort((a,b)=>toDate(b.date)-toDate(a.date));
 
   docs.forEach(d=>{
-    if(!d.data) return; // ★防御
-
     const div=document.createElement("div");
     div.className="card";
 
@@ -88,7 +88,8 @@ async function loadList(){
 
     div.onclick=e=>{
       if(e.target.classList.contains("del")) return;
-      document.getElementById("date").value=d.date;
+
+      document.getElementById("date").value = d.date.replaceAll("/","-");
       createTable(d.data);
     };
 
@@ -104,16 +105,16 @@ async function loadList(){
 
 // ================= 平均順位 =================
 window.calcAvg = async ()=>{
-  const start=normalizeDate(document.getElementById("startAvg").value);
-  const end=normalizeDate(document.getElementById("endAvg").value);
+  const start=document.getElementById("startAvg").value;
+  const end=document.getElementById("endAvg").value;
 
-  if(!start || !end) return alert("期間指定してください");
+  if(!start || !end) return alert("期間指定");
 
   const snap=await getDocs(colRef);
 
   const docs=snap.docs
     .map(d=>d.data())
-    .filter(d=>d?.data && d.date>=start && d.date<=end);
+    .filter(d=>toDate(d.date)>=toDate(start) && toDate(d.date)<=toDate(end));
 
   const map={};
 
@@ -143,12 +144,14 @@ window.calcAvg = async ()=>{
 function renderAverage(list){
   const el=document.getElementById("avgResult");
 
-  if(list.length===0){
-    el.innerHTML="データなし";
-    return;
-  }
-
-  let html=`<table class="avg-table">`;
+  let html=`
+    <table class="avg-table">
+      <tr>
+        <th>順位</th>
+        <th>名前</th>
+        <th>平均順位</th>
+      </tr>
+  `;
 
   list.forEach((d,i)=>{
     html+=`
@@ -178,11 +181,11 @@ window.importCSV = async ()=>{
     const [date,rank,name]=r.split(",");
     if(!date || !rank) return;
 
-    const d=normalizeDate(date);
+    const fixedDate = toSlash(date.trim());
 
-    if(!map[d]) map[d]=[];
+    if(!map[fixedDate]) map[fixedDate]=[];
 
-    map[d].push({
+    map[fixedDate].push({
       rank:Number(rank),
       name:name?.trim()||""
     });
@@ -191,6 +194,7 @@ window.importCSV = async ()=>{
   const snap=await getDocs(colRef);
 
   for(const date in map){
+
     for(const d of snap.docs){
       if(d.data().date===date){
         await deleteDoc(doc(db,"items",d.id));
@@ -199,51 +203,51 @@ window.importCSV = async ()=>{
 
     map[date].sort((a,b)=>a.rank-b.rank);
 
-    await addDoc(colRef,{date,data:map[date]});
+    await addDoc(colRef,{
+      date,
+      data:map[date]
+    });
   }
 
-  alert("CSV一括登録完了");
+  alert("CSV完了");
   init();
 };
 
 // ================= グラフ =================
 let chart;
 
+async function getAllData(){
+  const snap = await getDocs(colRef);
+  return snap.docs.map(d=>d.data());
+}
+
 window.drawChart = async ()=>{
-  const start=normalizeDate(document.getElementById("start").value);
-  const end=normalizeDate(document.getElementById("end").value);
+  const start=document.getElementById("start").value;
+  const end=document.getElementById("end").value;
 
-  if(!start || !end) return alert("期間指定して");
+  if(!start || !end) return alert("期間指定");
 
-  const snap=await getDocs(colRef);
+  const all=await getAllData();
 
-  const allData=snap.docs
-    .map(d=>d.data())
-    .filter(d=>d?.data)
-    .sort((a,b)=>a.date.localeCompare(b.date));
-
-  const filtered=allData.filter(d=>d.date>=start && d.date<=end);
+  const filtered=all
+    .filter(d=>toDate(d.date)>=toDate(start) && toDate(d.date)<=toDate(end))
+    .sort((a,b)=>toDate(a.date)-toDate(b.date));
 
   const selected=[...document.querySelectorAll("#playerList input:checked")]
     .map(cb=>cb.value);
 
-  if(selected.length===0) return alert("メンバー選択して");
-
   const labels=filtered.map(d=>d.date);
 
-  const datasets=selected.map((name,idx)=>{
-    const color=`hsl(${idx*60},70%,50%)`;
-
-    return {
-      label:name,
-      data:filtered.map(d=>{
-        const f=d.data.find(p=>p.name===name);
-        return f ? f.rank : null;
-      }),
-      borderColor:color,
-      spanGaps:true
-    };
-  });
+  const datasets=selected.map((name,i)=>({
+    label:name,
+    data:filtered.map(d=>{
+      const f=d.data.find(p=>p.name===name);
+      return f ? f.rank : null;
+    }),
+    borderColor:`hsl(${i*60},70%,50%)`,
+    tension:0.2,
+    spanGaps:true
+  }));
 
   if(chart) chart.destroy();
 
@@ -251,49 +255,10 @@ window.drawChart = async ()=>{
     type:"line",
     data:{labels,datasets},
     options:{
-      scales:{
-        y:{reverse:true}
-      }
+      scales:{y:{reverse:true,ticks:{stepSize:1}}}
     }
   });
 };
-
-// ================= モーダル =================
-window.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("memberBtn").onclick = async ()=>{
-    const snap=await getDocs(colRef);
-    const set=new Set();
-
-    snap.docs.forEach(d=>{
-      d.data().data?.forEach(p=>{
-        if(p.name) set.add(p.name);
-      });
-    });
-
-    const list=document.getElementById("playerList");
-    list.innerHTML="";
-
-    [...set].forEach(name=>{
-      list.innerHTML+=`
-        <label>
-          <input type="checkbox" value="${name}" checked>
-          ${name}
-        </label><br>
-      `;
-    });
-
-    document.getElementById("modal").classList.remove("hidden");
-  };
-
-  document.getElementById("closeModal").onclick = ()=>{
-    document.getElementById("modal").classList.add("hidden");
-  };
-
-  document.getElementById("selectAll").onchange = e=>{
-    document.querySelectorAll("#playerList input")
-      .forEach(cb=>cb.checked=e.target.checked);
-  };
-});
 
 // ================= 初期化 =================
 async function init(){
