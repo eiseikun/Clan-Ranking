@@ -60,18 +60,19 @@ async function loadList(){
 
   const snap = await getDocs(colRef);
 
-  // 🔥 同日で最新だけ残す
-  const map = {};
+  const map = new Map();
 
   snap.docs.forEach(d=>{
     const data = d.data();
-    const key = data.date;
 
-    // 後に取得した方を優先（＝最新）
-    map[key] = { id:d.id, ...data };
+    // setDoc優先（dateをIDにしてるのでこれだけでOK）
+    map.set(data.date, {
+      id: d.id,
+      ...data
+    });
   });
 
-  const docs = Object.values(map)
+  const docs = [...map.values()]
     .sort((a,b)=>toDate(b.date)-toDate(a.date));
 
   docs.forEach(d=>{
@@ -93,7 +94,10 @@ async function loadList(){
 
     div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
-      await deleteDoc(doc(db,"items",d.id));
+
+      // 🔥 これで完全削除（setDoc対策）
+      await deleteDoc(doc(db,"items",d.date));
+
       init();
     };
 
