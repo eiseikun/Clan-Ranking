@@ -18,13 +18,21 @@ const colRef = collection(db,"items");
 const settingRef = doc(db,"settings","global");
 
 // ================= テーブル作成 =================
-// 手入力欄（1位〜15位）
 function createTable(data=null){
-  const div=document.getElementById("table");
-  div.innerHTML="";
+  const div = document.getElementById("table");
+
+  // ⭐ ここが重要：空のときだけ初期生成
+  if (!data && div.children.length > 0) return;
+
+  div.innerHTML = "";
 
   for(let i=1;i<=15;i++){
-    div.innerHTML+=`${i}位 <input id="name${i}" value="${data?.[i-1]?.name||""}"><br>`;
+    div.innerHTML += `
+      <div class="rank-row">
+        <span>${i}位</span>
+        <input id="name${i}" value="${data?.[i-1]?.name || ""}">
+      </div>
+    `;
   }
 }
 
@@ -213,3 +221,7 @@ async function init(){
 
 createTable();
 init();
+window.newEntry = () => {
+  document.getElementById("date").value = "";
+  createTable([]); // 空で初期化
+};
