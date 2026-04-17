@@ -4,7 +4,7 @@ import {
   query, where, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ================= Firebase =================
+// Firebase
 const app = initializeApp({
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
@@ -14,26 +14,24 @@ const app = initializeApp({
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// ================= 初期テーブル =================
+// テーブル初期化
 function initTable() {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
   for (let i = 1; i <= 15; i++) {
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
       <td>${i}</td>
       <td><input class="name"></td>
       <td><input class="score"></td>
     `;
-
     tbody.appendChild(tr);
   }
 }
 initTable();
 
-// ================= 保存（上書き対応） =================
+// 保存（上書き）
 window.save = async () => {
   const date = document.getElementById("date").value;
   if (!date) return alert("日付を選択");
@@ -51,56 +49,65 @@ window.save = async () => {
     });
   }
 
-  // 🔍 同じ日付を検索
   const q = query(colRef, where("date", "==", date));
   const snap = await getDocs(q);
 
   if (!snap.empty) {
-    // 👉 上書き
-    const docRef = snap.docs[0].ref;
-    await updateDoc(docRef, { data });
-    alert("上書き更新しました！");
+    await updateDoc(snap.docs[0].ref, { data });
+    alert("上書き更新");
   } else {
-    // 👉 新規
     await addDoc(colRef, { date, data });
-    alert("新規保存しました！");
+    alert("新規登録");
   }
 };
 
-// ================= 一覧表示 =================
+// 一覧＋クリック編集
 onSnapshot(colRef, snap => {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   let all = [];
-
-  snap.forEach(doc => {
-    all.push(doc.data());
-  });
-
+  snap.forEach(doc => all.push(doc.data()));
   all.sort((a,b)=>a.date.localeCompare(b.date));
 
   all.forEach(d => {
     const div = document.createElement("div");
-    div.className = "card";
 
     div.innerHTML = `
-      <h3>${d.date}</h3>
-      ${d.data.map(r =>
-        `${r.rank}位 ${r.name || "-"} ${r.score || "-"}<br>`
-      ).join("")}
+      <b>${d.date}</b><br>
+      ${d.data.map(r => `${r.rank}位 ${r.name||"-"}`).join("<br>")}
     `;
+
+    div.onclick = () => loadData(d);
 
     list.appendChild(div);
   });
 });
 
-// ================= CSV取込（上書き対応） =================
+// 編集ロード
+function loadData(d) {
+  document.getElementById("date").value = d.date;
+
+  const names = document.querySelectorAll(".name");
+  const scores = document.querySelectorAll(".score");
+
+  for (let i = 0; i < 15; i++) {
+    names[i].value = "";
+    scores[i].value = "";
+  }
+
+  d.data.forEach(r => {
+    const i = r.rank - 1;
+    names[i].value = r.name || "";
+    scores[i].value = r.score || "";
+  });
+}
+
+// CSV取込（上書き）
 window.importCSV = async () => {
   const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("ファイル選択");
-
   const text = await file.text();
+
   const parsed = Papa.parse(text, { header: true });
 
   const grouped = {};
@@ -122,22 +129,16 @@ window.importCSV = async () => {
     const snap = await getDocs(q);
 
     if (!snap.empty) {
-      // 👉 上書き
-      const docRef = snap.docs[0].ref;
-      await updateDoc(docRef, { data: grouped[date] });
+      await updateDoc(snap.docs[0].ref, { data: grouped[date] });
     } else {
-      // 👉 新規
-      await addDoc(colRef, {
-        date,
-        data: grouped[date]
-      });
+      await addDoc(colRef, { date, data: grouped[date] });
     }
   }
 
-  alert("CSV取込完了（上書き対応）");
+  alert("CSV取込完了");
 };
 
-// ================= CSV出力 =================
+// CSV出力
 window.exportCSV = async () => {
   const snap = await getDocs(colRef);
 
@@ -145,69 +146,90 @@ window.exportCSV = async () => {
 
   snap.forEach(doc => {
     const d = doc.data();
-
     d.data.forEach(r => {
       rows.push(`${d.date},${r.rank},${r.name},${r.score}`);
     });
   });
 
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const blob = new Blob([rows.join("\n")]);
   const a = document.createElement("a");
-
   a.href = URL.createObjectURL(blob);
   a.download = "ranking.csv";
   a.click();
 };
 
-// ================= グラフ =================
-let chart = null;
-
-window.showGraph = async () => {
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-  const player = document.getElementById("player").value;
+// 平均順位
+window.calcAverage = async () => {
+  const start = document.getElementById("avgStart").value;
+  const end = document.getElementById("avgEnd").value;
 
   const snap = await getDocs(colRef);
-
-  const labels = [];
-  const data = [];
+  const map = {};
 
   snap.forEach(doc => {
     const d = doc.data();
 
     if (d.date >= start && d.date <= end) {
-      const found = d.data.find(p => p.name.includes(player));
-      if (found) {
-        labels.push(d.date);
-        data.push(found.rank);
-      }
+      d.data.forEach(p => {
+        if (!p.name) return;
+
+        if (!map[p.name]) map[p.name] = { total:0,count:0 };
+
+        map[p.name].total += Number(p.rank);
+        map[p.name].count++;
+      });
     }
   });
 
-  drawChart(labels, data);
+  const result = Object.entries(map)
+    .map(([name,v])=>`${name}：${(v.total/v.count).toFixed(2)}位`)
+    .join("<br>");
+
+  document.getElementById("avgResult").innerHTML = result;
 };
 
-function drawChart(labels, data) {
-  const ctx = document.getElementById("chart");
+// グラフ
+let chart;
 
-  if (chart) chart.destroy();
+window.showGraph = async () => {
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+  const players = document.getElementById("players").value.split(",");
 
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "順位",
-        data
-      }]
-    },
-    options: {
-      scales: {
-        y: {
-          reverse: true,
-          ticks: { stepSize: 1 }
-        }
-      }
+  const snap = await getDocs(colRef);
+
+  const labels = [];
+  const datasets = {};
+
+  players.forEach(p=>datasets[p.trim()]=[]);
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+
+    if(d.date>=start && d.date<=end){
+      labels.push(d.date);
+
+      players.forEach(p=>{
+        const name = p.trim();
+        const found = d.data.find(x=>x.name===name);
+        datasets[name].push(found?found.rank:null);
+      });
     }
   });
-}
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"),{
+    type:"line",
+    data:{
+      labels,
+      datasets: Object.keys(datasets).map(name=>({
+        label:name,
+        data:datasets[name]
+      }))
+    },
+    options:{
+      scales:{ y:{ reverse:true } }
+    }
+  });
+};
