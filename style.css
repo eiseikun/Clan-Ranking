@@ -32,3 +32,20 @@ body{
   border:none;
   margin-top:5px;
 }
+.playerList{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:10px 0;
+}
+
+.playerList label{
+  background:#eee;
+  padding:5px 8px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.btnRow{
+  margin:5px 0;
+}
