@@ -1,7 +1,3 @@
-
-const db = getFirestore(app);
-const colRef = collection(db, "items");
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs,
