@@ -1,75 +1,53 @@
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: #0f172a;
-  color: #fff;
+body{
+  font-family:sans-serif;
+  background:#f2f4f7;
+  margin:0;
+  padding:20px;
 }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 10px;
+h1{
+  text-align:center;
 }
 
-h1 {
-  text-align: center;
+.box{
+  background:white;
+  padding:15px;
+  margin-bottom:20px;
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* カード */
-.card {
-  background: #1e293b;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
 }
 
-/* テーブル */
-table {
-  width: 100%;
-  border-collapse: collapse;
+td{
+  border:1px solid #ddd;
+  padding:6px;
+  text-align:center;
 }
 
-th, td {
-  padding: 6px;
-  border-bottom: 1px solid #444;
-  text-align: center;
+input{
+  padding:5px;
+  margin:3px;
 }
 
-td input {
-  width: 100%;
-  background: #111;
-  color: #fff;
-  border: none;
-  padding: 5px;
+button{
+  padding:6px 12px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  background:#4CAF50;
+  color:white;
+  cursor:pointer;
 }
 
-/* ボタン */
-button {
-  background: orange;
-  border: none;
-  padding: 8px;
-  margin: 5px;
-  border-radius: 6px;
-  cursor: pointer;
+button:hover{
+  background:#45a049;
 }
 
-/* 一覧 */
-.list {
-  display: flex;
-  overflow-x: auto;
-  gap: 10px;
-}
-
-.list div {
-  min-width: 200px;
-  background: #111;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* グラフ */
-canvas {
-  background: #fff;
-  margin-top: 10px;
+#list .box{
+  cursor:pointer;
 }
