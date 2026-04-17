@@ -1,3 +1,4 @@
+// ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs,
@@ -16,22 +17,18 @@ const db = getFirestore(app);
 const colRef = collection(db,"items");
 const settingRef = doc(db,"settings","global");
 
-// =================
-// テーブル
-// =================
+// ================= テーブル作成 =================
+// 手入力欄（1位〜15位）
 function createTable(data=null){
   const div=document.getElementById("table");
-  if(!data && div.innerHTML!=="") return;
-
   div.innerHTML="";
+
   for(let i=1;i<=15;i++){
     div.innerHTML+=`${i}位 <input id="name${i}" value="${data?.[i-1]?.name||""}"><br>`;
   }
 }
 
-// =================
-// 保存
-// =================
+// ================= 保存 =================
 window.saveData=async()=>{
   const date=document.getElementById("date").value;
   if(!date) return alert("日付必須");
@@ -41,6 +38,7 @@ window.saveData=async()=>{
     data.push({rank:i,name:document.getElementById(`name${i}`).value});
   }
 
+  // 同日削除（上書き）
   const snap=await getDocs(colRef);
   for(const d of snap.docs){
     if(d.data().date===date){
@@ -49,12 +47,11 @@ window.saveData=async()=>{
   }
 
   await addDoc(colRef,{date,data});
+  alert("登録完了");
   init();
 };
 
-// =================
-// 一覧
-// =================
+// ================= 一覧 =================
 async function loadList(){
   const list=document.getElementById("list");
   list.innerHTML="";
@@ -73,12 +70,14 @@ async function loadList(){
       <button class="del">削除</button>
     `;
 
+    // クリックで編集
     div.onclick=e=>{
       if(e.target.classList.contains("del")) return;
       document.getElementById("date").value=d.date;
       createTable(d.data);
     };
 
+    // 削除
     div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
       await deleteDoc(doc(db,"items",d.id));
@@ -89,43 +88,43 @@ async function loadList(){
   });
 }
 
-// =================
-// 平均順位
-// =================
-function calculateAverage() {
-  const start = document.getElementById("avgStart").value;
-  const end = document.getElementById("avgEnd").value;
+// ================= 平均順位 =================
+window.calcAvg = async ()=>{
+  const start = document.getElementById("startAvg").value;
+  const end = document.getElementById("endAvg").value;
 
-  if (!start || !end) return;
+  if (!start || !end) return alert("期間指定してください");
 
-  const dataInRange = allData.filter(d => d.date >= start && d.date <= end);
+  const snap = await getDocs(colRef);
+  const docs = snap.docs.map(d=>d.data())
+    .filter(d=>d.date >= start && d.date <= end);
 
   const map = {};
 
-  dataInRange.forEach(d => {
-    d.ranks.forEach((name, i) => {
-      if (!name) return;
+  docs.forEach(d => {
+    d.data.forEach(p => {
+      if (!p.name) return;
 
-      if (!map[name]) {
-        map[name] = { total: 0, count: 0 };
+      if (!map[p.name]) {
+        map[p.name] = { total: 0, count: 0 };
       }
 
-      map[name].total += (i + 1);
-      map[name].count++;
+      map[p.name].total += p.rank;
+      map[p.name].count++;
     });
   });
 
-  // 平均計算
   let result = Object.entries(map).map(([name, v]) => ({
     name,
-    avg: (v.total / v.count)
+    avg: v.total / v.count
   }));
 
-  // ⭐ ここ重要：平均順位が良い順に並び替え
+  // 昇順（強い順）
   result.sort((a, b) => a.avg - b.avg);
 
   renderAverage(result);
-}
+};
+
 function renderAverage(list) {
   const el = document.getElementById("avgResult");
 
@@ -149,88 +148,18 @@ function renderAverage(list) {
   });
 
   html += "</table>";
-
   el.innerHTML = html;
 }
-// =================
-// プレイヤー
-// =================
-async function loadPlayers(){
-  const snap=await getDocs(colRef);
-  const set=new Set();
 
-  snap.forEach(d=>d.data().data.forEach(p=>set.add(p.name)));
+// ================= CSV取込 =================
+window.importCSV = async ()=>{
+  const file = document.getElementById("csvFile").files[0];
+  if(!file) return alert("ファイル選択して");
 
-  const saved=(await getDoc(settingRef)).data()?.players||[];
+  const text = await file.text();
+  const rows = text.split("\n").slice(1);
 
-  const list=document.getElementById("playerList");
-  list.innerHTML="";
-
-  [...set].sort().forEach(name=>{
-    const checked=saved.length===0||saved.includes(name);
-
-    const label=document.createElement("label");
-    label.innerHTML=`<input type="checkbox" value="${name}" ${checked?"checked":""}>${name}`;
-
-    label.querySelector("input").onchange=saveSelection;
-    list.appendChild(label);
-  });
-}
-
-// =================
-// 保存（共有）
-// =================
-async function saveSelection(){
-  const selected=[...document.querySelectorAll("#playerList input:checked")]
-    .map(cb=>cb.value);
-
-  await setDoc(settingRef,{players:selected});
-}
-
-// =================
-// グラフ
-// =================
-let chart;
-
-window.drawChart=async()=>{
-  const s=document.getElementById("start").value;
-  const e=document.getElementById("end").value;
-
-  const snap=await getDocs(colRef);
-  const docs=snap.docs.map(d=>d.data())
-    .filter(d=>d.date>=s&&d.date<=e)
-    .sort((a,b)=>a.date.localeCompare(b.date));
-
-  const selected=(await getDoc(settingRef)).data()?.players||[];
-
-  const labels=docs.map(d=>d.date);
-
-  const datasets=selected.map(name=>({
-    label:name,
-    data:docs.map(d=>{
-      const p=d.data.find(x=>x.name===name);
-      return p?p.rank:null;
-    }),
-    fill:false
-  }));
-
-  if(chart) chart.destroy();
-
-  chart=new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{labels,datasets},
-    options:{scales:{y:{reverse:true}}}
-  });
-};
-
-// =================
-// CSV複数日
-// =================
-document.getElementById("csvFile").onchange=async e=>{
-  const text=await e.target.files[0].text();
-  const rows=text.split("\n").slice(1);
-
-  const map={};
+  const map = {};
 
   rows.forEach(r=>{
     const [date,rank,name]=r.split(",");
@@ -255,9 +184,15 @@ document.getElementById("csvFile").onchange=async e=>{
   init();
 };
 
-// =================
-// モーダル
-// =================
+// ================= ファイル名表示 =================
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("csvFile").addEventListener("change", e => {
+    const file = e.target.files[0];
+    document.getElementById("fileName").textContent = file ? file.name : "未選択";
+  });
+});
+
+// ================= モーダル =================
 document.getElementById("memberBtn").onclick=()=>{
   document.getElementById("modal").classList.remove("hidden");
 };
@@ -269,23 +204,12 @@ document.getElementById("closeModal").onclick=()=>{
 document.getElementById("selectAll").onchange=e=>{
   document.querySelectorAll("#playerList input")
     .forEach(cb=>cb.checked=e.target.checked);
-  saveSelection();
 };
 
-// =================
-// 初期化
-// =================
+// ================= 初期化 =================
 async function init(){
   await loadList();
-  await loadPlayers();
 }
 
 createTable();
 init();
-
-window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("csvFile").addEventListener("change", e => {
-    const file = e.target.files[0];
-    document.getElementById("fileName").textContent = file ? file.name : "未選択";
-  });
-});
