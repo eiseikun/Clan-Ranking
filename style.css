@@ -133,3 +133,27 @@ h1{
   overflow:auto;
   border-radius:12px;
 }
+.container{
+  max-width:1000px;
+  margin:auto;
+  padding:10px;
+}
+.modalContent{
+  background:#fff;
+  padding:20px;
+  margin:0;
+  width:300px;
+  max-height:70vh;
+  overflow:auto;
+  border-radius:12px;
+
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+#chart{
+  margin-top:15px;
+  width:100%;
+  max-height:400px;
+}
