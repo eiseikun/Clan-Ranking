@@ -1,3 +1,5 @@
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs,
@@ -10,11 +12,12 @@ const app = initializeApp({
   projectId: "clan-ranking-661e3",
 });
 
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const colRef = collection(db, "items");
-
+const settingRef = doc(db, "settings", "global");
 // =====================
 // テーブル生成
 // =====================
