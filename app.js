@@ -1,12 +1,18 @@
-// ================= Firebase初期化 =================
+// =========================
+// 🔥 Firebase 初期化
+// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, setDoc, getDocs,
-  deleteDoc, doc
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
+  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
 };
@@ -16,19 +22,23 @@ const db = getFirestore(app);
 const colRef = collection(db, "items");
 
 
-// ================= 日付処理 =================
-// yyyy/mm/dd ⇄ yyyy-mm-dd 両対応
-const toDate = d => new Date(d.replaceAll("/", "-"));
+// =========================
+// 🗓 日付処理
+// =========================
+const toDate = d => {
+  if (!d) return new Date(0);
+  const parts = d.replaceAll("-", "/").split("/");
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+};
+
 const toSlash = d => d.replaceAll("-", "/");
 
 
-// ================= 入力テーブル =================
+// =========================
+// 🧱 テーブル生成
+// =========================
 function createTable(data = null) {
   const div = document.getElementById("table");
-
-  // ★ CSS対応
-  div.className = "rank-table";
-
   div.innerHTML = "";
 
   for (let i = 1; i <= 15; i++) {
@@ -42,37 +52,40 @@ function createTable(data = null) {
 }
 
 
-// ================= 保存（完全上書き） =================
+// =========================
+// 💾 保存処理（上書き対応）
+// =========================
 window.saveData = async () => {
-  try {
-    let date = document.getElementById("date").value;
-    if (!date) return alert("日付必須");
+  let date = document.getElementById("date").value;
+  if (!date) return alert("日付必須");
 
-    date = toSlash(date);
+  date = toSlash(date);
 
-    const data = [];
-    for (let i = 1; i <= 15; i++) {
-      const name = document.getElementById(`name${i}`).value.trim();
-      data.push({ rank: i, name });
-    }
-
-    // ★ 日付IDで上書き保存
-    await setDoc(doc(db, "items", date), {
-      date,
-      data
-    });
-
-    alert("登録完了");
-
-    await init(); // ★確実に再描画
-  } catch (e) {
-    console.error(e);
-    alert("保存エラー");
+  const data = [];
+  for (let i = 1; i <= 15; i++) {
+    const name = document.getElementById(`name${i}`).value.trim();
+    data.push({ rank: i, name });
   }
+
+  const snap = await getDocs(colRef);
+
+  // 同日削除（統合）
+  for (const d of snap.docs) {
+    if (d.data().date === date) {
+      await deleteDoc(doc(db, "items", d.id));
+    }
+  }
+
+  await addDoc(colRef, { date, data });
+
+  alert("登録完了");
+  init();
 };
 
 
-// ================= 一覧表示 =================
+// =========================
+// 📋 一覧表示
+// =========================
 async function loadList() {
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -80,7 +93,7 @@ async function loadList() {
   const snap = await getDocs(colRef);
 
   const docs = snap.docs
-    .map(d => d.data())
+    .map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -97,7 +110,7 @@ async function loadList() {
       <button class="del">削除</button>
     `;
 
-    // 編集
+    // クリックで編集
     div.onclick = e => {
       if (e.target.classList.contains("del")) return;
 
@@ -108,8 +121,8 @@ async function loadList() {
     // 削除
     div.querySelector(".del").onclick = async e => {
       e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.date));
-      await init();
+      await deleteDoc(doc(db, "items", d.id));
+      init();
     };
 
     list.appendChild(div);
@@ -117,57 +130,9 @@ async function loadList() {
 }
 
 
-// ================= CSV取込 =================
-window.importCSV = async () => {
-  try {
-    const file = document.getElementById("csvFile").files[0];
-    if (!file) return alert("ファイル選択して");
-
-    const text = await file.text();
-
-    // ★ 改行対応（Windows対策）
-    const rows = text.split(/\r?\n/).slice(1);
-
-    const map = {};
-
-    rows.forEach(r => {
-      if (!r.trim()) return;
-
-      const [date, rank, name] = r.split(",");
-
-      if (!date || !rank) return;
-
-      const fixedDate = toSlash(date.trim());
-
-      if (!map[fixedDate]) map[fixedDate] = [];
-
-      map[fixedDate].push({
-        rank: Number(rank),
-        name: name?.trim() || ""
-      });
-    });
-
-    // ★ 日付ごとに上書き
-    for (const date in map) {
-      map[date].sort((a, b) => a.rank - b.rank);
-
-      await setDoc(doc(db, "items", date), {
-        date,
-        data: map[date]
-      });
-    }
-
-    alert("CSV取込完了");
-    await init();
-
-  } catch (e) {
-    console.error(e);
-    alert("CSVエラー");
-  }
-};
-
-
-// ================= 平均順位 =================
+// =========================
+// 📊 平均順位
+// =========================
 window.calcAvg = async () => {
   const start = document.getElementById("startAvg").value;
   const end = document.getElementById("endAvg").value;
@@ -232,7 +197,57 @@ function renderAverage(list) {
 }
 
 
-// ================= グラフ =================
+// =========================
+// 📥 CSV取込
+// =========================
+window.importCSV = async () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return alert("ファイル選択して");
+
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).slice(1);
+
+  const map = {};
+
+  rows.forEach(r => {
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
+
+    const fixedDate = toSlash(date.trim());
+
+    if (!map[fixedDate]) map[fixedDate] = [];
+
+    map[fixedDate].push({
+      rank: Number(rank),
+      name: name?.trim() || ""
+    });
+  });
+
+  const snap = await getDocs(colRef);
+
+  for (const date in map) {
+    for (const d of snap.docs) {
+      if (d.data().date === date) {
+        await deleteDoc(doc(db, "items", d.id));
+      }
+    }
+
+    map[date].sort((a, b) => a.rank - b.rank);
+
+    await addDoc(colRef, {
+      date,
+      data: map[date]
+    });
+  }
+
+  alert("CSV完了");
+  init();
+};
+
+
+// =========================
+// 📈 グラフ
+// =========================
 let chart;
 
 async function getAllData() {
@@ -254,8 +269,6 @@ window.drawChart = async () => {
 
   const selected = [...document.querySelectorAll("#playerList input:checked")]
     .map(cb => cb.value);
-
-  if (selected.length === 0) return alert("メンバー選択して");
 
   const labels = filtered.map(d => d.date);
 
@@ -287,52 +300,9 @@ window.drawChart = async () => {
 };
 
 
-// ================= メンバー選択 =================
-async function buildMemberList() {
-  const data = await getAllData();
-  const set = new Set();
-
-  data.forEach(d => {
-    d.data.forEach(p => {
-      if (p.name) set.add(p.name);
-    });
-  });
-
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
-
-  [...set].sort().forEach(name => {
-    list.innerHTML += `
-      <label>
-        <input type="checkbox" value="${name}" checked>
-        ${name}
-      </label><br>
-    `;
-  });
-}
-
-document.getElementById("memberBtn").onclick = async () => {
-  await buildMemberList();
-  document.getElementById("modal").classList.remove("hidden");
-};
-
-document.getElementById("closeModal").onclick = () => {
-  document.getElementById("modal").classList.add("hidden");
-};
-
-document.getElementById("selectAll").onchange = e => {
-  document.querySelectorAll("#playerList input")
-    .forEach(cb => cb.checked = e.target.checked);
-};
-
-
-// ================= ファイル名表示 =================
-document.getElementById("csvFile").onchange = e => {
-  document.getElementById("fileName").textContent = e.target.files[0]?.name || "未選択";
-};
-
-
-// ================= 初期化 =================
+// =========================
+// 🚀 初期化
+// =========================
 async function init() {
   await loadList();
 }
