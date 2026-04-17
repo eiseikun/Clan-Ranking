@@ -1,214 +1,251 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, deleteDoc, doc
+  getFirestore, collection, addDoc, getDocs,
+  deleteDoc, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const app = initializeApp({
+const firebaseConfig = {
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
-});
+};
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const colRef = collection(db, "items");
 
-// ================= テーブル =================
-function createTable(data = []) {
-  const table = document.getElementById("editTable");
-  table.innerHTML = "";
+const colRef = collection(db,"items");
+const settingRef = doc(db,"settings","global");
 
-  for (let i = 1; i <= 15; i++) {
-    const row = table.insertRow();
-    row.innerHTML = `
-      <td>${i}位</td>
-      <td><input id="name${i}" value="${data[i-1]?.name || ""}"></td>
-    `;
+// =================
+// テーブル
+// =================
+function createTable(data=null){
+  const div=document.getElementById("table");
+  if(!data && div.innerHTML!=="") return;
+
+  div.innerHTML="";
+  for(let i=1;i<=15;i++){
+    div.innerHTML+=`${i}位 <input id="name${i}" value="${data?.[i-1]?.name||""}"><br>`;
   }
 }
-createTable();
 
-// ================= CSV一括取込 =================
-window.importCSV = () => {
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return;
+// =================
+// 保存
+// =================
+window.saveData=async()=>{
+  const date=document.getElementById("date").value;
+  if(!date) return alert("日付必須");
 
-  const reader = new FileReader();
-
-  reader.onload = async e => {
-    const rows = e.target.result.split("\n");
-
-    const map = {};
-
-    rows.forEach(r => {
-      if (!r.trim()) return;
-
-      const [date, rank, name] = r.split(",");
-
-      if (!map[date]) map[date] = [];
-
-      map[date].push({
-        rank: Number(rank),
-        name: name.trim()
-      });
-    });
-
-    // 日付ごと保存
-    for (const date in map) {
-      const snap = await getDocs(colRef);
-
-      for (const d of snap.docs) {
-        if (d.data().date === date) {
-          await deleteDoc(doc(db, "items", d.id));
-        }
-      }
-
-      await addDoc(colRef, {
-        date,
-        data: map[date].sort((a,b)=>a.rank-b.rank)
-      });
-    }
-
-    alert("一括登録完了");
-    loadList();
-  };
-
-  reader.readAsText(file);
-};
-
-// ================= 保存 =================
-window.saveData = async () => {
-  const date = document.getElementById("date").value;
-  if (!date) return;
-
-  const data = [];
-
-  for (let i = 1; i <= 15; i++) {
-    data.push({
-      rank: i,
-      name: document.getElementById(`name${i}`).value
-    });
+  const data=[];
+  for(let i=1;i<=15;i++){
+    data.push({rank:i,name:document.getElementById(`name${i}`).value});
   }
 
-  const snap = await getDocs(colRef);
-
-  for (const d of snap.docs) {
-    if (d.data().date === date) {
-      await deleteDoc(doc(db, "items", d.id));
+  const snap=await getDocs(colRef);
+  for(const d of snap.docs){
+    if(d.data().date===date){
+      await deleteDoc(doc(db,"items",d.id));
     }
   }
 
-  await addDoc(colRef, { date, data });
-
-  loadList();
+  await addDoc(colRef,{date,data});
+  init();
 };
 
-// ================= 一覧 =================
-async function loadList() {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
+// =================
+// 一覧
+// =================
+async function loadList(){
+  const list=document.getElementById("list");
+  list.innerHTML="";
 
-  const snap = await getDocs(colRef);
+  const snap=await getDocs(colRef);
+  const docs=snap.docs.map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>b.date.localeCompare(a.date));
 
-  snap.forEach(d => {
-    const data = d.data();
+  docs.forEach(d=>{
+    const div=document.createElement("div");
+    div.className="card";
 
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <h3>${data.date}</h3>
-      ${data.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
-      <button class="deleteBtn">削除</button>
+    div.innerHTML=`
+      <b>${d.date}</b><br>
+      ${d.data.map(p=>`${p.rank}位 ${p.name}`).join("<br>")}
+      <button class="del">削除</button>
     `;
 
-    div.onclick = e => {
-      if (e.target.classList.contains("deleteBtn")) return;
-      document.getElementById("date").value = data.date;
-      createTable(data.data);
+    div.onclick=e=>{
+      if(e.target.classList.contains("del")) return;
+      document.getElementById("date").value=d.date;
+      createTable(d.data);
     };
 
-    div.querySelector(".deleteBtn").onclick = async e => {
+    div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.id));
-      loadList();
+      await deleteDoc(doc(db,"items",d.id));
+      init();
     };
 
     list.appendChild(div);
   });
 }
-loadList();
 
-// ================= 平均 =================
-window.calcAverage = async () => {
-  const start = document.getElementById("avgStart").value;
-  const end = document.getElementById("avgEnd").value;
+// =================
+// 平均順位
+// =================
+window.calcAvg=async()=>{
+  const s=document.getElementById("startAvg").value;
+  const e=document.getElementById("endAvg").value;
 
-  const snap = await getDocs(colRef);
-  const map = {};
+  const snap=await getDocs(colRef);
 
-  snap.forEach(d => {
-    const data = d.data();
-
-    if (data.date >= start && data.date <= end) {
-      data.data.forEach(p => {
-        if (!map[p.name]) map[p.name] = { total:0,count:0 };
-        map[p.name].total += p.rank;
-        map[p.name].count++;
-      });
-    }
-  });
-
-  const result = Object.entries(map)
-    .map(([n,v])=>`${n}：${(v.total/v.count).toFixed(2)}位`)
-    .join("<br>");
-
-  document.getElementById("avgResult").innerHTML = result;
-};
-
-// ================= グラフ =================
-let chart;
-
-window.showGraph = async () => {
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-  const players = document.getElementById("players").value.split(",");
-
-  const snap = await getDocs(colRef);
-
-  const labels = [];
-  const dataMap = {};
-
-  players.forEach(p=>dataMap[p.trim()]=[]);
+  const map={};
 
   snap.forEach(d=>{
-    const data = d.data();
+    const data=d.data();
+    if(data.date<s||data.date>e) return;
 
-    if (data.date >= start && data.date <= end) {
-      labels.push(data.date);
-
-      players.forEach(p=>{
-        const name = p.trim();
-        const found = data.data.find(x=>x.name===name);
-        dataMap[name].push(found ? found.rank : null);
-      });
-    }
+    data.data.forEach(p=>{
+      if(!map[p.name]) map[p.name]=[];
+      map[p.name].push(p.rank);
+    });
   });
+
+  const result=Object.entries(map)
+    .map(([name,arr])=>{
+      const avg=(arr.reduce((a,b)=>a+b)/arr.length).toFixed(2);
+      return `${name}：${avg}位`;
+    });
+
+  document.getElementById("avgResult").innerHTML=result.join("<br>");
+};
+
+// =================
+// プレイヤー
+// =================
+async function loadPlayers(){
+  const snap=await getDocs(colRef);
+  const set=new Set();
+
+  snap.forEach(d=>d.data().data.forEach(p=>set.add(p.name)));
+
+  const saved=(await getDoc(settingRef)).data()?.players||[];
+
+  const list=document.getElementById("playerList");
+  list.innerHTML="";
+
+  [...set].sort().forEach(name=>{
+    const checked=saved.length===0||saved.includes(name);
+
+    const label=document.createElement("label");
+    label.innerHTML=`<input type="checkbox" value="${name}" ${checked?"checked":""}>${name}`;
+
+    label.querySelector("input").onchange=saveSelection;
+    list.appendChild(label);
+  });
+}
+
+// =================
+// 保存（共有）
+// =================
+async function saveSelection(){
+  const selected=[...document.querySelectorAll("#playerList input:checked")]
+    .map(cb=>cb.value);
+
+  await setDoc(settingRef,{players:selected});
+}
+
+// =================
+// グラフ
+// =================
+let chart;
+
+window.drawChart=async()=>{
+  const s=document.getElementById("start").value;
+  const e=document.getElementById("end").value;
+
+  const snap=await getDocs(colRef);
+  const docs=snap.docs.map(d=>d.data())
+    .filter(d=>d.date>=s&&d.date<=e)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+
+  const selected=(await getDoc(settingRef)).data()?.players||[];
+
+  const labels=docs.map(d=>d.date);
+
+  const datasets=selected.map(name=>({
+    label:name,
+    data:docs.map(d=>{
+      const p=d.data.find(x=>x.name===name);
+      return p?p.rank:null;
+    }),
+    fill:false
+  }));
 
   if(chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("chart"),{
+  chart=new Chart(document.getElementById("chart"),{
     type:"line",
-    data:{
-      labels,
-      datasets:Object.keys(dataMap).map(n=>({
-        label:n,
-        data:dataMap[n]
-      }))
-    },
-    options:{
-      scales:{
-        y:{ reverse:true }
-      }
-    }
+    data:{labels,datasets},
+    options:{scales:{y:{reverse:true}}}
   });
 };
+
+// =================
+// CSV複数日
+// =================
+document.getElementById("csvFile").onchange=async e=>{
+  const text=await e.target.files[0].text();
+  const rows=text.split("\n").slice(1);
+
+  const map={};
+
+  rows.forEach(r=>{
+    const [date,rank,name]=r.split(",");
+    if(!date) return;
+
+    if(!map[date]) map[date]=[];
+    map[date].push({rank:Number(rank),name});
+  });
+
+  const snap=await getDocs(colRef);
+
+  for(const date in map){
+    for(const d of snap.docs){
+      if(d.data().date===date){
+        await deleteDoc(doc(db,"items",d.id));
+      }
+    }
+    await addDoc(colRef,{date,data:map[date]});
+  }
+
+  alert("CSV完了");
+  init();
+};
+
+// =================
+// モーダル
+// =================
+document.getElementById("memberBtn").onclick=()=>{
+  document.getElementById("modal").classList.remove("hidden");
+};
+
+document.getElementById("closeModal").onclick=()=>{
+  document.getElementById("modal").classList.add("hidden");
+};
+
+document.getElementById("selectAll").onchange=e=>{
+  document.querySelectorAll("#playerList input")
+    .forEach(cb=>cb.checked=e.target.checked);
+  saveSelection();
+};
+
+// =================
+// 初期化
+// =================
+async function init(){
+  await loadList();
+  await loadPlayers();
+}
+
+createTable();
+init();
