@@ -309,3 +309,43 @@ async function init() {
 
 createTable();
 init();
+// ================= メンバー一覧生成 =================
+async function buildMemberList(){
+  const data = await getAllData();
+  const set = new Set();
+
+  data.forEach(d=>{
+    d.data.forEach(p=>{
+      if(p.name) set.add(p.name);
+    });
+  });
+
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
+
+  [...set].sort().forEach(name=>{
+    list.innerHTML += `
+      <label>
+        <input type="checkbox" value="${name}" checked>
+        ${name}
+      </label><br>
+    `;
+  });
+}
+
+// ================= モーダル開く =================
+document.getElementById("memberBtn").onclick = async ()=>{
+  await buildMemberList();
+  document.getElementById("modal").classList.remove("hidden");
+};
+
+// ================= モーダル閉じる =================
+document.getElementById("closeModal").onclick = ()=>{
+  document.getElementById("modal").classList.add("hidden");
+};
+
+// ================= 全員チェック =================
+document.getElementById("selectAll").onchange = e=>{
+  document.querySelectorAll("#playerList input")
+    .forEach(cb=>cb.checked = e.target.checked);
+};
