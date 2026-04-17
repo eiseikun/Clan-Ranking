@@ -5,44 +5,37 @@
 <title>順位管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
 </head>
 
 <body>
 
-<h1>📊 順位管理ツール</h1>
+<h1>📊 順位管理</h1>
 
-<!-- 入力 -->
-<div class="card">
+<div class="top">
   <input type="date" id="date">
   <button onclick="saveData()">登録</button>
   <input type="file" id="csvFile">
 </div>
 
-<!-- 入力テーブル -->
 <div id="table"></div>
 
-<!-- 一覧 -->
-<h2>📋 一覧</h2>
+<h2>一覧</h2>
 <div id="list" class="list"></div>
 
-<!-- グラフ -->
-<h2>📈 順位変動</h2>
-
+<h2>グラフ</h2>
 <button id="memberBtn">👥 メンバー選択</button>
 
 <div id="modal" class="modal hidden">
   <div class="modalContent">
-    <h3>表示メンバー</h3>
-    <label><input type="checkbox" id="selectAll"> 全員</label>
+    <label><input type="checkbox" id="selectAll">全員</label>
     <div id="playerList"></div>
     <button id="closeModal">閉じる</button>
   </div>
 </div>
 
 <canvas id="chart"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>
