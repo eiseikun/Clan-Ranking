@@ -61,8 +61,18 @@ async function loadList(){
 
   const snap = await getDocs(colRef);
 
-  const docs = snap.docs
-    .map(d=>({id:d.id,...d.data()}))
+  // 🔥 同日で最新だけ残す
+  const map = {};
+
+  snap.docs.forEach(d=>{
+    const data = d.data();
+    const key = data.date;
+
+    // 後に取得した方を優先（＝最新）
+    map[key] = { id:d.id, ...data };
+  });
+
+  const docs = Object.values(map)
     .sort((a,b)=>toDate(b.date)-toDate(a.date));
 
   docs.forEach(d=>{
