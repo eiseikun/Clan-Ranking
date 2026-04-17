@@ -278,3 +278,4 @@ window.showGraph = async () => {
 
   drawChart(labels, dataMap);
 };
+loadPlayers();
