@@ -249,3 +249,8 @@ async function init(){
 
 createTable();
 init();
+
+document.getElementById("csvFile").addEventListener("change", e => {
+  const file = e.target.files[0];
+  document.getElementById("fileName").textContent = file ? file.name : "未選択";
+});
