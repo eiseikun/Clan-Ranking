@@ -1,12 +1,12 @@
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs,
+  getFirestore, collection, setDoc, getDocs,
   deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
+  apiKey: "AIzaSy...",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
 };
@@ -15,11 +15,14 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db,"items");
 
-// ================= 日付変換 =================
+
+// ================= 日付処理 =================
+// 「2026/04/15」でも「2026-04-15」でも扱えるようにする
 const toDate = d => new Date(d.replaceAll("/","-"));
 const toSlash = d => d.replaceAll("-","/");
 
-// ================= テーブル =================
+
+// ================= 入力テーブル作成 =================
 function createTable(data=null){
   const div=document.getElementById("table");
   div.innerHTML="";
@@ -34,7 +37,8 @@ function createTable(data=null){
   }
 }
 
-// ================= 保存 =================
+
+// ================= 保存（上書き） =================
 window.saveData = async ()=>{
   let date=document.getElementById("date").value;
   if(!date) return alert("日付必須");
@@ -47,7 +51,7 @@ window.saveData = async ()=>{
     data.push({rank:i,name});
   }
 
-  // ★これだけで上書きになる
+  // ★ 日付＝IDで完全上書き
   await setDoc(doc(db,"items",date),{
     date,
     data
@@ -57,7 +61,8 @@ window.saveData = async ()=>{
   init();
 };
 
-// ================= 一覧 =================
+
+// ================= 一覧表示 =================
 async function loadList(){
   const list=document.getElementById("list");
   list.innerHTML="";
@@ -65,7 +70,7 @@ async function loadList(){
   const snap=await getDocs(colRef);
 
   const docs=snap.docs
-    .map(d=>({id:d.id,...d.data()}))
+    .map(d=>d.data())
     .sort((a,b)=>toDate(b.date)-toDate(a.date));
 
   docs.forEach(d=>{
@@ -74,30 +79,30 @@ async function loadList(){
 
     div.innerHTML=`
       <b>${d.date}</b><br>
-      ${d.data
-        .filter(p=>p.name)
-        .map(p=>`${p.rank}位 ${p.name}`)
-        .join("<br>")}
+      ${d.data.filter(p=>p.name)
+        .map(p=>`${p.rank}位 ${p.name}`).join("<br>")}
       <br>
       <button class="del">削除</button>
     `;
 
+    // 編集クリック
     div.onclick=e=>{
       if(e.target.classList.contains("del")) return;
-
       document.getElementById("date").value = d.date.replaceAll("/","-");
       createTable(d.data);
     };
 
+    // 削除
     div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
-      await deleteDoc(doc(db,"items",d.id));
+      await deleteDoc(doc(db,"items",d.date));
       init();
     };
 
     list.appendChild(div);
   });
 }
+
 
 // ================= 平均順位 =================
 window.calcAvg = async ()=>{
@@ -163,7 +168,8 @@ function renderAverage(list){
   el.innerHTML=html;
 }
 
-// ================= CSV =================
+
+// ================= CSV一括登録 =================
 window.importCSV = async ()=>{
   const file=document.getElementById("csvFile").files[0];
   if(!file) return alert("ファイル選択して");
@@ -187,21 +193,20 @@ window.importCSV = async ()=>{
     });
   });
 
-  const snap=await getDocs(colRef);
-
+  // 日付ごとに上書き保存
   for(const date in map){
+    map[date].sort((a,b)=>a.rank-b.rank);
 
-  map[date].sort((a,b)=>a.rank-b.rank);
-
-  await setDoc(doc(db,"items",date),{
-    date,
-    data:map[date]
-  });
-}
+    await setDoc(doc(db,"items",date),{
+      date,
+      data:map[date]
+    });
+  }
 
   alert("CSV完了");
   init();
 };
+
 
 // ================= グラフ =================
 let chart;
@@ -225,6 +230,8 @@ window.drawChart = async ()=>{
 
   const selected=[...document.querySelectorAll("#playerList input:checked")]
     .map(cb=>cb.value);
+
+  if(selected.length===0) return alert("メンバー選択して");
 
   const labels=filtered.map(d=>d.date);
 
@@ -250,14 +257,8 @@ window.drawChart = async ()=>{
   });
 };
 
-// ================= 初期化 =================
-async function init(){
-  await loadList();
-}
 
-createTable();
-init();
-// ================= メンバー一覧生成 =================
+// ================= メンバー選択UI =================
 async function buildMemberList(){
   const data = await getAllData();
   const set = new Set();
@@ -268,8 +269,8 @@ async function buildMemberList(){
     });
   });
 
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
+  const list=document.getElementById("playerList");
+  list.innerHTML="";
 
   [...set].sort().forEach(name=>{
     list.innerHTML += `
@@ -281,19 +282,25 @@ async function buildMemberList(){
   });
 }
 
-// ================= モーダル開く =================
 document.getElementById("memberBtn").onclick = async ()=>{
   await buildMemberList();
   document.getElementById("modal").classList.remove("hidden");
 };
 
-// ================= モーダル閉じる =================
 document.getElementById("closeModal").onclick = ()=>{
   document.getElementById("modal").classList.add("hidden");
 };
 
-// ================= 全員チェック =================
 document.getElementById("selectAll").onchange = e=>{
   document.querySelectorAll("#playerList input")
     .forEach(cb=>cb.checked = e.target.checked);
 };
+
+
+// ================= 初期化 =================
+async function init(){
+  await loadList();
+}
+
+createTable();
+init();
