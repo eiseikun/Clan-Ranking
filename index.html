@@ -4,72 +4,57 @@
 <meta charset="UTF-8">
 <title>順位管理ツール</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="module" src="app.js"></script>
 </head>
-
 <body>
-
-<div class="container">
 
 <h1>🏆 順位管理ツール</h1>
 
-<!-- 登録 -->
-<div class="card">
-<h2>✏️ 登録 / 編集</h2>
+<!-- ================= 登録 ================= -->
+<div class="box">
+  <h2>✏️ 登録 / 編集</h2>
 
-<div class="top-bar">
-<input type="date" id="date">
-<button onclick="save()">登録</button>
+  <input type="date" id="date">
+  <input type="file" id="csvFile">
+
+  <button onclick="loadCSV()">CSV取込</button>
+  <button onclick="saveData()">登録</button>
+
+  <table id="editTable"></table>
 </div>
 
-<table>
-<thead>
-<tr>
-<th>順位</th><th>名前</th><th>スコア</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
+<!-- ================= 一覧 ================= -->
+<div class="box">
+  <h2>📅 日付一覧（クリックで編集）</h2>
+  <div id="list"></div>
 </div>
 
-<!-- CSV -->
-<div class="card">
-<h2>📂 CSV</h2>
-<input type="file" id="csvFile">
-<button onclick="importCSV()">取込</button>
-<button onclick="exportCSV()">出力</button>
+<!-- ================= 平均 ================= -->
+<div class="box">
+  <h2>📊 平均順位</h2>
+
+  <input type="date" id="avgStart">
+  <input type="date" id="avgEnd">
+  <button onclick="calcAverage()">計算</button>
+
+  <div id="avgResult"></div>
 </div>
 
-<!-- 一覧 -->
-<div class="card">
-<h2>📋 日付一覧（クリックで編集）</h2>
-<div id="list" class="list"></div>
+<!-- ================= グラフ ================= -->
+<div class="box">
+  <h2>📈 順位変動グラフ</h2>
+
+  <input type="date" id="start">
+  <input type="date" id="end">
+  <input id="players" placeholder="名前（カンマ区切り）">
+
+  <button onclick="showGraph()">表示</button>
+
+  <canvas id="chart"></canvas>
 </div>
 
-<!-- 平均順位 -->
-<div class="card">
-<h2>📊 平均順位</h2>
-<input type="date" id="avgStart">
-<input type="date" id="avgEnd">
-<button onclick="calcAverage()">計算</button>
-<div id="avgResult"></div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="app.js"></script>
 
-<!-- グラフ -->
-<div class="card">
-<h2>📈 グラフ</h2>
-<input type="date" id="start">
-<input type="date" id="end">
-<input id="players" placeholder="名前をカンマ区切り">
-<button onclick="showGraph()">表示</button>
-<canvas id="chart"></canvas>
-</div>
-
-</div>
 </body>
 </html>
