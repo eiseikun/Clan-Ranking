@@ -171,31 +171,44 @@ window.importCSV = async ()=>{
   const text=await file.text();
   const rows=text.split("\n").slice(1);
 
-  const data=[];
+  const map={};
 
+  // ================= 日付ごとにまとめる =================
   rows.forEach(r=>{
     const [date,rank,name]=r.split(",");
-    if(!rank) return;
+    if(!date || !rank) return;
 
-    data.push({
+    if(!map[date]) map[date]=[];
+
+    map[date].push({
       rank:Number(rank),
       name:name?.trim()||""
     });
   });
 
-  // 順位順
-  data.sort((a,b)=>a.rank-b.rank);
+  const snap=await getDocs(colRef);
 
-  // 入力欄に反映
-  createTable(data);
+  // ================= 日付ごとに登録 =================
+  for(const date in map){
 
-  // 日付セット
-  const firstDate=rows[0]?.split(",")[0];
-  if(firstDate){
-    document.getElementById("date").value=firstDate;
+    // 既存削除（上書き）
+    for(const d of snap.docs){
+      if(d.data().date===date){
+        await deleteDoc(doc(db,"items",d.id));
+      }
+    }
+
+    // 順位順に並べる
+    map[date].sort((a,b)=>a.rank-b.rank);
+
+    await addDoc(colRef,{
+      date,
+      data:map[date]
+    });
   }
 
-  alert("CSVを入力欄に反映しました");
+  alert("CSV一括登録完了");
+  init();
 };
 
 // ================= ファイル名表示 =================
