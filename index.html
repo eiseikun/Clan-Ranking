@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>順位管理</title>
+<title>順位管理ツール</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
@@ -16,63 +16,60 @@
 
 <div class="container">
 
-  <h1>🏆 順位管理ツール</h1>
+<h1>🏆 順位管理ツール</h1>
 
-  <!-- 入力エリア -->
-  <div class="card">
-    <h2>✏️ 入力</h2>
+<!-- 登録 -->
+<div class="card">
+<h2>✏️ 登録 / 編集</h2>
 
-    <div class="top-bar">
-      <input type="date" id="date">
-      <button onclick="save()">保存</button>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>順位</th>
-            <th>名前</th>
-            <th>スコア</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CSV -->
-  <div class="card">
-    <h2>📂 CSV</h2>
-
-    <div class="csv-row">
-      <input type="file" id="csvFile">
-      <button onclick="importCSV()">取込</button>
-      <button onclick="exportCSV()">出力</button>
-    </div>
-  </div>
-
-  <!-- 一覧 -->
-  <div class="card">
-    <h2>📋 記録一覧</h2>
-    <div id="list" class="list"></div>
-  </div>
-
-  <!-- グラフ -->
-  <div class="card">
-    <h2>📈 グラフ</h2>
-
-    <div class="graph-bar">
-      <input type="date" id="start">
-      <input type="date" id="end">
-      <input id="player" placeholder="名前">
-      <button onclick="showGraph()">表示</button>
-    </div>
-
-    <canvas id="chart"></canvas>
-  </div>
-
+<div class="top-bar">
+<input type="date" id="date">
+<button onclick="save()">登録</button>
 </div>
 
+<table>
+<thead>
+<tr>
+<th>順位</th><th>名前</th><th>スコア</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<!-- CSV -->
+<div class="card">
+<h2>📂 CSV</h2>
+<input type="file" id="csvFile">
+<button onclick="importCSV()">取込</button>
+<button onclick="exportCSV()">出力</button>
+</div>
+
+<!-- 一覧 -->
+<div class="card">
+<h2>📋 日付一覧（クリックで編集）</h2>
+<div id="list" class="list"></div>
+</div>
+
+<!-- 平均順位 -->
+<div class="card">
+<h2>📊 平均順位</h2>
+<input type="date" id="avgStart">
+<input type="date" id="avgEnd">
+<button onclick="calcAverage()">計算</button>
+<div id="avgResult"></div>
+</div>
+
+<!-- グラフ -->
+<div class="card">
+<h2>📈 グラフ</h2>
+<input type="date" id="start">
+<input type="date" id="end">
+<input id="players" placeholder="名前をカンマ区切り">
+<button onclick="showGraph()">表示</button>
+<canvas id="chart"></canvas>
+</div>
+
+</div>
 </body>
 </html>
