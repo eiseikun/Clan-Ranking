@@ -95,27 +95,39 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  snap.forEach(doc => {
-    const d = doc.data();
+  snap.forEach(d => {
+    const data = d.data();
 
     const div = document.createElement("div");
-    div.className = "box";
+    div.className = "card";
 
     div.innerHTML = `
-      <h3>${d.date}</h3>
-      ${d.data.map(p => `${p.rank}位 ${p.name} ${p.score}`).join("<br>")}
+      <h3>${data.date}</h3>
+      ${data.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
+      <button class="deleteBtn">削除</button>
     `;
 
-    div.onclick = () => {
-      document.getElementById("date").value = d.date;
-      createTable(d.data);
+    // 編集
+    div.onclick = (e) => {
+      if (e.target.classList.contains("deleteBtn")) return;
+
+      document.getElementById("date").value = data.date;
+      createTable(data.data);
+    };
+
+    // 削除
+    div.querySelector(".deleteBtn").onclick = async (e) => {
+      e.stopPropagation();
+
+      if (!confirm("削除しますか？")) return;
+
+      await deleteDoc(doc(db, "items", d.id));
+      loadList();
     };
 
     list.appendChild(div);
   });
 }
-
-loadList();
 
 // ================= 平均順位 =================
 window.calcAverage = async () => {
