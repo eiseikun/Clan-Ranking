@@ -234,3 +234,120 @@ async function init(){
 
 createTable();
 init();
+// ================= グラフ用データ取得 =================
+async function getAllData(){
+  const snap = await getDocs(colRef);
+
+  return snap.docs
+    .map(d => d.data())
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// ================= メンバー一覧生成 =================
+async function buildMemberList(){
+  const data = await getAllData();
+  const set = new Set();
+
+  data.forEach(d=>{
+    d.data.forEach(p=>{
+      if(p.name) set.add(p.name);
+    });
+  });
+
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
+
+  [...set].sort().forEach(name=>{
+    list.innerHTML += `
+      <label>
+        <input type="checkbox" value="${name}" checked>
+        ${name}
+      </label><br>
+    `;
+  });
+}
+
+// ================= グラフ描画 =================
+let chart;
+
+window.drawChart = async ()=>{
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
+
+  if(!start || !end) return alert("期間指定して");
+
+  const allData = await getAllData();
+
+  // 期間フィルタ
+  const filtered = allData.filter(d=>d.date>=start && d.date<=end);
+
+  // 選択メンバー
+  const selected = [...document.querySelectorAll("#playerList input:checked")]
+    .map(cb=>cb.value);
+
+  if(selected.length === 0) return alert("メンバー選択して");
+
+  // 日付ラベル
+  const labels = filtered.map(d=>d.date);
+
+  // データセット作成
+  const datasets = selected.map((name,idx)=>{
+    const color = `hsl(${idx*60},70%,50%)`;
+
+    return {
+      label: name,
+      data: filtered.map(d=>{
+        const found = d.data.find(p=>p.name===name);
+        return found ? found.rank : null;
+      }),
+      borderColor: color,
+      backgroundColor: color,
+      spanGaps: true,
+      tension: 0.2
+    };
+  });
+
+  // 既存グラフ削除
+  if(chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins:{
+        legend:{
+          position:"bottom"
+        }
+      },
+      scales:{
+        y:{
+          reverse: true, // ★順位は上が1位
+          ticks:{
+            stepSize:1
+          }
+        }
+      }
+    }
+  });
+};
+
+// ================= モーダル開いた時にリスト生成 =================
+document.getElementById("memberBtn").onclick = async ()=>{
+  await buildMemberList();
+  document.getElementById("modal").classList.remove("hidden");
+};
+
+// ================= モーダル閉じる =================
+document.getElementById("closeModal").onclick = ()=>{
+  document.getElementById("modal").classList.add("hidden");
+};
+
+// ================= 全員チェック =================
+document.getElementById("selectAll").onchange = e=>{
+  document.querySelectorAll("#playerList input")
+    .forEach(cb=>cb.checked = e.target.checked);
+};
