@@ -1,10 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, onSnapshot, getDocs,
-  query, where, updateDoc
+  getFirestore, collection, addDoc, getDocs, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase
+// ================= Firebase =================
 const app = initializeApp({
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
@@ -14,151 +13,111 @@ const app = initializeApp({
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// テーブル初期化
-function initTable() {
-  const tbody = document.getElementById("tbody");
-  tbody.innerHTML = "";
+// ================= 編集テーブル =================
+function createTable(data = []) {
+  const table = document.getElementById("editTable");
+  table.innerHTML = "";
 
   for (let i = 1; i <= 15; i++) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i}</td>
-      <td><input class="name"></td>
-      <td><input class="score"></td>
+    const row = table.insertRow();
+
+    row.innerHTML = `
+      <td>${i}位</td>
+      <td><input id="name${i}" value="${data[i-1]?.name || ""}"></td>
+      <td><input id="score${i}" value="${data[i-1]?.score || ""}"></td>
     `;
-    tbody.appendChild(tr);
   }
 }
-initTable();
 
-// 保存（上書き）
-window.save = async () => {
+createTable();
+
+// ================= CSV取込 =================
+window.loadCSV = () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    const rows = e.target.result.split("\n");
+    const data = [];
+
+    rows.forEach(row => {
+      const cols = row.split(",");
+      if (cols.length >= 3) {
+        data.push({
+          rank: cols[0].replace("位",""),
+          name: cols[1],
+          score: cols[2]
+        });
+      }
+    });
+
+    createTable(data);
+  };
+
+  reader.readAsText(file);
+};
+
+// ================= 保存（上書き） =================
+window.saveData = async () => {
   const date = document.getElementById("date").value;
-  if (!date) return alert("日付を選択");
-
-  const names = document.querySelectorAll(".name");
-  const scores = document.querySelectorAll(".score");
+  if (!date) return alert("日付必須");
 
   const data = [];
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 1; i <= 15; i++) {
     data.push({
-      rank: i + 1,
-      name: names[i].value,
-      score: scores[i].value
+      rank: i,
+      name: document.getElementById(`name${i}`).value,
+      score: document.getElementById(`score${i}`).value
     });
   }
 
-  const q = query(colRef, where("date", "==", date));
-  const snap = await getDocs(q);
+  const snap = await getDocs(colRef);
 
-  if (!snap.empty) {
-    await updateDoc(snap.docs[0].ref, { data });
-    alert("上書き更新");
-  } else {
-    await addDoc(colRef, { date, data });
-    alert("新規登録");
-  }
-};
-
-// 一覧＋クリック編集
-onSnapshot(colRef, snap => {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  let all = [];
-  snap.forEach(doc => all.push(doc.data()));
-  all.sort((a,b)=>a.date.localeCompare(b.date));
-
-  all.forEach(d => {
-    const div = document.createElement("div");
-
-    div.innerHTML = `
-      <b>${d.date}</b><br>
-      ${d.data.map(r => `${r.rank}位 ${r.name||"-"}`).join("<br>")}
-    `;
-
-    div.onclick = () => loadData(d);
-
-    list.appendChild(div);
-  });
-});
-
-// 編集ロード
-function loadData(d) {
-  document.getElementById("date").value = d.date;
-
-  const names = document.querySelectorAll(".name");
-  const scores = document.querySelectorAll(".score");
-
-  for (let i = 0; i < 15; i++) {
-    names[i].value = "";
-    scores[i].value = "";
-  }
-
-  d.data.forEach(r => {
-    const i = r.rank - 1;
-    names[i].value = r.name || "";
-    scores[i].value = r.score || "";
-  });
-}
-
-// CSV取込（上書き）
-window.importCSV = async () => {
-  const file = document.getElementById("csvFile").files[0];
-  const text = await file.text();
-
-  const parsed = Papa.parse(text, { header: true });
-
-  const grouped = {};
-
-  parsed.data.forEach(r => {
-    if (!r.date) return;
-
-    if (!grouped[r.date]) grouped[r.date] = [];
-
-    grouped[r.date].push({
-      rank: Number(r.rank),
-      name: r.name,
-      score: r.score
-    });
-  });
-
-  for (const date in grouped) {
-    const q = query(colRef, where("date", "==", date));
-    const snap = await getDocs(q);
-
-    if (!snap.empty) {
-      await updateDoc(snap.docs[0].ref, { data: grouped[date] });
-    } else {
-      await addDoc(colRef, { date, data: grouped[date] });
+  for (const d of snap.docs) {
+    if (d.data().date === date) {
+      await deleteDoc(doc(db, "items", d.id));
     }
   }
 
-  alert("CSV取込完了");
+  await addDoc(colRef, { date, data });
+
+  alert("保存完了");
+  loadList();
 };
 
-// CSV出力
-window.exportCSV = async () => {
-  const snap = await getDocs(colRef);
+// ================= 一覧 =================
+async function loadList() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
 
-  let rows = ["date,rank,name,score"];
+  const snap = await getDocs(colRef);
 
   snap.forEach(doc => {
     const d = doc.data();
-    d.data.forEach(r => {
-      rows.push(`${d.date},${r.rank},${r.name},${r.score}`);
-    });
+
+    const div = document.createElement("div");
+    div.className = "box";
+
+    div.innerHTML = `
+      <h3>${d.date}</h3>
+      ${d.data.map(p => `${p.rank}位 ${p.name} ${p.score}`).join("<br>")}
+    `;
+
+    div.onclick = () => {
+      document.getElementById("date").value = d.date;
+      createTable(d.data);
+    };
+
+    list.appendChild(div);
   });
+}
 
-  const blob = new Blob([rows.join("\n")]);
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "ranking.csv";
-  a.click();
-};
+loadList();
 
-// 平均順位
+// ================= 平均順位 =================
 window.calcAverage = async () => {
   const start = document.getElementById("avgStart").value;
   const end = document.getElementById("avgEnd").value;
@@ -173,7 +132,9 @@ window.calcAverage = async () => {
       d.data.forEach(p => {
         if (!p.name) return;
 
-        if (!map[p.name]) map[p.name] = { total:0,count:0 };
+        if (!map[p.name]) {
+          map[p.name] = { total: 0, count: 0 };
+        }
 
         map[p.name].total += Number(p.rank);
         map[p.name].count++;
@@ -182,13 +143,17 @@ window.calcAverage = async () => {
   });
 
   const result = Object.entries(map)
-    .map(([name,v])=>`${name}：${(v.total/v.count).toFixed(2)}位`)
-    .join("<br>");
+    .map(([name, v]) => ({
+      name,
+      avg: (v.total / v.count).toFixed(2)
+    }))
+    .sort((a,b)=>a.avg - b.avg);
 
-  document.getElementById("avgResult").innerHTML = result;
+  document.getElementById("avgResult").innerHTML =
+    result.map(r => `${r.name}：${r.avg}位`).join("<br>");
 };
 
-// グラフ
+// ================= グラフ =================
 let chart;
 
 window.showGraph = async () => {
@@ -199,37 +164,50 @@ window.showGraph = async () => {
   const snap = await getDocs(colRef);
 
   const labels = [];
-  const datasets = {};
+  const dataMap = {};
 
-  players.forEach(p=>datasets[p.trim()]=[]);
+  players.forEach(p => dataMap[p.trim()] = []);
 
-  snap.forEach(doc=>{
+  snap.forEach(doc => {
     const d = doc.data();
 
-    if(d.date>=start && d.date<=end){
+    if (d.date >= start && d.date <= end) {
       labels.push(d.date);
 
-      players.forEach(p=>{
+      players.forEach(p => {
         const name = p.trim();
-        const found = d.data.find(x=>x.name===name);
-        datasets[name].push(found?found.rank:null);
+        const found = d.data.find(x => x.name === name);
+        dataMap[name].push(found ? found.rank : null);
       });
     }
   });
 
-  if(chart) chart.destroy();
+  drawChart(labels, dataMap);
+};
 
-  chart = new Chart(document.getElementById("chart"),{
-    type:"line",
-    data:{
+function drawChart(labels, dataMap) {
+  const ctx = document.getElementById("chart");
+
+  if (chart) chart.destroy();
+
+  const datasets = Object.keys(dataMap).map(name => ({
+    label: name,
+    data: dataMap[name]
+  }));
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
       labels,
-      datasets: Object.keys(datasets).map(name=>({
-        label:name,
-        data:datasets[name]
-      }))
+      datasets
     },
-    options:{
-      scales:{ y:{ reverse:true } }
+    options: {
+      scales: {
+        y: {
+          reverse: true,
+          ticks: { stepSize: 1 }
+        }
+      }
     }
   });
-};
+}
