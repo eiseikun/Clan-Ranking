@@ -8,13 +8,14 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
-
 </head>
 
 <body>
+<div class="container">
+
 <h1>🏆 順位管理（順位のみ）</h1>
 
-<!-- ================= CSV ================= -->
+<!-- CSV -->
 <div class="box">
   <h2>CSV一括取込</h2>
   <input type="file" id="csvFile" accept=".csv" hidden>
@@ -23,7 +24,7 @@
   <button onclick="importCSV()">取込</button>
 </div>
 
-<!-- ================= 手動入力 ================= -->
+<!-- 手動 -->
 <div class="box">
   <h2>✏️ 手動編集</h2>
   <input type="date" id="date">
@@ -31,13 +32,13 @@
   <div id="table"></div>
 </div>
 
-<!-- ================= 一覧 ================= -->
+<!-- 一覧 -->
 <div class="box">
   <h2>📋 一覧</h2>
   <div id="list" class="list"></div>
 </div>
 
-<!-- ================= 平均 ================= -->
+<!-- 平均 -->
 <div class="box">
   <h2>📊 平均順位</h2>
   <input type="date" id="startAvg">
@@ -46,17 +47,16 @@
   <div id="avgResult"></div>
 </div>
 
-<!-- ================= グラフ ================= -->
+<!-- グラフ -->
 <div class="box">
   <h2>📈 グラフ</h2>
 
   <input type="date" id="start">
   <input type="date" id="end">
 
-  <button id="memberBtn">メンバーを選択</button>
+  <button id="memberBtn">メンバー選択</button>
   <button onclick="drawChart()">表示</button>
 
-  <!-- モーダル -->
   <div id="modal" class="modal hidden">
     <div class="modalContent">
       <label><input type="checkbox" id="selectAll"> 全員</label>
@@ -68,5 +68,6 @@
   <canvas id="chart"></canvas>
 </div>
 
+</div>
 </body>
 </html>
