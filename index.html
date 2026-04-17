@@ -3,39 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <title>順位管理</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="module" src="app.js"></script>
 </head>
-
 <body>
 
-<h1>📊 順位管理</h1>
+<h1>🏆 順位管理（順位のみ）</h1>
 
-<div class="top">
+<div class="box">
+  <h2>CSV一括取込</h2>
+  <input type="file" id="csvFile">
+  <button onclick="importCSV()">取込</button>
+</div>
+
+<div class="box">
+  <h2>✏️ 手動編集</h2>
   <input type="date" id="date">
   <button onclick="saveData()">登録</button>
-  <input type="file" id="csvFile">
+  <table id="editTable"></table>
 </div>
 
-<div id="table"></div>
-
-<h2>一覧</h2>
-<div id="list" class="list"></div>
-
-<h2>グラフ</h2>
-<button id="memberBtn">👥 メンバー選択</button>
-
-<div id="modal" class="modal hidden">
-  <div class="modalContent">
-    <label><input type="checkbox" id="selectAll">全員</label>
-    <div id="playerList"></div>
-    <button id="closeModal">閉じる</button>
-  </div>
+<div class="box">
+  <h2>📅 一覧</h2>
+  <div id="list" class="horizontal"></div>
 </div>
 
-<canvas id="chart"></canvas>
+<div class="box">
+  <h2>📊 平均順位</h2>
+  <input type="date" id="avgStart">
+  <input type="date" id="avgEnd">
+  <button onclick="calcAverage()">計算</button>
+  <div id="avgResult"></div>
+</div>
 
+<div class="box">
+  <h2>📈 グラフ</h2>
+  <input type="date" id="start">
+  <input type="date" id="end">
+  <input id="players" placeholder="名前（カンマ区切り）">
+  <button onclick="showGraph()">表示</button>
+  <canvas id="chart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
