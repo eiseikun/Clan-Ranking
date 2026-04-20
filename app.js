@@ -11,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCzbAnlP-XRNZe210GEyVevFskajxUI",
+  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskajxUI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
 };
@@ -21,15 +21,13 @@ const db = getFirestore(app);
 const colRef = collection(db, "items");
 
 let chart;
-
-// ================= 状態（CSVバッファ） =================
 let csvBuffer = {};
 
 // ================= 共通 =================
 const toDate = d => new Date(d);
 const toSlash = d => d.replaceAll("-", "/");
 
-// ================= 保存（共通コア） =================
+// ================= 保存コア（最重要） =================
 async function saveByDate(date, data) {
   await setDoc(doc(db, "items", date), {
     date,
@@ -37,8 +35,9 @@ async function saveByDate(date, data) {
   });
 }
 
-// ================= テーブル =================
+// ================= 手動入力 =================
 function createTable(data = null) {
+
   const div = document.getElementById("table");
   div.innerHTML = "";
 
@@ -52,7 +51,7 @@ function createTable(data = null) {
   }
 }
 
-// ================= 手動入力（バッファ化） =================
+// ★必須：windowに公開
 window.saveData = async () => {
 
   const date = document.getElementById("date").value;
@@ -65,55 +64,12 @@ window.saveData = async () => {
     data.push({ rank: i, name });
   }
 
-  // 🔥 即保存（上書き）
   await saveByDate(toSlash(date), data);
 
   init();
 };
 
-// ================= CSV読み込み（まだ保存しない） =================
-window.importCSV = async () => {
-
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("ファイル選択して");
-
-  const text = await file.text();
-  const rows = text.split(/\r?\n/).slice(1);
-
-  csvBuffer = {}; // 初期化
-
-  rows.forEach(r => {
-    const [date, rank, name] = r.split(",");
-    if (!date || !rank) return;
-
-    const d = toSlash(date.trim());
-
-    if (!csvBuffer[d]) csvBuffer[d] = [];
-
-    csvBuffer[d].push({
-      rank: Number(rank),
-      name: name?.trim() || ""
-    });
-  });
-
-  alert("CSV読み込み完了（未保存）");
-};
-
-// ================= CSV保存ボタン（追加） =================
-window.commitCSV = async () => {
-
-  for (const date in csvBuffer) {
-
-    csvBuffer[date].sort((a, b) => a.rank - b.rank);
-
-    await saveByDate(date, csvBuffer[date]);
-  }
-
-  csvBuffer = {};
-  init();
-};
-
-// ================= 一覧 =================
+// ================= 一覧（削除のみ） =================
 async function loadList() {
 
   const snap = await getDocs(colRef);
@@ -132,24 +88,73 @@ async function loadList() {
     div.innerHTML = `
       <b>${d.date}</b><br>
       ${d.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
+      <br>
+      <button class="del">削除</button>
     `;
 
-    // ❌ 編集なし（要件通り）
+    div.querySelector(".del").onclick = async (e) => {
+      e.stopPropagation();
+      await deleteDoc(doc(db, "items", d.date));
+      init();
+    };
+
     list.appendChild(div);
   });
 }
 
-// ================= 平均順位 =================
+// ================= CSV読み込み（バッファ） =================
+window.importCSV = async () => {
+
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).slice(1);
+
+  csvBuffer = {};
+
+  rows.forEach(r => {
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
+
+    const d = toSlash(date.trim());
+
+    if (!csvBuffer[d]) csvBuffer[d] = [];
+
+    csvBuffer[d].push({
+      rank: Number(rank),
+      name: name?.trim() || ""
+    });
+  });
+
+  alert("CSV読み込み完了");
+};
+
+// ================= CSV保存 =================
+window.commitCSV = async () => {
+
+  for (const date in csvBuffer) {
+
+    csvBuffer[date].sort((a, b) => a.rank - b.rank);
+
+    await saveByDate(date, csvBuffer[date]);
+  }
+
+  csvBuffer = {};
+  init();
+};
+
+// ================= 平均 =================
 window.calcAvg = async () => {
 
   const start = document.getElementById("startAvg").value;
   const end = document.getElementById("endAvg").value;
 
-  if (!start || !end) return alert("期間指定");
+  if (!start || !end) return;
 
   const snap = await getDocs(colRef);
 
-  const docs = snap.docs
+  const data = snap.docs
     .map(d => d.data())
     .filter(d =>
       toDate(d.date) >= toDate(start) &&
@@ -158,7 +163,7 @@ window.calcAvg = async () => {
 
   const map = {};
 
-  docs.forEach(d => {
+  data.forEach(d => {
     d.data.forEach(p => {
       if (!p.name) return;
 
@@ -176,20 +181,10 @@ window.calcAvg = async () => {
     }))
     .sort((a, b) => a.avg - b.avg);
 
-  const el = document.getElementById("avgResult");
-
-  el.innerHTML = `
-    <table>
-      <tr><th>順位</th><th>名前</th><th>平均</th></tr>
-      ${result.map((r, i) =>
-        `<tr>
-          <td>${i + 1}</td>
-          <td>${r.name}</td>
-          <td>${r.avg.toFixed(2)}</td>
-        </tr>`
-      ).join("")}
-    </table>
-  `;
+  document.getElementById("avgResult").innerHTML =
+    result.map((r, i) =>
+      `${i + 1}. ${r.name} (${r.avg.toFixed(2)})`
+    ).join("<br>");
 };
 
 // ================= グラフ =================
@@ -197,9 +192,6 @@ window.drawChart = async () => {
 
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
-
-  const selected = [...document.querySelectorAll("#playerList input:checked")]
-    .map(cb => cb.value);
 
   const snap = await getDocs(colRef);
 
@@ -213,7 +205,10 @@ window.drawChart = async () => {
 
   const labels = docs.map(d => d.date);
 
-  const datasets = selected.map((name, i) => ({
+  const members = [...document.querySelectorAll("#playerList input:checked")]
+    .map(cb => cb.value);
+
+  const datasets = members.map((name, i) => ({
     label: name,
     data: docs.map(d => {
       const f = d.data.find(p => p.name === name);
