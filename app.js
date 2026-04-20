@@ -78,9 +78,20 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  const docs = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => toDate(b.date) - toDate(a.date));
+  const allDocs = snap.docs.map(d => ({
+  id: d.id,
+  ...d.data()
+}));
+
+// 日付ごとに「最後の1件だけ残す」
+const map = new Map();
+
+allDocs.forEach(d => {
+  map.set(d.date, d); // 後に来たものが上書きされる
+});
+
+const docs = [...map.values()]
+  .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
     const div = document.createElement("div");
