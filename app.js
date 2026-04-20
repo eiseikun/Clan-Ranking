@@ -1,14 +1,12 @@
-
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
-  addDoc,
   getDocs,
-  deleteDoc,
+  setDoc,
   doc,
-  updateDoc
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -26,6 +24,16 @@ let chart;
 // ================= 共通 =================
 const toDate = d => new Date(d);
 
+// ================= ドキュメント保存（核心） =================
+async function saveByDate(date, data) {
+  const id = date; // ★ここが最重要（＝日付がID）
+
+  await setDoc(doc(db, "items", id), {
+    date,
+    data
+  });
+}
+
 // ================= 手動入力UI =================
 function createTable(data = null) {
   const div = document.getElementById("table");
@@ -41,7 +49,7 @@ function createTable(data = null) {
   }
 }
 
-// ================= 保存（手動） =================
+// ================= 手動保存 =================
 async function saveData() {
 
   const date = document.getElementById("date").value;
@@ -54,27 +62,7 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  // =========================
-  // 🔥 既存チェック
-  // =========================
-  const snap = await getDocs(colRef);
-
-  const existing = snap.docs.find(d => d.data().date === date);
-
-  if (existing) {
-
-    await updateDoc(doc(db, "items", existing.id), {
-      date,
-      data
-    });
-
-  } else {
-
-    await addDoc(colRef, {
-      date,
-      data
-    });
-  }
+  await saveByDate(date, data);
 
   init();
 }
@@ -85,7 +73,7 @@ async function loadList() {
   const snap = await getDocs(colRef);
 
   const data = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
+    .map(d => d.data())
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const list = document.getElementById("list");
@@ -98,11 +86,13 @@ async function loadList() {
     div.innerHTML = `
       <b>${d.date}</b><br>
       ${d.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
-      <br><button onclick="remove('${d.id}')">削除</button>
+      <br>
+      <button onclick="remove('${d.date}')">削除</button>
     `;
 
     div.onclick = e => {
       if (e.target.tagName === "BUTTON") return;
+
       document.getElementById("date").value = d.date;
       createTable(d.data);
     };
@@ -112,19 +102,20 @@ async function loadList() {
 }
 
 // ================= 削除 =================
-window.remove = async (id) => {
-  await deleteDoc(doc(db, "items", id));
+window.remove = async (date) => {
+  if (!confirm("削除しますか？")) return;
+
+  await deleteDoc(doc(db, "items", date));
   init();
 };
 
-// ================= CSV（複数日OK） =================
+// ================= CSV（完全統一） =================
 document.getElementById("csvBtn").onclick = async () => {
 
   const file = document.getElementById("csvFile").files[0];
   if (!file) return;
 
   const text = await file.text();
-
   const lines = text.split(/\r?\n/).filter(Boolean);
 
   const grouped = {};
@@ -141,32 +132,12 @@ document.getElementById("csvBtn").onclick = async () => {
     }));
   }
 
-  // =========================
-  // 🔥 ここが差し替え本体
-  // =========================
-  const snap = await getDocs(colRef);
-  const existingList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
   for (const [date, data] of Object.entries(grouped)) {
-
-    const existing = existingList.find(d => d.date === date);
-
-    if (existing) {
-      await updateDoc(doc(db, "items", existing.id), {
-        date,
-        data
-      });
-    } else {
-      await addDoc(colRef, {
-        date,
-        data
-      });
-    }
+    await saveByDate(date, data); // ★完全統一
   }
 
   init();
 };
-
 
 // ================= 平均順位 =================
 document.getElementById("avgBtn").onclick = async () => {
@@ -192,7 +163,7 @@ document.getElementById("avgBtn").onclick = async () => {
     });
   });
 
-  let html = "<table><tr><th>名前</th><th>平均</th></tr>";
+  let html = "<table><tr><th>名前</th><th>平均順位</th></tr>";
 
   for (const [name, v] of Object.entries(map)) {
     html += `<tr><td>${name}</td><td>${(v.sum / v.count).toFixed(2)}</td></tr>`;
