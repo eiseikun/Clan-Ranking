@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, getDocs, deleteDoc, doc,setDoc
+  getFirestore, collection, getDocs, deleteDoc, doc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14,45 +14,47 @@ const db = getFirestore(app);
 const colRef = collection(db, "items");
 
 // 日付
+const toSlash = d => d.replaceAll("-", "/");
 const toDate = d => {
   const [y,m,day] = d.replaceAll("-", "/").split("/");
   return new Date(Number(y), Number(m)-1, Number(day));
 };
 
 // テーブル
-function createTable(data=null){
+function createTable(data=[]){
   const div = document.getElementById("table");
   div.innerHTML="";
   for(let i=1;i<=15;i++){
     div.innerHTML+=`
-      <div>${i}位 <input id="name${i}" value="${data?.[i-1]?.name||""}"></div>
+      <div>${i}位 <input id="name${i}" value="${data[i-1]?.name || ""}"></div>
     `;
   }
 }
 
-// 保存（同日上書き）
+// 保存
 window.saveData = async ()=>{
-  let date = document.getElementById("date").value;
-  if(!date) return alert("日付必須");
+  try{
+    let date = document.getElementById("date").value;
+    if(!date) return alert("日付必須");
 
-  date = toSlash(date);
+    date = toSlash(date);
 
-  const data=[];
-  for(let i=1;i<=15;i++){
-    data.push({
-      rank:i,
-      name:document.getElementById(`name${i}`).value.trim()
-    });
+    const data=[];
+    for(let i=1;i<=15;i++){
+      data.push({
+        rank:i,
+        name:document.getElementById(`name${i}`).value.trim()
+      });
+    }
+
+    await setDoc(doc(db,"items",date), { date, data });
+
+    alert("登録完了");
+    init();
+  }catch(e){
+    console.error(e);
+    alert("保存エラー");
   }
-
-  // 🔥 ここが最強
-  await setDoc(doc(db,"items",date), {
-    date,
-    data
-  });
-
-  alert("登録完了");
-  init();
 };
 
 // 一覧
@@ -60,50 +62,48 @@ async function loadList(){
   const list=document.getElementById("list");
   list.innerHTML="";
 
-  const snap = await getDocs(colRef);
+  try{
+    const snap = await getDocs(colRef);
 
-  const docs = snap.docs
-    .map(d=>d.data())
-    .sort((a,b)=>{
-      const da = toDate(a.date);
-      const db = toDate(b.date);
-      return db - da;
+    const docs = snap.docs
+      .map(d=>d.data())
+      .filter(d=>d && d.date)
+      .sort((a,b)=>toDate(b.date)-toDate(a.date));
+
+    docs.forEach(d=>{
+      const div=document.createElement("div");
+      div.className="card";
+
+      const players = (d.data || [])
+        .filter(p=>p.name)
+        .map(p=>`${p.rank}位 ${p.name}`)
+        .join("<br>");
+
+      div.innerHTML=`
+        <b>${d.date}</b><br>
+        ${players}
+        <br><button class="del">削除</button>
+      `;
+
+      div.onclick=e=>{
+        if(e.target.classList.contains("del")) return;
+        document.getElementById("date").value=d.date.replaceAll("/","-");
+        createTable(d.data || []);
+      };
+
+      div.querySelector(".del").onclick=async e=>{
+        e.stopPropagation();
+        if(!confirm(`${d.date} を削除しますか？`)) return;
+        await deleteDoc(doc(db,"items",d.date));
+        init();
+      };
+
+      list.appendChild(div);
     });
 
-  console.log("取得データ", docs); // ← デバッグ用
-
-  docs.forEach(d=>{
-    const div=document.createElement("div");
-    div.className="card";
-
-    const players = (d.data || []) // 🔥 安全対策
-      .filter(p=>p.name)
-      .map(p=>`${p.rank}位 ${p.name}`)
-      .join("<br>");
-
-    div.innerHTML=`
-      <b>${d.date}</b><br>
-      ${players}
-      <br><button class="del">削除</button>
-    `;
-
-    div.onclick=e=>{
-      if(e.target.classList.contains("del")) return;
-      document.getElementById("date").value=d.date.replaceAll("/","-");
-      createTable(d.data);
-    };
-
-    div.querySelector(".del").onclick=async e=>{
-      e.stopPropagation();
-
-      if(!confirm(`${d.date} を削除しますか？`)) return;
-
-      await deleteDoc(doc(db,"items",d.date));
-      init();
-    };
-
-    list.appendChild(div);
-  });
+  }catch(e){
+    console.error("loadListエラー", e);
+  }
 }
 
 // 平均
@@ -118,7 +118,7 @@ window.calcAvg = async ()=>{
 
   const map={};
   docs.forEach(d=>{
-    d.data.forEach(p=>{
+    (d.data || []).forEach(p=>{
       if(!p.name) return;
       if(!map[p.name]) map[p.name]={total:0,count:0};
       map[p.name].total+=p.rank;
@@ -146,43 +146,26 @@ window.importCSV = async ()=>{
   if(!file) return alert("選択して");
 
   const text=await file.text();
-
   const rows=text.split(/\r?\n/).slice(1);
 
   const map={};
 
   rows.forEach(r=>{
-    if(!r.trim()) return; // 🔥 空行スキップ
-
-    const cols = r.split(",");
-
-    if(cols.length < 2) return; // 🔥 壊れ行防止
-
-    let [date,rank,name] = cols;
-
+    if(!r.trim()) return;
+    const [date,rank,name] = r.split(",");
     if(!date || !rank) return;
 
-    date = toSlash(date.trim());
-    rank = Number(rank);
+    const d = toSlash(date.trim());
+    const rnk = Number(rank);
+    if(isNaN(rnk)) return;
 
-    if(isNaN(rank)) return; // 🔥 数値チェック
-
-    if(!map[date]) map[date]=[];
-
-    map[date].push({
-      rank,
-      name: name?.trim() || ""
-    });
+    if(!map[d]) map[d]=[];
+    map[d].push({ rank:rnk, name:name?.trim() || "" });
   });
 
-  // 🔥 データ保存
-  for(const date in map){
-    map[date].sort((a,b)=>a.rank-b.rank);
-
-    await setDoc(doc(db,"items",date), {
-      date,
-      data: map[date]
-    });
+  for(const d in map){
+    map[d].sort((a,b)=>a.rank-b.rank);
+    await setDoc(doc(db,"items",d), { date:d, data:map[d] });
   }
 
   alert("CSV完了");
@@ -216,7 +199,7 @@ window.drawChart = async ()=>{
   const datasets=selected.map((name,i)=>({
     label:name,
     data:filtered.map(d=>{
-      const f=d.data.find(p=>p.name===name);
+      const f=(d.data || []).find(p=>p.name===name);
       return f?f.rank:null;
     }),
     borderColor:`hsl(${i*60},70%,50%)`,
@@ -229,9 +212,7 @@ window.drawChart = async ()=>{
   chart=new Chart(document.getElementById("chart"),{
     type:"line",
     data:{labels,datasets},
-    options:{
-      scales:{y:{reverse:true,ticks:{stepSize:1}}}
-    }
+    options:{scales:{y:{reverse:true,ticks:{stepSize:1}}}}
   });
 };
 
@@ -241,7 +222,7 @@ async function buildMemberList(){
   const set=new Set();
 
   data.forEach(d=>{
-    d.data.forEach(p=>{
+    (d.data || []).forEach(p=>{
       if(p.name) set.add(p.name);
     });
   });
