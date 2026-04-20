@@ -7,18 +7,22 @@ body {
   margin: 4px 0;
 }
 
-input {
-  margin: 4px;
+.table-wrap {
+  overflow-x: auto;
 }
 
-.card {
+table {
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+td, th {
   border: 1px solid #ccc;
-  padding: 8px;
-  margin: 5px 0;
-  cursor: pointer;
+  padding: 5px;
+  text-align: center;
 }
 
-button {
+input {
   margin: 4px;
 }
 
