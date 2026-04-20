@@ -84,19 +84,24 @@ async function importCSV() {
 
   const map = {};
 
-  rows.forEach(r => {
-    const [date, rank, name] = r.split(",");
-    if (!date || !rank) return;
+rows.forEach(r => {
+  if (!r.trim()) return;
 
-    const fixedDate = toSlash(date.trim());
+  const [date, rank, name] = r.split(",");
+  if (!date || !rank) return;
 
-    if (!map[fixedDate]) map[fixedDate] = [];
+  const fixedDate = toSlash(date.trim().replace(/\./g, "/"));
 
-    map[fixedDate].push({
-      rank: Number(rank),
-      name: name?.trim() || ""
-    });
+  const rNum = Number(rank);
+  if (isNaN(rNum)) return;
+
+  if (!map[fixedDate]) map[fixedDate] = [];
+
+  map[fixedDate].push({
+    rank: rNum,
+    name: name?.trim() || ""
   });
+});
 
   const dates = Object.keys(map);
 
