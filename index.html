@@ -13,33 +13,55 @@
 
 <h1>📊 ランキング管理</h1>
 
-<div class="top">
-  <input type="date" id="date">
-  <button onclick="saveData()">保存</button>
-</div>
-
+<!-- 手入力 -->
+<section>
+<h2>✏️ 手入力</h2>
+<input type="date" id="date">
+<button onclick="saveData()">保存</button>
 <div id="table"></div>
+</section>
 
 <hr>
 
-<h2>📋 一覧</h2>
-<div id="list"></div>
-
-<hr>
-
+<!-- CSV -->
+<section>
 <h2>📥 CSV取込</h2>
 <input type="file" id="csvFile">
 <button onclick="importCSV()">取込</button>
+</section>
 
 <hr>
 
-<h2>📊 グラフ</h2>
+<!-- 一覧 -->
+<section>
+<h2>📋 一覧（横並び）</h2>
+<div class="table-wrap">
+  <table id="listTable"></table>
+</div>
+</section>
+
+<hr>
+
+<!-- 平均 -->
+<section>
+<h2>📊 平均順位</h2>
+<input type="date" id="startAvg">
+<input type="date" id="endAvg">
+<button onclick="calcAvg()">計算</button>
+<div id="avgResult"></div>
+</section>
+
+<hr>
+
+<!-- グラフ -->
+<section>
+<h2>📈 グラフ</h2>
 <input type="date" id="start">
 <input type="date" id="end">
 <button id="memberBtn">メンバー選択</button>
 <button onclick="drawChart()">表示</button>
-
 <canvas id="chart"></canvas>
+</section>
 
 <!-- モーダル -->
 <div id="modal" class="hidden">
