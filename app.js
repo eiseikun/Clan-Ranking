@@ -60,15 +60,19 @@ async function saveData() {
 
   // 同日削除（上書き）
   for (const d of snap.docs) {
-    if (d.data().date === date) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
+  if (
+    d.data().date === date || // 同日上書き
+    d.id === window.editId    // 編集元削除
+  ) {
+    await deleteDoc(doc(db, "items", d.id));
   }
+}
 
   await addDoc(colRef, { date, data });
 
   alert("登録完了");
   init();
+  window.editId = null;
 }
 
 // ================= 一覧 =================
@@ -108,12 +112,14 @@ const docs = [...map.values()]
     `;
 
     // 編集
-    div.onclick = e => {
-      if (e.target.classList.contains("del")) return;
+   div.onclick = e => {
+  if (e.target.classList.contains("del")) return;
 
-      document.getElementById("date").value = d.date.replaceAll("/", "-");
-      createTable(d.data);
-    };
+  window.editId = d.id; // ←追加
+
+  document.getElementById("date").value = d.date.replaceAll("/", "-");
+  createTable(d.data);
+};
 
     // 削除
     div.querySelector(".del").onclick = async e => {
@@ -186,3 +192,8 @@ async function importCSV() {
   alert("CSV取込完了");
   init();
 }
+
+document.getElementById("copyBtn").onclick = () => {
+  window.editId = null; // ←編集モード解除
+  alert("コピー状態になりました（新規保存になります）");
+};
