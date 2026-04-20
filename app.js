@@ -1,10 +1,9 @@
-
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
-  setDoc,
+  addDoc,
   getDocs,
   deleteDoc,
   doc
@@ -29,15 +28,7 @@ const toDate = d => {
   return new Date(parts[0], parts[1] - 1, parts[2]);
 };
 
-// ================= 保存（完全統一） =================
-async function saveOrUpdate(date, data) {
-  const id = date.replaceAll("/", "-"); // ★日付＝ID固定
-
-  await setDoc(doc(db, "items", id), {
-    date,
-    data
-  });
-}
+const toSlash = d => d.replaceAll("-", "/");
 
 // ================= 入力UI =================
 function createTable(data = null) {
@@ -54,12 +45,12 @@ function createTable(data = null) {
   }
 }
 
-// ================= 手動保存 =================
+// ================= 保存 =================
 async function saveData() {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
 
-  date = date.replaceAll("-", "/");
+  date = toSlash(date);
 
   const data = [];
 
@@ -68,7 +59,15 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  await saveOrUpdate(date, data);
+  const snap = await getDocs(colRef);
+
+  for (const d of snap.docs) {
+    if (d.data().date === date) {
+      await deleteDoc(doc(db, "items", d.id));
+    }
+  }
+
+  await addDoc(colRef, { date, data });
 
   alert("登録完了");
   init();
@@ -81,8 +80,13 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  const docs = snap.docs
-    .map(d => d.data())
+  const map = new Map();
+
+  snap.docs.forEach(d => {
+    map.set(d.data().date, { id: d.id, ...d.data() });
+  });
+
+  const docs = [...map.values()]
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -95,54 +99,43 @@ async function loadList() {
         .filter(p => p.name)
         .map(p => `${p.rank}位 ${p.name}`)
         .join("<br>")}
+      <br>
+      <button class="del">削除</button>
     `;
 
-    div.onclick = () => {
+    div.onclick = e => {
+      if (e.target.classList.contains("del")) return;
+
       document.getElementById("date").value = d.date.replaceAll("/", "-");
       createTable(d.data);
+    };
+
+    div.querySelector(".del").onclick = async e => {
+      e.stopPropagation();
+      await deleteDoc(doc(db, "items", d.id));
+      init();
     };
 
     list.appendChild(div);
   });
 }
 
-// ================= CSV（複数日バッチ保存） =================
-document.getElementById("csvBtn").onclick = async () => {
+// ================= CSV =================
+document.getElementById("csvBtn").onclick = () => {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("CSV選択して");
 
   const reader = new FileReader();
 
-  reader.onload = async e => {
-    const lines = e.target.result
-      .split(/\r?\n/)   // ★改行安全処理
-      .map(l => l.trim())
-      .filter(l => l);
+  reader.onload = e => {
+    const lines = e.target.result.split("\n");
 
-    const grouped = {};
-
-    for (const line of lines) {
-      const parts = line.split(",").map(v => v.trim());
-
-      const date = parts[0];
-      const names = parts.slice(1);
-
-      if (!date) continue;
-
-      const formattedDate = date.replaceAll("-", "/");
-
-      grouped[formattedDate] = names.slice(0, 15).map((name, i) => ({
-        rank: i + 1,
-        name
-      }));
-    }
-
-    for (const [date, data] of Object.entries(grouped)) {
-      await saveOrUpdate(date, data);
-    }
-
-    alert("CSV一括登録完了");
-    init();
+    lines.forEach((line, i) => {
+      const name = line.trim();
+      if (i < 15) {
+        document.getElementById(`name${i + 1}`).value = name;
+      }
+    });
   };
 
   reader.readAsText(file);
@@ -155,7 +148,7 @@ document.getElementById("avgBtn").onclick = async () => {
 
   const snap = await getDocs(colRef);
 
-  const filtered = snap.docs.map(d => d.data())
+  const data = snap.docs.map(d => d.data())
     .filter(d => {
       const date = toDate(d.date);
       return date >= from && date <= to;
@@ -163,10 +156,9 @@ document.getElementById("avgBtn").onclick = async () => {
 
   const map = {};
 
-  filtered.forEach(d => {
+  data.forEach(d => {
     d.data.forEach(p => {
       if (!p.name) return;
-
       if (!map[p.name]) map[p.name] = { sum: 0, count: 0 };
 
       map[p.name].sum += p.rank;
@@ -189,11 +181,7 @@ document.getElementById("avgBtn").onclick = async () => {
 document.getElementById("graphBtn").onclick = async () => {
   const from = toDate(document.getElementById("gFrom").value);
   const to = toDate(document.getElementById("gTo").value);
-
-  const members = document.getElementById("members").value
-    .split(",")
-    .map(m => m.trim())
-    .filter(Boolean);
+  const members = document.getElementById("members").value.split(",");
 
   const snap = await getDocs(colRef);
 
