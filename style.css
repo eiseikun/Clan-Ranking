@@ -1,106 +1,48 @@
-body{
-  background:#f0f2f5;
-  font-family:sans-serif;
-  margin:0;
+body {
+  font-family: sans-serif;
+  padding: 10px;
 }
 
-.container{
-  max-width:900px;
-  margin:auto;
-  padding:10px;
+#table div {
+  margin: 4px 0;
 }
 
-h1{
-  text-align:center;
-  background:#222;
-  color:#fff;
-  padding:15px;
-  margin:0;
+input {
+  margin: 4px;
 }
 
-.box{
-  background:#fff;
-  padding:15px;
-  margin:15px 0;
-  border-radius:12px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+.card {
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin: 5px 0;
+  cursor: pointer;
 }
 
-/* 入力欄 */
-#table{
-  display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:8px;
+button {
+  margin: 4px;
 }
 
-@media (min-width:600px){
-  #table{
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* 一覧（左が最新） */
-.list{
-  display:flex;
-  flex-direction:row;
-  overflow-x:auto;
-  gap:10px;
-  padding-bottom:10px;
-}
-
-.card{
-  min-width:200px;
-  flex-shrink:0;
-  background:#fafafa;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  cursor:pointer;
-}
-
-/* 平均 */
-.avg-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-.avg-table th{
-  background:#333;
-  color:#fff;
-}
-
-.avg-table td, .avg-table th{
-  padding:8px;
-  border:1px solid #ccc;
-  text-align:center;
+canvas {
+  max-width: 100%;
 }
 
 /* モーダル */
-.modal{
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.5);
+#modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
 }
 
-.hidden{display:none;}
-
-.modalContent{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:#fff;
-  width:90%;
-  max-width:350px;
-  max-height:70vh;
-  overflow:auto;
-  padding:15px;
-  border-radius:12px;
+.hidden {
+  display: none;
 }
 
-#chart{
-  margin-top:15px;
-  width:100%;
-  max-height:400px;
+.modal-content {
+  background: white;
+  padding: 20px;
+  margin: 50px auto;
+  width: 300px;
 }
