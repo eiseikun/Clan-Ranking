@@ -2,52 +2,47 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>順位管理（安定リメイク版）</title>
+<title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
-
 </head>
 
 <body>
 
-<h1>🏆 順位管理（安定リメイク版）</h1>
+<h1>🏆 ランキング管理</h1>
 
-<!-- ================= CSV ================= -->
+<!-- ================= 手動入力 ================= -->
 <div class="box">
-  <h2>CSV</h2>
-
-  <input type="file" id="csvFile" accept=".csv">
-
-  <button id="csvLoadBtn">読み込み</button>
-  <button id="csvSaveBtn">保存</button>
-</div>
-
-<!-- ================= 手動 ================= -->
-<div class="box">
-  <h2>手動入力</h2>
+  <h2>✏️ 手動入力</h2>
 
   <input type="date" id="date">
   <button id="saveBtn">登録</button>
 
-  <div id="table"></div>
+  <div id="table" class="rank-table"></div>
+</div>
+
+<!-- ================= CSV ================= -->
+<div class="box">
+  <h2>📁 CSV取込</h2>
+  <input type="file" id="csvFile">
+  <button id="csvBtn">取込</button>
 </div>
 
 <!-- ================= 一覧 ================= -->
 <div class="box">
-  <h2>一覧（削除のみ）</h2>
-  <div id="list"></div>
+  <h2>📋 一覧</h2>
+  <div id="list" class="list"></div>
 </div>
 
-<!-- ================= 平均 ================= -->
+<!-- ================= 平均順位 ================= -->
 <div class="box">
-  <h2>平均順位</h2>
+  <h2>📊 平均順位</h2>
 
-  <input type="date" id="startAvg">
-  <input type="date" id="endAvg">
-
+  <input type="date" id="from">
+  <input type="date" id="to">
   <button id="avgBtn">計算</button>
 
   <div id="avgResult"></div>
@@ -55,21 +50,12 @@
 
 <!-- ================= グラフ ================= -->
 <div class="box">
-  <h2>グラフ</h2>
+  <h2>📈 順位推移グラフ</h2>
 
-  <input type="date" id="start">
-  <input type="date" id="end">
-
-  <button id="memberBtn">メンバー</button>
+  <input type="date" id="gFrom">
+  <input type="date" id="gTo">
+  <input type="text" id="members" placeholder="名前（カンマ区切り）">
   <button id="graphBtn">表示</button>
-
-  <div id="modal" class="modal hidden">
-    <div class="modalContent">
-      <label><input type="checkbox" id="selectAll"> 全員</label>
-      <div id="playerList"></div>
-      <button id="closeModal">閉じる</button>
-    </div>
-  </div>
 
   <canvas id="chart"></canvas>
 </div>
