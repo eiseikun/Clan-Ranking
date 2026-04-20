@@ -6,9 +6,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  setDoc
-  
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -21,14 +19,11 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// 🔴 編集ID（グローバル）
-let editId = null;
-
-// ================= 日付処理 =================
+// ================= 日付 =================
 const toDate = d => {
   if (!d) return new Date(0);
-  const parts = d.replaceAll("-", "/").split("/");
-  return new Date(parts[0], parts[1] - 1, parts[2]);
+  const p = d.replaceAll("-", "/").split("/");
+  return new Date(p[0], p[1] - 1, p[2]);
 };
 
 const toSlash = d => d.replaceAll("-", "/");
@@ -48,7 +43,17 @@ function createTable(data = null) {
   }
 }
 
-// ================= 保存 =================
+// ================= 共通：同日削除 =================
+async function deleteSameDate(date) {
+  const snap = await getDocs(colRef);
+  for (const d of snap.docs) {
+    if (d.data().date === date) {
+      await deleteDoc(doc(db, "items", d.id));
+    }
+  }
+}
+
+// ================= 手動保存 =================
 async function saveData() {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -61,78 +66,19 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  // 🔥 日付をIDにして上書き
-  await setDoc(doc(db, "items", date), {
-    date,
-    data
-  });
+  await deleteSameDate(date);
+  await addDoc(colRef, { date, data });
 
   alert("登録完了");
-
-  window.editId = null;
+  createTable(); // 入力リセット
+  document.getElementById("date").value = "";
   init();
-}
-
-// ================= 一覧 =================
-async function loadList() {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  const snap = await getDocs(colRef);
-
-  const allDocs = snap.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
-
-  // 日付ごとに最後の1件
-  const map = new Map();
-  allDocs.forEach(d => {
-    map.set(d.date, d);
-  });
-
-  const docs = [...map.values()]
-    .sort((a, b) => toDate(b.date) - toDate(a.date));
-
-  docs.forEach(d => {
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <b>${d.date}</b><br>
-      ${d.data
-        .filter(p => p.name)
-        .map(p => `${p.rank}位 ${p.name}`)
-        .join("<br>")}
-      <br>
-      <button class="del">削除</button>
-    `;
-
-    // 編集
-    div.onclick = e => {
-      if (e.target.classList.contains("del")) return;
-
-      editId = d.id; // 🔴 ここ重要
-
-      document.getElementById("date").value = d.date.replaceAll("/", "-");
-      createTable(d.data);
-    };
-
-    // 削除
-    div.querySelector(".del").onclick = async e => {
-      e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.id));
-      init();
-    };
-
-    list.appendChild(div);
-  });
 }
 
 // ================= CSV =================
 async function importCSV() {
   const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("ファイル選択して");
+  if (!file) return alert("CSVファイルを選択してください");
 
   const text = await file.text();
   const rows = text.split(/\r?\n/).slice(1);
@@ -154,17 +100,77 @@ async function importCSV() {
   });
 
   for (const date in map) {
+    await deleteSameDate(date);
+
     map[date].sort((a, b) => a.rank - b.rank);
 
-    // 🔥 上書き（削除不要）
-    await setDoc(doc(db, "items", date), {
+    await addDoc(colRef, {
       date,
       data: map[date]
     });
   }
 
   alert("CSV取込完了");
+
+  // ファイル選択リセット（地味に重要）
+  document.getElementById("csvFile").value = "";
+
   init();
+}
+
+// ================= 一覧 =================
+async function loadList() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const snap = await getDocs(colRef);
+
+  const allDocs = snap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+
+  // 念のため1日1件
+  const map = new Map();
+  allDocs.forEach(d => map.set(d.date, d));
+
+  const docs = [...map.values()]
+    .sort((a, b) => toDate(b.date) - toDate(a.date));
+
+  docs.forEach(d => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <b>${d.date}</b><br>
+      ${d.data
+        .filter(p => p.name)
+        .map(p => `${p.rank}位 ${p.name}`)
+        .join("<br>")}
+      <br>
+      <button class="del">削除</button>
+    `;
+
+    // 編集（クリックで反映）
+    div.onclick = e => {
+      if (e.target.classList.contains("del")) return;
+
+      document.getElementById("date").value = d.date.replaceAll("/", "-");
+      createTable(d.data);
+
+      // スクロール（UX改善）
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    // 削除
+    div.querySelector(".del").onclick = async e => {
+      e.stopPropagation();
+      await deleteDoc(doc(db, "items", d.id));
+      init();
+    };
+
+    list.appendChild(div);
+  });
 }
 
 // ================= 初期化 =================
@@ -179,10 +185,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("saveBtn").onclick = saveData;
   document.getElementById("csvBtn").onclick = importCSV;
-
-  // 🔴 コピー（ここに入れるのが重要）
-  document.getElementById("copyBtn").onclick = () => {
-    editId = null;
-    alert("コピー状態になりました（新規保存になります）");
-  };
 });
