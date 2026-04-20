@@ -6,7 +6,9 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  setDoc
+  
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -59,22 +61,15 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  const snap = await getDocs(colRef);
-
-  for (const d of snap.docs) {
-    if (
-      d.data().date === date || // 同日上書き
-      d.id === editId           // 編集元削除
-    ) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
-  }
-
-  await addDoc(colRef, { date, data });
+  // 🔥 日付をIDにして上書き
+  await setDoc(doc(db, "items", date), {
+    date,
+    data
+  });
 
   alert("登録完了");
 
-  editId = null; // 🔴 リセット
+  window.editId = null;
   init();
 }
 
@@ -158,21 +153,11 @@ async function importCSV() {
     });
   });
 
-  // 🔴 日付ごとに処理
   for (const date in map) {
-
-    // ←ここが重要：毎回取り直す
-    const snap = await getDocs(colRef);
-
-    for (const d of snap.docs) {
-      if (d.data().date === date) {
-        await deleteDoc(doc(db, "items", d.id));
-      }
-    }
-
     map[date].sort((a, b) => a.rank - b.rank);
 
-    await addDoc(colRef, {
+    // 🔥 上書き（削除不要）
+    await setDoc(doc(db, "items", date), {
       date,
       data: map[date]
     });
