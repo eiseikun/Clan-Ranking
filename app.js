@@ -8,7 +8,8 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -67,16 +68,7 @@ window.saveData = async () => {
     data.push({ rank: i, name });
   }
 
-  // 🔥 同日データを全部削除
-  const snap = await getDocs(colRef);
-  const targets = snap.docs.filter(d => d.data().date === date);
-
-  for (const d of targets) {
-    await deleteDoc(doc(db, "items", d.id));
-  }
-
-  // 🔥 新規追加
-  await addDoc(colRef, { date, data });
+await setDoc(doc(db, "items", date), { date, data });
 
   alert("登録完了");
   init();
@@ -226,22 +218,10 @@ window.importCSV = async () => {
     });
   });
 
-  const snap = await getDocs(colRef);
-
-  for (const date in map) {
-    // 🔥 同日削除
-    const targets = snap.docs.filter(d => d.data().date === date);
-    for (const d of targets) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
-
-    map[date].sort((a, b) => a.rank - b.rank);
-
-    await addDoc(colRef, {
-      date,
-      data: map[date]
-    });
-  }
+  await setDoc(doc(db, "items", date), {
+  date,
+  data
+});
 
   alert("CSV完了");
   init();
