@@ -4,7 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
+  setDoc,
   getDocs,
   deleteDoc,
   doc
@@ -22,27 +22,24 @@ const colRef = collection(db, "items");
 
 let chart;
 
-// ================= 日付処理 =================
+// ================= 日付 =================
 const toDate = d => {
   if (!d) return new Date(0);
   const parts = d.replaceAll("-", "/").split("/");
   return new Date(parts[0], parts[1] - 1, parts[2]);
 };
 
-// ================= 共通保存関数 =================
+// ================= 保存（完全統一） =================
 async function saveOrUpdate(date, data) {
-  const snap = await getDocs(colRef);
+  const id = date.replaceAll("/", "-"); // ★日付＝ID固定
 
-  for (const d of snap.docs) {
-    if (d.data().date === date) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
-  }
-
-  await addDoc(colRef, { date, data });
+  await setDoc(doc(db, "items", id), {
+    date,
+    data
+  });
 }
 
-// ================= 入力テーブル =================
+// ================= 入力UI =================
 function createTable(data = null) {
   const div = document.getElementById("table");
   div.innerHTML = "";
@@ -84,13 +81,8 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  const map = new Map();
-
-  snap.docs.forEach(d => {
-    map.set(d.data().date, { id: d.id, ...d.data() });
-  });
-
-  const docs = [...map.values()]
+  const docs = snap.docs
+    .map(d => d.data())
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -103,30 +95,18 @@ async function loadList() {
         .filter(p => p.name)
         .map(p => `${p.rank}位 ${p.name}`)
         .join("<br>")}
-      <br>
-      <button class="del">削除</button>
     `;
 
-    // 編集
-    div.onclick = e => {
-      if (e.target.classList.contains("del")) return;
-
+    div.onclick = () => {
       document.getElementById("date").value = d.date.replaceAll("/", "-");
       createTable(d.data);
-    };
-
-    // 削除
-    div.querySelector(".del").onclick = async e => {
-      e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.id));
-      init();
     };
 
     list.appendChild(div);
   });
 }
 
-// ================= CSV（複数日対応） =================
+// ================= CSV（複数日バッチ保存） =================
 document.getElementById("csvBtn").onclick = async () => {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("CSV選択して");
@@ -135,13 +115,10 @@ document.getElementById("csvBtn").onclick = async () => {
 
   reader.onload = async e => {
     const lines = e.target.result
-      .split(/\r?\n/)
+      .split(/\r?\n/)   // ★改行安全処理
       .map(l => l.trim())
       .filter(l => l);
 
-    // ==============================
-    // ① まず日付ごとにまとめる
-    // ==============================
     const grouped = {};
 
     for (const line of lines) {
@@ -160,9 +137,6 @@ document.getElementById("csvBtn").onclick = async () => {
       }));
     }
 
-    // ==============================
-    // ② まとめてFirestoreへ保存
-    // ==============================
     for (const [date, data] of Object.entries(grouped)) {
       await saveOrUpdate(date, data);
     }
@@ -215,6 +189,7 @@ document.getElementById("avgBtn").onclick = async () => {
 document.getElementById("graphBtn").onclick = async () => {
   const from = toDate(document.getElementById("gFrom").value);
   const to = toDate(document.getElementById("gTo").value);
+
   const members = document.getElementById("members").value
     .split(",")
     .map(m => m.trim())
