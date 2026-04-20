@@ -1,3 +1,5 @@
+
+// ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -8,7 +10,6 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ================= Firebase =================
 const app = initializeApp({
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjUI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
@@ -25,7 +26,7 @@ let csvBuffer = {};
 const toDate = d => new Date(d);
 const toSlash = d => d.replaceAll("-", "/");
 
-// ================= 保存コア =================
+// ================= 保存（完全上書き） =================
 async function saveByDate(date, data) {
   await setDoc(doc(db, "items", date), {
     date,
@@ -65,7 +66,7 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   init();
 });
 
-// ================= 一覧 =================
+// ================= 一覧（削除のみ） =================
 async function loadList() {
 
   const snap = await getDocs(colRef);
@@ -98,7 +99,7 @@ async function loadList() {
   });
 }
 
-// ================= CSV =================
+// ================= CSV読み込み =================
 document.getElementById("csvLoadBtn").addEventListener("click", async () => {
 
   const file = document.getElementById("csvFile").files[0];
@@ -123,9 +124,10 @@ document.getElementById("csvLoadBtn").addEventListener("click", async () => {
     });
   });
 
-  alert("読み込み完了");
+  alert("CSV読み込み完了");
 });
 
+// ================= CSV保存 =================
 document.getElementById("csvSaveBtn").addEventListener("click", async () => {
 
   for (const date in csvBuffer) {
@@ -198,10 +200,10 @@ document.getElementById("graphBtn").addEventListener("click", async () => {
 
   const labels = docs.map(d => d.date);
 
-  const members = [...document.querySelectorAll("#playerList input:checked")]
+  const selected = [...document.querySelectorAll("#playerList input:checked")]
     .map(cb => cb.value);
 
-  const datasets = members.map((name, i) => ({
+  const datasets = selected.map((name, i) => ({
     label: name,
     data: docs.map(d => {
       const f = d.data.find(p => p.name === name);
@@ -262,8 +264,8 @@ document.getElementById("selectAll").addEventListener("change", e => {
 
 // ================= 初期化 =================
 async function init() {
-  createTable();
   await loadList();
+  createTable();
 }
 
 init();
