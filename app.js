@@ -43,7 +43,7 @@ function createTable(data = null) {
   }
 }
 
-// ================= 保存（唯一の保存ルート） =================
+// ================= 保存 =================
 async function saveData() {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -56,7 +56,6 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  // 🔥 日付IDで上書き（重複絶対防止）
   await setDoc(doc(db, "items", date), {
     date,
     data
@@ -64,17 +63,15 @@ async function saveData() {
 
   alert("登録完了");
 
-  // 入力リセット
-  document.getElementById("date").value = "";
   createTable();
+  document.getElementById("date").value = "";
 
-  init();
+  await init();
 
-  // 一覧へスクロール
   document.getElementById("list").scrollIntoView({ behavior: "smooth" });
 }
 
-// ================= CSV（読み込み専用） =================
+// ================= CSV =================
 async function importCSV() {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("CSVファイルを選択してください");
@@ -84,28 +81,28 @@ async function importCSV() {
 
   const map = {};
 
-rows.forEach(r => {
-  if (!r.trim()) return;
+  rows.forEach(r => {
+    if (!r.trim()) return;
 
-  const [date, rank, name] = r.split(",");
-  if (!date || !rank) return;
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
 
-  const fixedDate = toSlash(date.trim().replace(/\./g, "/"));
+    const fixedDate = toSlash(date.trim().replace(/\./g, "/"));
 
-  const rNum = Number(rank);
-  if (isNaN(rNum)) return;
+    const rNum = Number(rank);
+    if (isNaN(rNum)) return;
 
-  if (!map[fixedDate]) map[fixedDate] = [];
+    if (!map[fixedDate]) map[fixedDate] = [];
 
-  map[fixedDate].push({
-    rank: rNum,
-    name: name?.trim() || ""
+    map[fixedDate].push({
+      rank: rNum,
+      name: name?.trim() || ""
+    });
   });
-});
 
   const dates = Object.keys(map);
 
-  // ================= 1日だけ =================
+  // 1日
   if (dates.length === 1) {
     const date = dates[0];
 
@@ -117,16 +114,14 @@ rows.forEach(r => {
     alert("CSV読み込み完了（登録ボタンで保存してください）");
   }
 
-  // ================= 複数日 =================
+  // 複数日
   else {
-    const ok = confirm(`${dates.length}日分のデータを一括登録します。よろしいですか？`);
-
+    const ok = confirm(`${dates.length}日分を一括登録します`);
     if (!ok) return;
 
     for (const date of dates) {
       map[date].sort((a, b) => a.rank - b.rank);
 
-      // 🔥 日付IDで上書き保存
       await setDoc(doc(db, "items", date), {
         date,
         data: map[date]
@@ -134,10 +129,9 @@ rows.forEach(r => {
     }
 
     alert("CSV一括登録完了");
-    init();
+    await init();
   }
 
-  // ファイルリセット
   document.getElementById("csvFile").value = "";
 }
 
@@ -148,11 +142,16 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
+  // 🔥 デバッグ
+  console.log("Firestore raw:", snap.docs.map(d => d.data()));
+
   const docs = snap.docs
     .map(d => ({
       id: d.id,
       ...d.data()
     }))
+    // 🔥 安全フィルタ（超重要）
+    .filter(d => d.date && Array.isArray(d.data))
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -169,7 +168,6 @@ async function loadList() {
       <button class="del">削除</button>
     `;
 
-    // 編集
     div.onclick = e => {
       if (e.target.classList.contains("del")) return;
 
@@ -179,11 +177,10 @@ async function loadList() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    // 削除
     div.querySelector(".del").onclick = async e => {
       e.stopPropagation();
       await deleteDoc(doc(db, "items", d.id));
-      init();
+      await init();
     };
 
     list.appendChild(div);
@@ -202,7 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("saveBtn").onclick = saveData;
 
-  // 🔥 CSVボタン追加（HTMLに追加必要）
   const csvBtn = document.getElementById("csvBtn");
   if (csvBtn) csvBtn.onclick = importCSV;
 });
