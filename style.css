@@ -22,8 +22,9 @@ h1{
 
 /* 入力 */
 .rank-table{
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
   gap:8px;
   margin-top:10px;
 }
