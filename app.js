@@ -135,26 +135,36 @@ document.getElementById("csvBtn").onclick = async () => {
 
   reader.onload = async e => {
     const lines = e.target.result
-      .split("\n")
+      .split(/\r?\n/)
       .map(l => l.trim())
       .filter(l => l);
 
-    for (const line of lines) {
-      const parts = line.split(",");
+    // ==============================
+    // ① まず日付ごとにまとめる
+    // ==============================
+    const grouped = {};
 
-      const date = parts[0].trim();
+    for (const line of lines) {
+      const parts = line.split(",").map(v => v.trim());
+
+      const date = parts[0];
       const names = parts.slice(1);
 
-      if (!date || names.length === 0) continue;
+      if (!date) continue;
 
       const formattedDate = date.replaceAll("-", "/");
 
-      const data = names.slice(0, 15).map((name, i) => ({
+      grouped[formattedDate] = names.slice(0, 15).map((name, i) => ({
         rank: i + 1,
-        name: name.trim()
+        name
       }));
+    }
 
-      await saveOrUpdate(formattedDate, data);
+    // ==============================
+    // ② まとめてFirestoreへ保存
+    // ==============================
+    for (const [date, data] of Object.entries(grouped)) {
+      await saveOrUpdate(date, data);
     }
 
     alert("CSV一括登録完了");
