@@ -53,10 +53,27 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  await addDoc(colRef, {
-    date,
-    data
-  });
+  // =========================
+  // 🔥 同じ日付があるか検索
+  // =========================
+  const snap = await getDocs(colRef);
+
+  const existing = snap.docs.find(d => d.data().date === date);
+
+  if (existing) {
+    // 👉 上書き
+    await updateDoc(doc(db, "items", existing.id), {
+      date,
+      data
+    });
+
+  } else {
+    // 👉 新規
+    await addDoc(colRef, {
+      date,
+      data
+    });
+  }
 
   init();
 }
