@@ -137,4 +137,52 @@ document.addEventListener("DOMContentLoaded", () => {
   init();
 
   document.getElementById("saveBtn").onclick = saveData;
+document.getElementById("csvBtn").onclick = importCSV;
 });
+
+async function importCSV() {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return alert("ファイル選択して");
+
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).slice(1); // ヘッダー除外
+
+  const map = {};
+
+  rows.forEach(r => {
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
+
+    const fixedDate = toSlash(date.trim());
+
+    if (!map[fixedDate]) map[fixedDate] = [];
+
+    map[fixedDate].push({
+      rank: Number(rank),
+      name: name?.trim() || ""
+    });
+  });
+
+  const snap = await getDocs(colRef);
+
+  for (const date in map) {
+
+    // 🔴 同日削除（超重要）
+    for (const d of snap.docs) {
+      if (d.data().date === date) {
+        await deleteDoc(doc(db, "items", d.id));
+      }
+    }
+
+    // 順位順に並び替え
+    map[date].sort((a, b) => a.rank - b.rank);
+
+    await addDoc(colRef, {
+      date,
+      data: map[date]
+    });
+  }
+
+  alert("CSV取込完了");
+  init();
+}
