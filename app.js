@@ -158,9 +158,12 @@ async function importCSV() {
     });
   });
 
-  const snap = await getDocs(colRef);
-
+  // 🔴 日付ごとに処理
   for (const date in map) {
+
+    // ←ここが重要：毎回取り直す
+    const snap = await getDocs(colRef);
+
     for (const d of snap.docs) {
       if (d.data().date === date) {
         await deleteDoc(doc(db, "items", d.id));
