@@ -1,6 +1,3 @@
-// =========================
-// 🔥 Firebase
-// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -21,22 +18,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// =========================
-// 🗓 日付処理
-// =========================
+// 日付
 const toDate = d => {
-  if (!d) return new Date(0);
   const p = d.replaceAll("-", "/").split("/");
   return new Date(p[0], p[1] - 1, p[2]);
 };
-
 const toSlash = d => d.replaceAll("-", "/");
 const toKey = d => d.replaceAll("/", "-");
 
-// =========================
-// 🧱 テーブル
-// =========================
-function createTable(data = null) {
+// テーブル入力
+function createTable(data = []) {
   const el = document.getElementById("table");
   el.innerHTML = "";
 
@@ -49,9 +40,7 @@ function createTable(data = null) {
   }
 }
 
-// =========================
-// 💾 保存（上書き）
-// =========================
+// 保存
 window.saveData = async () => {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -68,53 +57,10 @@ window.saveData = async () => {
   }
 
   await setDoc(doc(db, "items", key), { date, data });
-
-  alert("保存完了");
   init();
 };
 
-// =========================
-// 📋 一覧
-// =========================
-async function loadList() {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  const snap = await getDocs(colRef);
-
-  const docs = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => toDate(b.date) - toDate(a.date));
-
-  docs.forEach(d => {
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <b>${d.date}</b><br>
-      ${d.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
-      <br><button class="del">削除</button>
-    `;
-
-    div.onclick = e => {
-      if (e.target.classList.contains("del")) return;
-      document.getElementById("date").value = d.date.replaceAll("/", "-");
-      createTable(d.data);
-    };
-
-    div.querySelector(".del").onclick = async e => {
-      e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.id));
-      init();
-    };
-
-    list.appendChild(div);
-  });
-}
-
-// =========================
-// 📥 CSV取込
-// =========================
+// CSV
 window.importCSV = async () => {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選択");
@@ -129,7 +75,6 @@ window.importCSV = async () => {
     if (!date || !rank) return;
 
     const d = toSlash(date.trim());
-
     if (!map[d]) map[d] = [];
 
     map[d].push({
@@ -140,7 +85,6 @@ window.importCSV = async () => {
 
   for (const date in map) {
     const key = toKey(date);
-
     map[date].sort((a, b) => a.rank - b.rank);
 
     await setDoc(doc(db, "items", key), {
@@ -149,95 +93,74 @@ window.importCSV = async () => {
     });
   }
 
-  alert("CSV完了");
   init();
 };
 
-// =========================
-// 📈 グラフ
-// =========================
-let chart;
-
-async function getAll() {
+// 一覧（横並び）
+async function loadList() {
   const snap = await getDocs(colRef);
-  return snap.docs.map(d => d.data());
-}
-
-window.drawChart = async () => {
-  const start = document.getElementById("start").value;
-  const end = document.getElementById("end").value;
-
-  const all = await getAll();
-
-  const filtered = all
-    .filter(d => toDate(d.date) >= toDate(start) && toDate(d.date) <= toDate(end))
+  const data = snap.docs.map(d => d.data())
     .sort((a, b) => toDate(a.date) - toDate(b.date));
 
-  const selected = [...document.querySelectorAll("#playerList input:checked")]
-    .map(cb => cb.value);
+  const table = document.getElementById("listTable");
+  table.innerHTML = "";
 
-  const labels = filtered.map(d => d.date);
+  let html = "<tr><th>順位</th>";
+  data.forEach(d => html += `<th>${d.date}</th>`);
+  html += "</tr>";
 
-  const datasets = selected.map((name, i) => ({
-    label: name,
-    data: filtered.map(d => {
-      const f = d.data.find(p => p.name === name);
-      return f ? f.rank : null;
-    }),
-    borderColor: `hsl(${i * 60},70%,50%)`,
-    tension: 0.2,
-    spanGaps: true
-  }));
+  for (let i = 1; i <= 15; i++) {
+    html += `<tr><td>${i}位</td>`;
+    data.forEach(d => {
+      const f = d.data.find(p => p.rank === i);
+      html += `<td>${f?.name || ""}</td>`;
+    });
+    html += "</tr>";
+  }
 
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: { labels, datasets },
-    options: {
-      scales: {
-        y: { reverse: true }
-      }
-    }
-  });
-};
-
-// =========================
-// 👥 メンバー選択
-// =========================
-async function buildMemberList() {
-  const data = await getAll();
-  const set = new Set();
-
-  data.forEach(d => d.data.forEach(p => p.name && set.add(p.name)));
-
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
-
-  [...set].sort().forEach(name => {
-    list.innerHTML += `
-      <label><input type="checkbox" value="${name}" checked> ${name}</label><br>
-    `;
-  });
+  table.innerHTML = html;
 }
 
-document.getElementById("memberBtn").onclick = async () => {
-  await buildMemberList();
-  document.getElementById("modal").classList.remove("hidden");
+// 平均
+window.calcAvg = async () => {
+  const start = document.getElementById("startAvg").value;
+  const end = document.getElementById("endAvg").value;
+
+  const snap = await getDocs(colRef);
+
+  const map = {};
+
+  snap.docs.forEach(doc => {
+    const d = doc.data();
+    if (toDate(d.date) < toDate(start) || toDate(d.date) > toDate(end)) return;
+
+    d.data.forEach(p => {
+      if (!p.name) return;
+      if (!map[p.name]) map[p.name] = { total: 0, count: 0 };
+
+      map[p.name].total += p.rank;
+      map[p.name].count++;
+    });
+  });
+
+  const result = Object.entries(map)
+    .map(([name, v]) => ({
+      name,
+      avg: v.total / v.count
+    }))
+    .sort((a, b) => a.avg - b.avg);
+
+  let html = "<table><tr><th>順位</th><th>名前</th><th>平均</th></tr>";
+
+  result.forEach((r, i) => {
+    html += `<tr><td>${i + 1}</td><td>${r.name}</td><td>${r.avg.toFixed(2)}</td></tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("avgResult").innerHTML = html;
 };
 
-document.getElementById("closeModal").onclick = () => {
-  document.getElementById("modal").classList.add("hidden");
-};
-
-document.getElementById("selectAll").onchange = e => {
-  document.querySelectorAll("#playerList input")
-    .forEach(cb => cb.checked = e.target.checked);
-};
-
-// =========================
-// 🚀 初期化
-// =========================
+// 初期化
 async function init() {
   await loadList();
 }
