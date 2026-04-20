@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>順位管理（完全版）</title>
+<title>順位管理システム</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
@@ -14,39 +14,35 @@
 
 <body>
 
-<h1>🏆 順位管理（完全統一版）</h1>
+<h1>🏆 順位管理システム（安定版）</h1>
 
 <!-- ================= CSV ================= -->
 <div class="box">
-  <h2>📁 CSV取込（まだ保存されません）</h2>
+  <h2>📁 CSV</h2>
 
   <input type="file" id="csvFile" accept=".csv" hidden>
-  <button onclick="document.getElementById('csvFile').click()">
-    ファイル選択
-  </button>
+  <button onclick="document.getElementById('csvFile').click()">選択</button>
 
-  <button onclick="importCSV()">CSV読み込み</button>
-  <button onclick="commitCSV()">CSV登録（保存）</button>
+  <button onclick="importCSV()">読み込み</button>
+  <button onclick="commitCSV()">保存</button>
 
-  <p>※読み込み → 登録で反映</p>
+  <p>※読み込み→保存の2段階</p>
 </div>
 
-<!-- ================= 手動入力 ================= -->
+<!-- ================= 手動 ================= -->
 <div class="box">
   <h2>✏️ 手動入力</h2>
 
   <input type="date" id="date">
-
-  <button onclick="saveData()">登録（上書き保存）</button>
+  <button onclick="saveData()">登録</button>
 
   <div id="table"></div>
 </div>
 
 <!-- ================= 一覧 ================= -->
 <div class="box">
-  <h2>📋 一覧（編集不可・最新表示）</h2>
-
-  <div id="list" class="list"></div>
+  <h2>📋 一覧（削除のみ）</h2>
+  <div id="list"></div>
 </div>
 
 <!-- ================= 平均 ================= -->
@@ -57,7 +53,6 @@
   <input type="date" id="endAvg">
 
   <button onclick="calcAvg()">計算</button>
-
   <div id="avgResult"></div>
 </div>
 
@@ -71,17 +66,10 @@
   <button id="memberBtn">メンバー選択</button>
   <button onclick="drawChart()">表示</button>
 
-  <!-- モーダル -->
   <div id="modal" class="modal hidden">
     <div class="modalContent">
-
-      <label>
-        <input type="checkbox" id="selectAll">
-        全員選択
-      </label>
-
+      <label><input type="checkbox" id="selectAll"> 全員</label>
       <div id="playerList"></div>
-
       <button id="closeModal">閉じる</button>
     </div>
   </div>
