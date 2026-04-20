@@ -1,5 +1,3 @@
-
-// ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -10,13 +8,13 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskajxUI",
+// ================= Firebase =================
+const app = initializeApp({
+  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjUI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
@@ -27,7 +25,7 @@ let csvBuffer = {};
 const toDate = d => new Date(d);
 const toSlash = d => d.replaceAll("-", "/");
 
-// ================= 保存コア（最重要） =================
+// ================= 保存コア =================
 async function saveByDate(date, data) {
   await setDoc(doc(db, "items", date), {
     date,
@@ -35,9 +33,8 @@ async function saveByDate(date, data) {
   });
 }
 
-// ================= 手動入力 =================
+// ================= 手動 =================
 function createTable(data = null) {
-
   const div = document.getElementById("table");
   div.innerHTML = "";
 
@@ -51,8 +48,7 @@ function createTable(data = null) {
   }
 }
 
-// ★必須：windowに公開
-window.saveData = async () => {
+document.getElementById("saveBtn").addEventListener("click", async () => {
 
   const date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -67,9 +63,9 @@ window.saveData = async () => {
   await saveByDate(toSlash(date), data);
 
   init();
-};
+});
 
-// ================= 一覧（削除のみ） =================
+// ================= 一覧 =================
 async function loadList() {
 
   const snap = await getDocs(colRef);
@@ -92,18 +88,18 @@ async function loadList() {
       <button class="del">削除</button>
     `;
 
-    div.querySelector(".del").onclick = async (e) => {
+    div.querySelector(".del").addEventListener("click", async (e) => {
       e.stopPropagation();
       await deleteDoc(doc(db, "items", d.date));
       init();
-    };
+    });
 
     list.appendChild(div);
   });
 }
 
-// ================= CSV読み込み（バッファ） =================
-window.importCSV = async () => {
+// ================= CSV =================
+document.getElementById("csvLoadBtn").addEventListener("click", async () => {
 
   const file = document.getElementById("csvFile").files[0];
   if (!file) return;
@@ -127,11 +123,10 @@ window.importCSV = async () => {
     });
   });
 
-  alert("CSV読み込み完了");
-};
+  alert("読み込み完了");
+});
 
-// ================= CSV保存 =================
-window.commitCSV = async () => {
+document.getElementById("csvSaveBtn").addEventListener("click", async () => {
 
   for (const date in csvBuffer) {
 
@@ -142,15 +137,13 @@ window.commitCSV = async () => {
 
   csvBuffer = {};
   init();
-};
+});
 
 // ================= 平均 =================
-window.calcAvg = async () => {
+document.getElementById("avgBtn").addEventListener("click", async () => {
 
   const start = document.getElementById("startAvg").value;
   const end = document.getElementById("endAvg").value;
-
-  if (!start || !end) return;
 
   const snap = await getDocs(colRef);
 
@@ -185,10 +178,10 @@ window.calcAvg = async () => {
     result.map((r, i) =>
       `${i + 1}. ${r.name} (${r.avg.toFixed(2)})`
     ).join("<br>");
-};
+});
 
 // ================= グラフ =================
-window.drawChart = async () => {
+document.getElementById("graphBtn").addEventListener("click", async () => {
 
   const start = document.getElementById("start").value;
   const end = document.getElementById("end").value;
@@ -228,14 +221,49 @@ window.drawChart = async () => {
       }
     }
   });
-};
+});
+
+// ================= メンバー =================
+async function buildMembers() {
+
+  const snap = await getDocs(colRef);
+  const set = new Set();
+
+  snap.docs.forEach(d => {
+    d.data().data.forEach(p => set.add(p.name));
+  });
+
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
+
+  [...set].sort().forEach(name => {
+    list.innerHTML += `
+      <label>
+        <input type="checkbox" value="${name}" checked>
+        ${name}
+      </label><br>
+    `;
+  });
+}
+
+document.getElementById("memberBtn").addEventListener("click", async () => {
+  await buildMembers();
+  document.getElementById("modal").classList.remove("hidden");
+});
+
+document.getElementById("closeModal").addEventListener("click", () => {
+  document.getElementById("modal").classList.add("hidden");
+});
+
+document.getElementById("selectAll").addEventListener("change", e => {
+  document.querySelectorAll("#playerList input")
+    .forEach(cb => cb.checked = e.target.checked);
+});
 
 // ================= 初期化 =================
 async function init() {
+  createTable();
   await loadList();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  createTable();
-  init();
-});
+init();
