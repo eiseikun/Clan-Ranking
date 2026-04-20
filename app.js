@@ -134,24 +134,36 @@ window.importCSV = async ()=>{
   if(!file) return alert("選択して");
 
   const text=await file.text();
+
   const rows=text.split(/\r?\n/).slice(1);
 
   const map={};
 
   rows.forEach(r=>{
-    const [date,rank,name]=r.split(",");
-    if(!date||!rank) return;
+    if(!r.trim()) return; // 🔥 空行スキップ
 
-    const d=toSlash(date.trim());
+    const cols = r.split(",");
 
-    if(!map[d]) map[d]=[];
-    map[d].push({
-      rank:Number(rank),
-      name:name?.trim()||""
+    if(cols.length < 2) return; // 🔥 壊れ行防止
+
+    let [date,rank,name] = cols;
+
+    if(!date || !rank) return;
+
+    date = toSlash(date.trim());
+    rank = Number(rank);
+
+    if(isNaN(rank)) return; // 🔥 数値チェック
+
+    if(!map[date]) map[date]=[];
+
+    map[date].push({
+      rank,
+      name: name?.trim() || ""
     });
   });
 
-  // 🔥 ここが変更ポイント
+  // 🔥 データ保存
   for(const date in map){
     map[date].sort((a,b)=>a.rank-b.rank);
 
