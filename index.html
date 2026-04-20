@@ -2,75 +2,28 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ランキング管理</title>
+<title>ランキング管理（シンプル版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
 </head>
 
 <body>
 
-<h1>📊 ランキング管理</h1>
+<h1>🏆 ランキング管理</h1>
 
-<!-- 手入力 -->
-<section>
-<h2>✏️ 手入力</h2>
-<input type="date" id="date">
-<button onclick="saveData()">保存</button>
-<div id="table"></div>
-</section>
+<div class="box">
+  <h2>✏️ 手動入力</h2>
+  <input type="date" id="date">
+  <button id="saveBtn">登録</button>
 
-<hr>
-
-<!-- CSV -->
-<section>
-<h2>📥 CSV取込</h2>
-<input type="file" id="csvFile">
-<button onclick="importCSV()">取込</button>
-</section>
-
-<hr>
-
-<!-- 一覧 -->
-<section>
-<h2>📋 一覧（横並び）</h2>
-<div class="table-wrap">
-  <table id="listTable"></table>
+  <div id="table" class="rank-table"></div>
 </div>
-</section>
 
-<hr>
-
-<!-- 平均 -->
-<section>
-<h2>📊 平均順位</h2>
-<input type="date" id="startAvg">
-<input type="date" id="endAvg">
-<button onclick="calcAvg()">計算</button>
-<div id="avgResult"></div>
-</section>
-
-<hr>
-
-<!-- グラフ -->
-<section>
-<h2>📈 グラフ</h2>
-<input type="date" id="start">
-<input type="date" id="end">
-<button id="memberBtn">メンバー選択</button>
-<button onclick="drawChart()">表示</button>
-<canvas id="chart"></canvas>
-</section>
-
-<!-- モーダル -->
-<div id="modal" class="hidden">
-  <div class="modal-content">
-    <h3>メンバー選択</h3>
-    <label><input type="checkbox" id="selectAll"> 全員</label>
-    <div id="playerList"></div>
-    <button id="closeModal">閉じる</button>
-  </div>
+<div class="box">
+  <h2>📋 一覧</h2>
+  <div id="list" class="list"></div>
 </div>
 
 </body>
