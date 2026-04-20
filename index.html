@@ -2,11 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ランキング管理</title>
+<title>ランキング管理（シンプル版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
 </head>
 
@@ -14,50 +13,17 @@
 
 <h1>🏆 ランキング管理</h1>
 
-<!-- ================= 手動入力 ================= -->
 <div class="box">
   <h2>✏️ 手動入力</h2>
-
   <input type="date" id="date">
   <button id="saveBtn">登録</button>
 
   <div id="table" class="rank-table"></div>
 </div>
 
-<!-- ================= CSV ================= -->
-<div class="box">
-  <h2>📁 CSV取込</h2>
-  <input type="file" id="csvFile">
-  <button id="csvBtn">取込</button>
-</div>
-
-<!-- ================= 一覧 ================= -->
 <div class="box">
   <h2>📋 一覧</h2>
   <div id="list" class="list"></div>
-</div>
-
-<!-- ================= 平均順位 ================= -->
-<div class="box">
-  <h2>📊 平均順位</h2>
-
-  <input type="date" id="from">
-  <input type="date" id="to">
-  <button id="avgBtn">計算</button>
-
-  <div id="avgResult"></div>
-</div>
-
-<!-- ================= グラフ ================= -->
-<div class="box">
-  <h2>📈 順位推移グラフ</h2>
-
-  <input type="date" id="gFrom">
-  <input type="date" id="gTo">
-  <input type="text" id="members" placeholder="名前（カンマ区切り）">
-  <button id="graphBtn">表示</button>
-
-  <canvas id="chart"></canvas>
 </div>
 
 </body>
