@@ -19,6 +19,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
+// 🔴 編集ID（グローバル）
+let editId = null;
+
 // ================= 日付処理 =================
 const toDate = d => {
   if (!d) return new Date(0);
@@ -58,21 +61,21 @@ async function saveData() {
 
   const snap = await getDocs(colRef);
 
-  // 同日削除（上書き）
   for (const d of snap.docs) {
-  if (
-    d.data().date === date || // 同日上書き
-    d.id === window.editId    // 編集元削除
-  ) {
-    await deleteDoc(doc(db, "items", d.id));
+    if (
+      d.data().date === date || // 同日上書き
+      d.id === editId           // 編集元削除
+    ) {
+      await deleteDoc(doc(db, "items", d.id));
+    }
   }
-}
 
   await addDoc(colRef, { date, data });
 
   alert("登録完了");
+
+  editId = null; // 🔴 リセット
   init();
-  window.editId = null;
 }
 
 // ================= 一覧 =================
@@ -83,19 +86,18 @@ async function loadList() {
   const snap = await getDocs(colRef);
 
   const allDocs = snap.docs.map(d => ({
-  id: d.id,
-  ...d.data()
-}));
+    id: d.id,
+    ...d.data()
+  }));
 
-// 日付ごとに「最後の1件だけ残す」
-const map = new Map();
+  // 日付ごとに最後の1件
+  const map = new Map();
+  allDocs.forEach(d => {
+    map.set(d.date, d);
+  });
 
-allDocs.forEach(d => {
-  map.set(d.date, d); // 後に来たものが上書きされる
-});
-
-const docs = [...map.values()]
-  .sort((a, b) => toDate(b.date) - toDate(a.date));
+  const docs = [...map.values()]
+    .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
     const div = document.createElement("div");
@@ -112,14 +114,14 @@ const docs = [...map.values()]
     `;
 
     // 編集
-   div.onclick = e => {
-  if (e.target.classList.contains("del")) return;
+    div.onclick = e => {
+      if (e.target.classList.contains("del")) return;
 
-  window.editId = d.id; // ←追加
+      editId = d.id; // 🔴 ここ重要
 
-  document.getElementById("date").value = d.date.replaceAll("/", "-");
-  createTable(d.data);
-};
+      document.getElementById("date").value = d.date.replaceAll("/", "-");
+      createTable(d.data);
+    };
 
     // 削除
     div.querySelector(".del").onclick = async e => {
@@ -132,26 +134,13 @@ const docs = [...map.values()]
   });
 }
 
-// ================= 初期化 =================
-async function init() {
-  await loadList();
-}
-
-// ================= 起動 =================
-document.addEventListener("DOMContentLoaded", () => {
-  createTable();
-  init();
-
-  document.getElementById("saveBtn").onclick = saveData;
-document.getElementById("csvBtn").onclick = importCSV;
-});
-
+// ================= CSV =================
 async function importCSV() {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選択して");
 
   const text = await file.text();
-  const rows = text.split(/\r?\n/).slice(1); // ヘッダー除外
+  const rows = text.split(/\r?\n/).slice(1);
 
   const map = {};
 
@@ -172,15 +161,12 @@ async function importCSV() {
   const snap = await getDocs(colRef);
 
   for (const date in map) {
-
-    // 🔴 同日削除（超重要）
     for (const d of snap.docs) {
       if (d.data().date === date) {
         await deleteDoc(doc(db, "items", d.id));
       }
     }
 
-    // 順位順に並び替え
     map[date].sort((a, b) => a.rank - b.rank);
 
     await addDoc(colRef, {
@@ -193,7 +179,22 @@ async function importCSV() {
   init();
 }
 
-document.getElementById("copyBtn").onclick = () => {
-  window.editId = null; // ←編集モード解除
-  alert("コピー状態になりました（新規保存になります）");
-};
+// ================= 初期化 =================
+async function init() {
+  await loadList();
+}
+
+// ================= 起動 =================
+document.addEventListener("DOMContentLoaded", () => {
+  createTable();
+  init();
+
+  document.getElementById("saveBtn").onclick = saveData;
+  document.getElementById("csvBtn").onclick = importCSV;
+
+  // 🔴 コピー（ここに入れるのが重要）
+  document.getElementById("copyBtn").onclick = () => {
+    editId = null;
+    alert("コピー状態になりました（新規保存になります）");
+  };
+});
