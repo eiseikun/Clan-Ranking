@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>順位管理システム</title>
+<title>順位管理（安定リメイク版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
@@ -13,20 +13,21 @@
 
 <body>
 
-<h1>🏆 順位管理システム（安定版）</h1>
+<h1>🏆 順位管理（安定リメイク版）</h1>
 
 <!-- ================= CSV ================= -->
 <div class="box">
-  <h2>📁 CSV取込</h2>
+  <h2>CSV</h2>
 
   <input type="file" id="csvFile" accept=".csv">
+
   <button id="csvLoadBtn">読み込み</button>
   <button id="csvSaveBtn">保存</button>
 </div>
 
 <!-- ================= 手動 ================= -->
 <div class="box">
-  <h2>✏️ 手動入力</h2>
+  <h2>手動入力</h2>
 
   <input type="date" id="date">
   <button id="saveBtn">登録</button>
@@ -36,16 +37,17 @@
 
 <!-- ================= 一覧 ================= -->
 <div class="box">
-  <h2>📋 一覧（削除のみ）</h2>
+  <h2>一覧（削除のみ）</h2>
   <div id="list"></div>
 </div>
 
 <!-- ================= 平均 ================= -->
 <div class="box">
-  <h2>📊 平均順位</h2>
+  <h2>平均順位</h2>
 
   <input type="date" id="startAvg">
   <input type="date" id="endAvg">
+
   <button id="avgBtn">計算</button>
 
   <div id="avgResult"></div>
@@ -53,7 +55,7 @@
 
 <!-- ================= グラフ ================= -->
 <div class="box">
-  <h2>📈 グラフ</h2>
+  <h2>グラフ</h2>
 
   <input type="date" id="start">
   <input type="date" id="end">
