@@ -1,19 +1,58 @@
 body {
   font-family: sans-serif;
   background: #f5f5f5;
+  margin: 0;
   padding: 20px;
 }
 
-.box {
-  background: #fff;
-  padding: 15px;
-  margin: 15px auto;
-  max-width: 900px;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+h1 {
+  text-align: center;
 }
 
-#list > div {
+.box {
+  background: white;
+  padding: 15px;
+  margin: 15px auto;
+  border-radius: 10px;
+  max-width: 800px;
+}
+
+#table div {
+  display: flex;
+  gap: 10px;
+  margin: 5px 0;
+}
+
+input {
+  padding: 5px;
+}
+
+button {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.list div {
   border-bottom: 1px solid #ddd;
-  padding: 10px 0;
+  padding: 8px 0;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.modalContent {
+  background: white;
+  padding: 20px;
+  margin: 10% auto;
+  width: 300px;
+}
+
+.hidden {
+  display: none;
 }
