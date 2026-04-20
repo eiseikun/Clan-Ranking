@@ -60,20 +60,9 @@ async function loadList(){
 
   const snap = await getDocs(colRef);
 
-  const map = new Map();
-
-  snap.docs.forEach(d=>{
-    const data = d.data();
-
-    // setDoc優先（dateをIDにしてるのでこれだけでOK）
-    map.set(data.date, {
-      id: d.id,
-      ...data
-    });
-  });
-
-  const docs = [...map.values()]
-    .sort((a,b)=>toDate(b.date)-toDate(a.date));
+const docs = snap.docs
+  .map(d=>d.data())
+  .sort((a,b)=>toDate(b.date)-toDate(a.date));
 
   docs.forEach(d=>{
     const div=document.createElement("div");
@@ -148,24 +137,28 @@ window.importCSV = async ()=>{
   const rows=text.split(/\r?\n/).slice(1);
 
   const map={};
+
   rows.forEach(r=>{
     const [date,rank,name]=r.split(",");
     if(!date||!rank) return;
+
     const d=toSlash(date.trim());
+
     if(!map[d]) map[d]=[];
-    map[d].push({rank:Number(rank),name:name?.trim()||""});
+    map[d].push({
+      rank:Number(rank),
+      name:name?.trim()||""
+    });
   });
 
-  const snap=await getDocs(colRef);
-
+  // 🔥 ここが変更ポイント
   for(const date in map){
-    for(const d of snap.docs){
-      if(d.data().date===date){
-        await deleteDoc(doc(db,"items",d.id));
-      }
-    }
     map[date].sort((a,b)=>a.rank-b.rank);
-    await addDoc(colRef,{date,data:map[date]});
+
+    await setDoc(doc(db,"items",date), {
+      date,
+      data: map[date]
+    });
   }
 
   alert("CSV完了");
