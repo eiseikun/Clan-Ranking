@@ -100,20 +100,37 @@ async function importCSV() {
 
   const dates = Object.keys(map);
 
-  if (dates.length !== 1) {
-    alert("CSVは1日分のみ対応です");
-    return;
+  // ================= 1日だけ =================
+  if (dates.length === 1) {
+    const date = dates[0];
+
+    document.getElementById("date").value = date.replaceAll("/", "-");
+
+    map[date].sort((a, b) => a.rank - b.rank);
+    createTable(map[date]);
+
+    alert("CSV読み込み完了（登録ボタンで保存してください）");
   }
 
-  const date = dates[0];
+  // ================= 複数日 =================
+  else {
+    const ok = confirm(`${dates.length}日分のデータを一括登録します。よろしいですか？`);
 
-  // 🔥 画面に反映するだけ（保存しない）
-  document.getElementById("date").value = date.replaceAll("/", "-");
+    if (!ok) return;
 
-  map[date].sort((a, b) => a.rank - b.rank);
-  createTable(map[date]);
+    for (const date of dates) {
+      map[date].sort((a, b) => a.rank - b.rank);
 
-  alert("CSV読み込み完了（登録ボタンで保存してください）");
+      // 🔥 日付IDで上書き保存
+      await setDoc(doc(db, "items", date), {
+        date,
+        data: map[date]
+      });
+    }
+
+    alert("CSV一括登録完了");
+    init();
+  }
 
   // ファイルリセット
   document.getElementById("csvFile").value = "";
