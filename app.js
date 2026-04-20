@@ -1,6 +1,4 @@
-// =========================
-// 🔥 Firebase 初期化
-// =========================
+// ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -12,7 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
+  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskajxUI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
 };
@@ -21,10 +19,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
+let chart;
 
-// =========================
-// 🗓 日付処理
-// =========================
+// ================= 日付 =================
 const toDate = d => {
   if (!d) return new Date(0);
   const parts = d.replaceAll("-", "/").split("/");
@@ -33,10 +30,7 @@ const toDate = d => {
 
 const toSlash = d => d.replaceAll("-", "/");
 
-
-// =========================
-// 🧱 テーブル生成
-// =========================
+// ================= 入力UI =================
 function createTable(data = null) {
   const div = document.getElementById("table");
   div.innerHTML = "";
@@ -51,57 +45,48 @@ function createTable(data = null) {
   }
 }
 
-
-// =========================
-// 💾 保存処理
-// =========================
-window.saveData = async () => {
+// ================= 保存 =================
+async function saveData() {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
 
   date = toSlash(date);
 
   const data = [];
+
   for (let i = 1; i <= 15; i++) {
     const name = document.getElementById(`name${i}`).value.trim();
     data.push({ rank: i, name });
   }
 
-  try {
-    const snap = await getDocs(colRef);
+  const snap = await getDocs(colRef);
 
-    // 同日削除（上書き）
-    for (const d of snap.docs) {
-      if (d.data().date === date) {
-        await deleteDoc(doc(db, "items", d.id));
-      }
+  for (const d of snap.docs) {
+    if (d.data().date === date) {
+      await deleteDoc(doc(db, "items", d.id));
     }
-
-    await addDoc(colRef, { date, data });
-
-    alert("登録完了");
-    init();
-
-  } catch (e) {
-    console.error("保存エラー", e);
-    alert("保存失敗：" + e.message);
   }
-};
 
+  await addDoc(colRef, { date, data });
 
-// =========================
-// 📋 一覧表示
-// =========================
+  alert("登録完了");
+  init();
+}
+
+// ================= 一覧 =================
 async function loadList() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   const snap = await getDocs(colRef);
 
-  console.log("Firestore raw:", snap.docs.map(d => d.data()));
+  const map = new Map();
 
-  const docs = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
+  snap.docs.forEach(d => {
+    map.set(d.data().date, { id: d.id, ...d.data() });
+  });
+
+  const docs = [...map.values()]
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -135,80 +120,105 @@ async function loadList() {
   });
 }
 
-
-// =========================
-// 📥 CSV（読み込み専用）
-// =========================
-window.importCSV = async () => {
+// ================= CSV =================
+document.getElementById("csvBtn").onclick = () => {
   const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("ファイル選択して");
+  if (!file) return alert("CSV選択して");
 
-  const text = await file.text();
-  const rows = text.split(/\r?\n/).slice(1);
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    const lines = e.target.result.split("\n");
+
+    lines.forEach((line, i) => {
+      const name = line.trim();
+      if (i < 15) {
+        document.getElementById(`name${i + 1}`).value = name;
+      }
+    });
+  };
+
+  reader.readAsText(file);
+};
+
+// ================= 平均順位 =================
+document.getElementById("avgBtn").onclick = async () => {
+  const from = toDate(document.getElementById("from").value);
+  const to = toDate(document.getElementById("to").value);
+
+  const snap = await getDocs(colRef);
+
+  const data = snap.docs.map(d => d.data())
+    .filter(d => {
+      const date = toDate(d.date);
+      return date >= from && date <= to;
+    });
 
   const map = {};
 
-  rows.forEach(r => {
-    if (!r.trim()) return;
+  data.forEach(d => {
+    d.data.forEach(p => {
+      if (!p.name) return;
+      if (!map[p.name]) map[p.name] = { sum: 0, count: 0 };
 
-    const [date, rank, name] = r.split(",");
-    if (!date || !rank) return;
-
-    const fixedDate = toSlash(date.trim());
-
-    if (!map[fixedDate]) map[fixedDate] = [];
-
-    map[fixedDate].push({
-      rank: Number(rank),
-      name: name?.trim() || ""
+      map[p.name].sum += p.rank;
+      map[p.name].count++;
     });
   });
 
-  const dates = Object.keys(map);
+  let html = "<table><tr><th>名前</th><th>平均順位</th></tr>";
 
-  // 🔥 1日だけならフォームに反映
-  if (dates.length === 1) {
-    const date = dates[0];
+  Object.entries(map).forEach(([name, v]) => {
+    html += `<tr><td>${name}</td><td>${(v.sum / v.count).toFixed(2)}</td></tr>`;
+  });
 
-    document.getElementById("date").value = date.replaceAll("/", "-");
+  html += "</table>";
 
-    map[date].sort((a, b) => a.rank - b.rank);
-    createTable(map[date]);
-
-    alert("CSV読み込み完了（登録ボタンで保存）");
-  }
-
-  // 🔥 複数日は確認して順番に表示（保存しない）
-  else {
-    alert(`${dates.length}日分読み込みました（保存はされていません）`);
-
-    // 最初の日だけ表示
-    const first = dates.sort()[0];
-    document.getElementById("date").value = first.replaceAll("/", "-");
-
-    map[first].sort((a, b) => a.rank - b.rank);
-    createTable(map[first]);
-  }
+  document.getElementById("avgResult").innerHTML = html;
 };
 
+// ================= グラフ =================
+document.getElementById("graphBtn").onclick = async () => {
+  const from = toDate(document.getElementById("gFrom").value);
+  const to = toDate(document.getElementById("gTo").value);
+  const members = document.getElementById("members").value.split(",");
 
-// =========================
-// 📈 その他そのまま
-// =========================
-let chart;
-
-async function getAllData() {
   const snap = await getDocs(colRef);
-  return snap.docs.map(d => d.data());
-}
 
+  const docs = snap.docs.map(d => d.data())
+    .filter(d => {
+      const date = toDate(d.date);
+      return date >= from && date <= to;
+    })
+    .sort((a, b) => toDate(a.date) - toDate(b.date));
 
-// =========================
-// 🚀 初期化
-// =========================
+  const labels = docs.map(d => d.date);
+
+  const datasets = members.map(name => ({
+    label: name,
+    data: docs.map(d => {
+      const found = d.data.find(p => p.name === name);
+      return found ? found.rank : null;
+    }),
+    borderWidth: 2
+  }));
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: { labels, datasets }
+  });
+};
+
+// ================= 初期化 =================
 async function init() {
   await loadList();
 }
 
-createTable();
-init();
+document.addEventListener("DOMContentLoaded", () => {
+  createTable();
+  init();
+
+  document.getElementById("saveBtn").onclick = saveData;
+});
