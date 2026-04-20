@@ -1,3 +1,4 @@
+
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -21,20 +22,22 @@ const colRef = collection(db, "items");
 
 let chart;
 
+// ================= 状態（CSVバッファ） =================
+let csvBuffer = {};
+
 // ================= 共通 =================
 const toDate = d => new Date(d);
+const toSlash = d => d.replaceAll("-", "/");
 
-// ================= ドキュメント保存（核心） =================
+// ================= 保存（共通コア） =================
 async function saveByDate(date, data) {
-  const id = date; // ★ここが最重要（＝日付がID）
-
-  await setDoc(doc(db, "items", id), {
+  await setDoc(doc(db, "items", date), {
     date,
     data
   });
 }
 
-// ================= 手動入力UI =================
+// ================= テーブル =================
 function createTable(data = null) {
   const div = document.getElementById("table");
   div.innerHTML = "";
@@ -49,8 +52,8 @@ function createTable(data = null) {
   }
 }
 
-// ================= 手動保存 =================
-async function saveData() {
+// ================= 手動入力（バッファ化） =================
+window.saveData = async () => {
 
   const date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -62,142 +65,159 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  await saveByDate(date, data);
+  // 🔥 即保存（上書き）
+  await saveByDate(toSlash(date), data);
 
   init();
-}
+};
+
+// ================= CSV読み込み（まだ保存しない） =================
+window.importCSV = async () => {
+
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return alert("ファイル選択して");
+
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).slice(1);
+
+  csvBuffer = {}; // 初期化
+
+  rows.forEach(r => {
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
+
+    const d = toSlash(date.trim());
+
+    if (!csvBuffer[d]) csvBuffer[d] = [];
+
+    csvBuffer[d].push({
+      rank: Number(rank),
+      name: name?.trim() || ""
+    });
+  });
+
+  alert("CSV読み込み完了（未保存）");
+};
+
+// ================= CSV保存ボタン（追加） =================
+window.commitCSV = async () => {
+
+  for (const date in csvBuffer) {
+
+    csvBuffer[date].sort((a, b) => a.rank - b.rank);
+
+    await saveByDate(date, csvBuffer[date]);
+  }
+
+  csvBuffer = {};
+  init();
+};
 
 // ================= 一覧 =================
 async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  const data = snap.docs
+  const docs = snap.docs
     .map(d => d.data())
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+    .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  data.forEach(d => {
+  docs.forEach(d => {
 
     const div = document.createElement("div");
 
     div.innerHTML = `
       <b>${d.date}</b><br>
       ${d.data.map(p => `${p.rank}位 ${p.name}`).join("<br>")}
-      <br>
-      <button onclick="remove('${d.date}')">削除</button>
     `;
 
-    div.onclick = e => {
-      if (e.target.tagName === "BUTTON") return;
-
-      document.getElementById("date").value = d.date;
-      createTable(d.data);
-    };
-
+    // ❌ 編集なし（要件通り）
     list.appendChild(div);
   });
 }
 
-// ================= 削除 =================
-window.remove = async (date) => {
-  if (!confirm("削除しますか？")) return;
-
-  await deleteDoc(doc(db, "items", date));
-  init();
-};
-
-// ================= CSV（完全統一） =================
-document.getElementById("csvBtn").onclick = async () => {
-
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return;
-
-  const text = await file.text();
-  const lines = text.split(/\r?\n/).filter(Boolean);
-
-  const grouped = {};
-
-  for (const line of lines) {
-
-    const parts = line.split(",");
-    const date = parts[0];
-    const names = parts.slice(1);
-
-    grouped[date] = names.slice(0, 15).map((name, i) => ({
-      rank: i + 1,
-      name
-    }));
-  }
-
-  for (const [date, data] of Object.entries(grouped)) {
-    await saveByDate(date, data); // ★完全統一
-  }
-
-  init();
-};
-
 // ================= 平均順位 =================
-document.getElementById("avgBtn").onclick = async () => {
+window.calcAvg = async () => {
 
-  const from = new Date(document.getElementById("from").value);
-  const to = new Date(document.getElementById("to").value);
+  const start = document.getElementById("startAvg").value;
+  const end = document.getElementById("endAvg").value;
+
+  if (!start || !end) return alert("期間指定");
 
   const snap = await getDocs(colRef);
 
-  const data = snap.docs.map(d => d.data())
-    .filter(d => {
-      const date = new Date(d.date);
-      return date >= from && date <= to;
-    });
+  const docs = snap.docs
+    .map(d => d.data())
+    .filter(d =>
+      toDate(d.date) >= toDate(start) &&
+      toDate(d.date) <= toDate(end)
+    );
 
   const map = {};
 
-  data.forEach(d => {
+  docs.forEach(d => {
     d.data.forEach(p => {
+      if (!p.name) return;
+
       if (!map[p.name]) map[p.name] = { sum: 0, count: 0 };
+
       map[p.name].sum += p.rank;
       map[p.name].count++;
     });
   });
 
-  let html = "<table><tr><th>名前</th><th>平均順位</th></tr>";
+  const result = Object.entries(map)
+    .map(([name, v]) => ({
+      name,
+      avg: v.sum / v.count
+    }))
+    .sort((a, b) => a.avg - b.avg);
 
-  for (const [name, v] of Object.entries(map)) {
-    html += `<tr><td>${name}</td><td>${(v.sum / v.count).toFixed(2)}</td></tr>`;
-  }
+  const el = document.getElementById("avgResult");
 
-  html += "</table>";
-
-  document.getElementById("avgResult").innerHTML = html;
+  el.innerHTML = `
+    <table>
+      <tr><th>順位</th><th>名前</th><th>平均</th></tr>
+      ${result.map((r, i) =>
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.avg.toFixed(2)}</td>
+        </tr>`
+      ).join("")}
+    </table>
+  `;
 };
 
 // ================= グラフ =================
-document.getElementById("graphBtn").onclick = async () => {
+window.drawChart = async () => {
 
-  const from = new Date(document.getElementById("gFrom").value);
-  const to = new Date(document.getElementById("gTo").value);
+  const start = document.getElementById("start").value;
+  const end = document.getElementById("end").value;
 
-  const members = document.getElementById("members").value.split(",").map(s => s.trim());
+  const selected = [...document.querySelectorAll("#playerList input:checked")]
+    .map(cb => cb.value);
 
   const snap = await getDocs(colRef);
 
-  const docs = snap.docs.map(d => d.data())
-    .filter(d => {
-      const date = new Date(d.date);
-      return date >= from && date <= to;
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const docs = snap.docs
+    .map(d => d.data())
+    .filter(d =>
+      toDate(d.date) >= toDate(start) &&
+      toDate(d.date) <= toDate(end)
+    )
+    .sort((a, b) => toDate(a.date) - toDate(b.date));
 
   const labels = docs.map(d => d.date);
 
-  const datasets = members.map(name => ({
+  const datasets = selected.map((name, i) => ({
     label: name,
     data: docs.map(d => {
-      const found = d.data.find(p => p.name === name);
-      return found ? found.rank : null;
+      const f = d.data.find(p => p.name === name);
+      return f ? f.rank : null;
     }),
     borderWidth: 2
   }));
@@ -206,7 +226,12 @@ document.getElementById("graphBtn").onclick = async () => {
 
   chart = new Chart(document.getElementById("chart"), {
     type: "line",
-    data: { labels, datasets }
+    data: { labels, datasets },
+    options: {
+      scales: {
+        y: { reverse: true, ticks: { stepSize: 1 } }
+      }
+    }
   });
 };
 
@@ -217,6 +242,5 @@ async function init() {
 
 document.addEventListener("DOMContentLoaded", () => {
   createTable();
-  document.getElementById("saveBtn").onclick = saveData;
   init();
 });
