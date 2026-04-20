@@ -6,7 +6,8 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -66,12 +67,13 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  await deleteSameDate(date);
-  await addDoc(colRef, { date, data });
+  // 🔥 上書き（これだけ）
+  await setDoc(doc(db, "items", date), {
+    date,
+    data
+  });
 
   alert("登録完了");
-  createTable(); // 入力リセット
-  document.getElementById("date").value = "";
   init();
 }
 
@@ -100,15 +102,14 @@ async function importCSV() {
   });
 
   for (const date in map) {
-    await deleteSameDate(date);
+  map[date].sort((a, b) => a.rank - b.rank);
 
-    map[date].sort((a, b) => a.rank - b.rank);
-
-    await addDoc(colRef, {
-      date,
-      data: map[date]
-    });
-  }
+  // 🔥 上書き保存（これが最重要）
+  await setDoc(doc(db, "items", date), {
+    date,
+    data: map[date]
+  });
+}
 
   alert("CSV取込完了");
 
