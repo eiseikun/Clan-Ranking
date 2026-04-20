@@ -14,14 +14,14 @@
 
 <h1>🏆 ランキング管理</h1>
 
-<!-- ================= 手動入力 ================= -->
+<!-- ================= 入力 ================= -->
 <div class="box">
   <h2>✏️ 手動入力</h2>
 
   <input type="date" id="date">
   <button id="saveBtn">登録</button>
 
-  <div id="table" class="rank-table"></div>
+  <div id="table"></div>
 </div>
 
 <!-- ================= CSV ================= -->
@@ -34,10 +34,10 @@
 <!-- ================= 一覧 ================= -->
 <div class="box">
   <h2>📋 一覧</h2>
-  <div id="list" class="list"></div>
+  <div id="list"></div>
 </div>
 
-<!-- ================= 平均順位 ================= -->
+<!-- ================= 平均 ================= -->
 <div class="box">
   <h2>📊 平均順位</h2>
 
@@ -50,11 +50,11 @@
 
 <!-- ================= グラフ ================= -->
 <div class="box">
-  <h2>📈 順位推移グラフ</h2>
+  <h2>📈 グラフ</h2>
 
   <input type="date" id="gFrom">
   <input type="date" id="gTo">
-  <input type="text" id="members" placeholder="名前（カンマ区切り）">
+  <input type="text" id="members" placeholder="名前カンマ区切り">
   <button id="graphBtn">表示</button>
 
   <canvas id="chart"></canvas>
