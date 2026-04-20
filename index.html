@@ -2,48 +2,61 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ランキング管理</title>
+<title>順位管理（完全版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="app.js"></script>
+
 </head>
 
 <body>
 
-<h1>🏆 ランキング管理</h1>
+<h1>🏆 順位管理（完全統一版）</h1>
 
-<!-- ================= 入力 ================= -->
+<!-- ================= CSV ================= -->
+<div class="box">
+  <h2>📁 CSV取込（まだ保存されません）</h2>
+
+  <input type="file" id="csvFile" accept=".csv" hidden>
+  <button onclick="document.getElementById('csvFile').click()">
+    ファイル選択
+  </button>
+
+  <button onclick="importCSV()">CSV読み込み</button>
+  <button onclick="commitCSV()">CSV登録（保存）</button>
+
+  <p>※読み込み → 登録で反映</p>
+</div>
+
+<!-- ================= 手動入力 ================= -->
 <div class="box">
   <h2>✏️ 手動入力</h2>
 
   <input type="date" id="date">
-  <button id="saveBtn">登録</button>
+
+  <button onclick="saveData()">登録（上書き保存）</button>
 
   <div id="table"></div>
 </div>
 
-<!-- ================= CSV ================= -->
-<div class="box">
-  <h2>📁 CSV取込</h2>
-  <input type="file" id="csvFile">
-  <button id="csvBtn">取込</button>
-</div>
-
 <!-- ================= 一覧 ================= -->
 <div class="box">
-  <h2>📋 一覧</h2>
-  <div id="list"></div>
+  <h2>📋 一覧（編集不可・最新表示）</h2>
+
+  <div id="list" class="list"></div>
 </div>
 
 <!-- ================= 平均 ================= -->
 <div class="box">
   <h2>📊 平均順位</h2>
 
-  <input type="date" id="from">
-  <input type="date" id="to">
-  <button id="avgBtn">計算</button>
+  <input type="date" id="startAvg">
+  <input type="date" id="endAvg">
+
+  <button onclick="calcAvg()">計算</button>
 
   <div id="avgResult"></div>
 </div>
@@ -52,10 +65,26 @@
 <div class="box">
   <h2>📈 グラフ</h2>
 
-  <input type="date" id="gFrom">
-  <input type="date" id="gTo">
-  <input type="text" id="members" placeholder="名前カンマ区切り">
-  <button id="graphBtn">表示</button>
+  <input type="date" id="start">
+  <input type="date" id="end">
+
+  <button id="memberBtn">メンバー選択</button>
+  <button onclick="drawChart()">表示</button>
+
+  <!-- モーダル -->
+  <div id="modal" class="modal hidden">
+    <div class="modalContent">
+
+      <label>
+        <input type="checkbox" id="selectAll">
+        全員選択
+      </label>
+
+      <div id="playerList"></div>
+
+      <button id="closeModal">閉じる</button>
+    </div>
+  </div>
 
   <canvas id="chart"></canvas>
 </div>
