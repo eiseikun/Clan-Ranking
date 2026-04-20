@@ -1,12 +1,14 @@
-// ================= Firebase =================
+// =========================
+// 🔥 Firebase 初期化
+// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
+  addDoc,
   getDocs,
   deleteDoc,
-  doc,
-  setDoc
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -19,7 +21,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// ================= 日付処理 =================
+
+// =========================
+// 🗓 日付処理
+// =========================
 const toDate = d => {
   if (!d) return new Date(0);
   const parts = d.replaceAll("-", "/").split("/");
@@ -28,7 +33,10 @@ const toDate = d => {
 
 const toSlash = d => d.replaceAll("-", "/");
 
-// ================= テーブル =================
+
+// =========================
+// 🧱 テーブル生成
+// =========================
 function createTable(data = null) {
   const div = document.getElementById("table");
   div.innerHTML = "";
@@ -43,8 +51,11 @@ function createTable(data = null) {
   }
 }
 
-// ================= 保存 =================
-async function saveData() {
+
+// =========================
+// 💾 保存処理
+// =========================
+window.saveData = async () => {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
 
@@ -56,102 +67,41 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  await setDoc(doc(db, "items", date), {
-    date,
-    data
-  });
+  try {
+    const snap = await getDocs(colRef);
 
-  alert("登録完了");
-
-  createTable();
-  document.getElementById("date").value = "";
-
-  await init();
-
-  document.getElementById("list").scrollIntoView({ behavior: "smooth" });
-}
-
-// ================= CSV =================
-async function importCSV() {
-  const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("CSVファイルを選択してください");
-
-  const text = await file.text();
-  const rows = text.split(/\r?\n/).slice(1);
-
-  const map = {};
-
-  rows.forEach(r => {
-    if (!r.trim()) return;
-
-    const [date, rank, name] = r.split(",");
-    if (!date || !rank) return;
-
-    const fixedDate = toSlash(date.trim().replace(/\./g, "/"));
-
-    const rNum = Number(rank);
-    if (isNaN(rNum)) return;
-
-    if (!map[fixedDate]) map[fixedDate] = [];
-
-    map[fixedDate].push({
-      rank: rNum,
-      name: name?.trim() || ""
-    });
-  });
-
-  const dates = Object.keys(map);
-
-  // 1日
-  if (dates.length === 1) {
-    const date = dates[0];
-
-    document.getElementById("date").value = date.replaceAll("/", "-");
-
-    map[date].sort((a, b) => a.rank - b.rank);
-    createTable(map[date]);
-
-    alert("CSV読み込み完了（登録ボタンで保存してください）");
-  }
-
-  // 複数日
-  else {
-    const ok = confirm(`${dates.length}日分を一括登録します`);
-    if (!ok) return;
-
-    for (const date of dates) {
-      map[date].sort((a, b) => a.rank - b.rank);
-
-      await setDoc(doc(db, "items", date), {
-        date,
-        data: map[date]
-      });
+    // 同日削除（上書き）
+    for (const d of snap.docs) {
+      if (d.data().date === date) {
+        await deleteDoc(doc(db, "items", d.id));
+      }
     }
 
-    alert("CSV一括登録完了");
-    await init();
+    await addDoc(colRef, { date, data });
+
+    alert("登録完了");
+    init();
+
+  } catch (e) {
+    console.error("保存エラー", e);
+    alert("保存失敗：" + e.message);
   }
+};
 
-  document.getElementById("csvFile").value = "";
-}
 
-// ================= 一覧 =================
+// =========================
+// 📋 一覧表示
+// =========================
 async function loadList() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   const snap = await getDocs(colRef);
 
-  // 🔥 デバッグ
   console.log("Firestore raw:", snap.docs.map(d => d.data()));
 
   const docs = snap.docs
-    .map(d => ({
-      id: d.id,
-      ...d.data()
-    }))
-    // 🔥 安全フィルタ（超重要）
-    .filter(d => d.date && Array.isArray(d.data))
+    .map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -173,32 +123,92 @@ async function loadList() {
 
       document.getElementById("date").value = d.date.replaceAll("/", "-");
       createTable(d.data);
-
-      window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     div.querySelector(".del").onclick = async e => {
       e.stopPropagation();
       await deleteDoc(doc(db, "items", d.id));
-      await init();
+      init();
     };
 
     list.appendChild(div);
   });
 }
 
-// ================= 初期化 =================
+
+// =========================
+// 📥 CSV（読み込み専用）
+// =========================
+window.importCSV = async () => {
+  const file = document.getElementById("csvFile").files[0];
+  if (!file) return alert("ファイル選択して");
+
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).slice(1);
+
+  const map = {};
+
+  rows.forEach(r => {
+    if (!r.trim()) return;
+
+    const [date, rank, name] = r.split(",");
+    if (!date || !rank) return;
+
+    const fixedDate = toSlash(date.trim());
+
+    if (!map[fixedDate]) map[fixedDate] = [];
+
+    map[fixedDate].push({
+      rank: Number(rank),
+      name: name?.trim() || ""
+    });
+  });
+
+  const dates = Object.keys(map);
+
+  // 🔥 1日だけならフォームに反映
+  if (dates.length === 1) {
+    const date = dates[0];
+
+    document.getElementById("date").value = date.replaceAll("/", "-");
+
+    map[date].sort((a, b) => a.rank - b.rank);
+    createTable(map[date]);
+
+    alert("CSV読み込み完了（登録ボタンで保存）");
+  }
+
+  // 🔥 複数日は確認して順番に表示（保存しない）
+  else {
+    alert(`${dates.length}日分読み込みました（保存はされていません）`);
+
+    // 最初の日だけ表示
+    const first = dates.sort()[0];
+    document.getElementById("date").value = first.replaceAll("/", "-");
+
+    map[first].sort((a, b) => a.rank - b.rank);
+    createTable(map[first]);
+  }
+};
+
+
+// =========================
+// 📈 その他そのまま
+// =========================
+let chart;
+
+async function getAllData() {
+  const snap = await getDocs(colRef);
+  return snap.docs.map(d => d.data());
+}
+
+
+// =========================
+// 🚀 初期化
+// =========================
 async function init() {
   await loadList();
 }
 
-// ================= 起動 =================
-document.addEventListener("DOMContentLoaded", () => {
-  createTable();
-  init();
-
-  document.getElementById("saveBtn").onclick = saveData;
-
-  const csvBtn = document.getElementById("csvBtn");
-  if (csvBtn) csvBtn.onclick = importCSV;
-});
+createTable();
+init();
