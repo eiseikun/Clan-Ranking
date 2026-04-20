@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
   getDocs,
   deleteDoc,
   doc,
@@ -20,11 +19,11 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const colRef = collection(db, "items");
 
-// ================= 日付 =================
+// ================= 日付処理 =================
 const toDate = d => {
   if (!d) return new Date(0);
-  const p = d.replaceAll("-", "/").split("/");
-  return new Date(p[0], p[1] - 1, p[2]);
+  const parts = d.replaceAll("-", "/").split("/");
+  return new Date(parts[0], parts[1] - 1, parts[2]);
 };
 
 const toSlash = d => d.replaceAll("-", "/");
@@ -44,17 +43,7 @@ function createTable(data = null) {
   }
 }
 
-// ================= 共通：同日削除 =================
-async function deleteSameDate(date) {
-  const snap = await getDocs(colRef);
-  for (const d of snap.docs) {
-    if (d.data().date === date) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
-  }
-}
-
-// ================= 手動保存 =================
+// ================= 保存（唯一の保存ルート） =================
 async function saveData() {
   let date = document.getElementById("date").value;
   if (!date) return alert("日付必須");
@@ -67,17 +56,25 @@ async function saveData() {
     data.push({ rank: i, name });
   }
 
-  // 🔥 上書き（これだけ）
+  // 🔥 日付IDで上書き（重複絶対防止）
   await setDoc(doc(db, "items", date), {
     date,
     data
   });
 
   alert("登録完了");
+
+  // 入力リセット
+  document.getElementById("date").value = "";
+  createTable();
+
   init();
+
+  // 一覧へスクロール
+  document.getElementById("list").scrollIntoView({ behavior: "smooth" });
 }
 
-// ================= CSV =================
+// ================= CSV（読み込み専用） =================
 async function importCSV() {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("CSVファイルを選択してください");
@@ -101,22 +98,25 @@ async function importCSV() {
     });
   });
 
-  for (const date in map) {
+  const dates = Object.keys(map);
+
+  if (dates.length !== 1) {
+    alert("CSVは1日分のみ対応です");
+    return;
+  }
+
+  const date = dates[0];
+
+  // 🔥 画面に反映するだけ（保存しない）
+  document.getElementById("date").value = date.replaceAll("/", "-");
+
   map[date].sort((a, b) => a.rank - b.rank);
+  createTable(map[date]);
 
-  // 🔥 上書き保存（これが最重要）
-  await setDoc(doc(db, "items", date), {
-    date,
-    data: map[date]
-  });
-}
+  alert("CSV読み込み完了（登録ボタンで保存してください）");
 
-  alert("CSV取込完了");
-
-  // ファイル選択リセット（地味に重要）
+  // ファイルリセット
   document.getElementById("csvFile").value = "";
-
-  init();
 }
 
 // ================= 一覧 =================
@@ -126,16 +126,11 @@ async function loadList() {
 
   const snap = await getDocs(colRef);
 
-  const allDocs = snap.docs.map(d => ({
-    id: d.id,
-    ...d.data()
-  }));
-
-  // 念のため1日1件
-  const map = new Map();
-  allDocs.forEach(d => map.set(d.date, d));
-
-  const docs = [...map.values()]
+  const docs = snap.docs
+    .map(d => ({
+      id: d.id,
+      ...d.data()
+    }))
     .sort((a, b) => toDate(b.date) - toDate(a.date));
 
   docs.forEach(d => {
@@ -152,14 +147,13 @@ async function loadList() {
       <button class="del">削除</button>
     `;
 
-    // 編集（クリックで反映）
+    // 編集
     div.onclick = e => {
       if (e.target.classList.contains("del")) return;
 
       document.getElementById("date").value = d.date.replaceAll("/", "-");
       createTable(d.data);
 
-      // スクロール（UX改善）
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -185,5 +179,8 @@ document.addEventListener("DOMContentLoaded", () => {
   init();
 
   document.getElementById("saveBtn").onclick = saveData;
-  document.getElementById("csvBtn").onclick = importCSV;
+
+  // 🔥 CSVボタン追加（HTMLに追加必要）
+  const csvBtn = document.getElementById("csvBtn");
+  if (csvBtn) csvBtn.onclick = importCSV;
 });
