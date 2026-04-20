@@ -7,7 +7,8 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
-  doc
+  doc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -54,21 +55,21 @@ async function saveData() {
   }
 
   // =========================
-  // 🔥 同じ日付があるか検索
+  // 🔥 既存チェック
   // =========================
   const snap = await getDocs(colRef);
 
   const existing = snap.docs.find(d => d.data().date === date);
 
   if (existing) {
-    // 👉 上書き
+
     await updateDoc(doc(db, "items", existing.id), {
       date,
       data
     });
 
   } else {
-    // 👉 新規
+
     await addDoc(colRef, {
       date,
       data
@@ -140,12 +141,32 @@ document.getElementById("csvBtn").onclick = async () => {
     }));
   }
 
+  // =========================
+  // 🔥 ここが差し替え本体
+  // =========================
+  const snap = await getDocs(colRef);
+  const existingList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
   for (const [date, data] of Object.entries(grouped)) {
-    await addDoc(colRef, { date, data });
+
+    const existing = existingList.find(d => d.date === date);
+
+    if (existing) {
+      await updateDoc(doc(db, "items", existing.id), {
+        date,
+        data
+      });
+    } else {
+      await addDoc(colRef, {
+        date,
+        data
+      });
+    }
   }
 
   init();
 };
+
 
 // ================= 平均順位 =================
 document.getElementById("avgBtn").onclick = async () => {
