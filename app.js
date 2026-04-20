@@ -14,8 +14,10 @@ const db = getFirestore(app);
 const colRef = collection(db, "items");
 
 // 日付
-const toDate = d => new Date(d.replaceAll("-", "/"));
-const toSlash = d => d.replaceAll("-", "/");
+const toDate = d => {
+  const [y,m,day] = d.replaceAll("-", "/").split("/");
+  return new Date(Number(y), Number(m)-1, Number(day));
+};
 
 // テーブル
 function createTable(data=null){
@@ -60,18 +62,28 @@ async function loadList(){
 
   const snap = await getDocs(colRef);
 
-const docs = snap.docs
-  .map(d=>d.data())
-  .sort((a,b)=>toDate(b.date)-toDate(a.date));
+  const docs = snap.docs
+    .map(d=>d.data())
+    .sort((a,b)=>{
+      const da = toDate(a.date);
+      const db = toDate(b.date);
+      return db - da;
+    });
+
+  console.log("取得データ", docs); // ← デバッグ用
 
   docs.forEach(d=>{
     const div=document.createElement("div");
     div.className="card";
 
+    const players = (d.data || []) // 🔥 安全対策
+      .filter(p=>p.name)
+      .map(p=>`${p.rank}位 ${p.name}`)
+      .join("<br>");
+
     div.innerHTML=`
       <b>${d.date}</b><br>
-      ${d.data.filter(p=>p.name)
-        .map(p=>`${p.rank}位 ${p.name}`).join("<br>")}
+      ${players}
       <br><button class="del">削除</button>
     `;
 
@@ -84,9 +96,9 @@ const docs = snap.docs
     div.querySelector(".del").onclick=async e=>{
       e.stopPropagation();
 
-      // 🔥 これで完全削除（setDoc対策）
-      await deleteDoc(doc(db,"items",d.date));
+      if(!confirm(`${d.date} を削除しますか？`)) return;
 
+      await deleteDoc(doc(db,"items",d.date));
       init();
     };
 
