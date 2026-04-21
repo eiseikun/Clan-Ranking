@@ -295,15 +295,16 @@ window.drawChart = function(){
         legend: { position: "bottom" }
       },
       scales: {
-        y: mode === "rank"
-          ? {
-              reverse: true,
-              ticks: { stepSize: 1 }
-            }
-          : {
-              beginAtZero: true
-            }
+  y: mode === "rank"
+    ? {
+        reverse: true,
+        ticks: { stepSize: 1 }
       }
+    : {
+        beginAtZero: true,
+        suggestedMax: Math.max(...filtered.map(d => d.score)) * 1.2
+      }
+}
     }
   });
 };
