@@ -7,7 +7,7 @@ import {
   doc,
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+let rankList = [];
 // ==============================
 // Firebase
 // ==============================
@@ -125,7 +125,16 @@ onSnapshot(collection(db, "scores"), (snapshot) => {
 
   renderTables();
 });
-
+// 2ページ目用
+onSnapshot(collection(db, "ranks"), (snapshot) => {
+  const newData = [];
+  snapshot.forEach(d => {
+    newData.push(d.data());
+  });
+  rankList = newData;
+  renderRankTable();
+  calcAvgRank();
+});
 // ==============================
 // テーブル描画
 // ==============================
@@ -197,6 +206,87 @@ html2 += "</tr>";
   document.getElementById("tableWrap").innerHTML = html2;
 }
 
+// ==============================
+// 2ページ目関数
+// ==============================
+window.addRank = async function () {
+
+  const member = document.getElementById("member").value;
+  const rank = Number(document.getElementById("rank").value);
+  const date = document.getElementById("date2").value;
+
+  if (!member) return alert("メンバー名");
+  if (!rank) return alert("順位");
+  if (!date) return alert("日付");
+
+  const id = `${date}_${member}`;
+
+  await setDoc(doc(db, "ranks", id), {
+    clan: "ねこ海賊団",
+    member,
+    rank,
+    date,
+    time: Date.now()
+  });
+};
+
+function renderRankTable() {
+
+  const table = {};
+
+  rankList.forEach(d => {
+    if (!table[d.date]) table[d.date] = {};
+    table[d.date][d.member] = d.rank;
+  });
+
+  const dates = Object.keys(table).sort();
+
+  const members = [...new Set(rankList.map(d => d.member))];
+
+  let html = "<table><tr><th>日付</th>";
+
+  members.forEach(m => html += `<th>${m}</th>`);
+  html += "</tr>";
+
+  dates.forEach(date => {
+    html += `<tr><td>${date}</td>`;
+    members.forEach(m => {
+      html += `<td>${table[date]?.[m] ?? "-"}</td>`;
+    });
+    html += "</tr>";
+  });
+
+  html += "</table>";
+
+  document.getElementById("tableWrap2").innerHTML = html;
+}
+
+function calcAvgRank() {
+
+  const sum = {};
+  const count = {};
+
+  rankList.forEach(d => {
+    if (!sum[d.member]) {
+      sum[d.member] = 0;
+      count[d.member] = 0;
+    }
+
+    sum[d.member] += d.rank;
+    count[d.member]++;
+  });
+
+  let html = "<table>";
+
+  Object.keys(sum).forEach(m => {
+    const avg = (sum[m] / count[m]).toFixed(2);
+    html += `<tr><td>${m}</td><td>${avg}</td></tr>`;
+  });
+
+  html += "</table>";
+
+  document.getElementById("avgRankBox").innerHTML = html;
+}
 // ==============================
 // モーダル
 // ==============================
