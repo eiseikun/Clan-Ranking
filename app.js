@@ -329,7 +329,9 @@ window.drawChart = function(){
       }
     : {
         beginAtZero: true,
-        suggestedMax: Math.max(...filtered.map(d => d.score)) * 1.2
+        suggestedMax: Math.max( Math.max(...dataList.map(d => d.score)),
+        10
+) * 1.2
       }
 }
     }
