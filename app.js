@@ -140,7 +140,11 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
 
   dataList.forEach(d=>{
     if(!table[d.date]) table[d.date] = {};
-    table[d.date][d.clan] = d.score;
+    if(!table[d.date][d.clan]){
+  table[d.date][d.clan] = d.score;
+} else {
+  table[d.date][d.clan] = Math.max(table[d.date][d.clan], d.score);
+}
   });
 
   const dates = Object.keys(table).sort();
