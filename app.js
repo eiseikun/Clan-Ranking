@@ -309,23 +309,77 @@ window.drawChart = function () {
       datasets
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: {
-            boxWidth: 12,
-            font: { size: 10 }
+  responsive: true,
+  maintainAspectRatio: false,
+
+  layout: {
+    padding: {
+      left: 10,
+      right: 10,
+      top: 10,
+      bottom: 10
+    }
+  },
+
+  plugins: {
+    legend: {
+      position: "bottom",
+      labels: {
+        boxWidth: 14,
+        boxHeight: 14,
+        padding: 15,
+        color: "#ffffff",
+        font: {
+          size: 14,
+          weight: "bold"
+        }
+      }
+    },
+    tooltip: {
+      titleColor: "#fff",
+      bodyColor: "#fff"
+    }
+  },
+
+  scales: {
+    x: {
+      ticks: {
+        color: "#ffffff",
+        font: {
+          size: 12
+        },
+        maxRotation: 45,
+        minRotation: 45
+      },
+      grid: {
+        color: "rgba(255,255,255,0.1)"
+      }
+    },
+
+    y: mode === "rank"
+      ? {
+          reverse: true,
+          ticks: {
+            stepSize: 1,
+            color: "#ffffff",
+            font: { size: 12 }
+          },
+          grid: {
+            color: "rgba(255,255,255,0.1)"
           }
         }
-      },
-      scales: {
-        y: mode === "rank"
-          ? { reverse: true, ticks: { stepSize: 1 } }
-          : { beginAtZero: true }
-      }
-    }
+      : {
+          beginAtZero: true,
+          ticks: {
+            color: "#ffffff",
+            font: { size: 12 }
+          },
+          grid: {
+            color: "rgba(255,255,255,0.1)"
+          }
+        }
+  }
+}
   });
 };
 
