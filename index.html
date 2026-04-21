@@ -86,7 +86,18 @@
   <div class="row">
     <button onclick="drawChart()">グラフ生成</button>
   </div>
+ <div id="graphModal" class="graph-modal">
+    <div class="graph-modal-content">
 
+      <div class="graph-header">
+        <h3>📊 グラフ表示</h3>
+        <button onclick="closeGraphModal()">閉じる</button>
+      </div>
+
+      <canvas id="modalChart"></canvas>
+
+    </div>
+  </div>
   <canvas id="chart"></canvas>
 </div>
 
