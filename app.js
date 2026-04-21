@@ -19,6 +19,33 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==============================
+// 📄 ページ切り替え
+// ==============================
+window.showPage = function(page){
+  const p1 = document.getElementById("page1");
+  const p2 = document.getElementById("page2");
+  const t1 = document.getElementById("tab1");
+  const t2 = document.getElementById("tab2");
+  const title = document.getElementById("title");
+
+  if(page===1){
+    p1.style.display="block";
+    p2.style.display="none";
+    t1.classList.add("active");
+    t2.classList.remove("active");
+    title.textContent="📘 記録ページ";
+  } else {
+    p1.style.display="none";
+    p2.style.display="block";
+    t1.classList.remove("active");
+    t2.classList.add("active");
+    title.textContent="💎 石シミュ";
+  }
+};
+
+
+
+// ==============================
 // 🏁 クラン定義（12個）
 // ==============================
 const clans = [
