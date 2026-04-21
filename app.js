@@ -133,7 +133,6 @@ onSnapshot(collection(db, "ranks"), (snapshot) => {
   });
   rankList = newData;
   renderRankTable();
-  calcAvgRank();
 });
 // ==============================
 // テーブル描画
@@ -561,7 +560,8 @@ window.exportCSV = function () {
   URL.revokeObjectURL(url);
 };
 // ==============================
-// 2ページ目の期間指定
+// 2ページ目期間指定用
 // ==============================
-document.getElementById("startDateRank").addEventListener("change", calcAvgRank);
-document.getElementById("endDateRank").addEventListener("change", calcAvgRank);
+window.applyAvgRank = function () {
+  calcAvgRank();
+};
