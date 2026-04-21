@@ -78,25 +78,17 @@ clans.forEach(c=>{
 
 // 初期日付
 document.getElementById("date").valueAsDate = new Date();
+
 // ==============================
-// 🔥 日付統一関数（最重要）
-// ==============================
-const formatDate = d => {
-  const dt = new Date(d);
-  return dt.toISOString().slice(0,10);
-};
-// ==============================
-// ➕ データ追加（修正済）
+// ➕ データ追加
 // ==============================
 window.add = async function(){
 
   const clan = document.getElementById("clan").value;
   const score = Number(document.getElementById("score").value);
-  const rawDate = document.getElementById("date").value;
+  const date = document.getElementById("date").value;
 
-  if(!score || !rawDate) return;
-
-  const date = formatDate(rawDate);
+  if(!score || !date) return;
 
   const docId = `${date}_${clan}`;
 
@@ -109,7 +101,6 @@ window.add = async function(){
 
   document.getElementById("score").value = "";
 };
-
 
 // ==============================
 // 📡 リアルタイム更新
@@ -228,18 +219,10 @@ window.applySelection = function(){
 
   closeModal();
 };
-window.selectAllClans = function(){
-  document.querySelectorAll("#modalCheckboxes input")
-    .forEach(cb => cb.checked = true);
-};
 
-window.clearAllClans = function(){
-  document.querySelectorAll("#modalCheckboxes input")
-    .forEach(cb => cb.checked = false);
-};
-// ==============================
-// 📈 グラフ（完全修正版）
-// ==============================
+ // =========================
+  // グラフ
+  // =========================
 let chart;
 window.drawChart = function(){
 
@@ -247,19 +230,20 @@ window.drawChart = function(){
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
+  // ✅ モーダルの選択を使う
   const checked = selectedClans;
+
   if(checked.length === 0) return alert("クラン選択して");
 
-  // フィルタ（←ここも日付統一）
+  // フィルタ
   const filtered = dataList.filter(d=>{
-    return (!start || formatDate(d.date) >= formatDate(start)) &&
-           (!end || formatDate(d.date) <= formatDate(end)) &&
+    return (!start || d.date >= start) &&
+           (!end || d.date <= end) &&
            checked.includes(d.clan);
   });
 
-  // 日付は全体ベース（安定）
-  const dates = [...new Set(dataList.map(d=>formatDate(d.date)))]
-    .sort((a, b) => new Date(a) - new Date(b));
+  const dates = [...new Set(filtered.map(d=>d.date))]
+  .sort((a, b) => new Date(a) - new Date(b));
 
   let datasets;
 
@@ -272,7 +256,7 @@ window.drawChart = function(){
 
     dates.forEach(date=>{
       const dayData = dataList
-        .filter(d=>formatDate(d.date) === date)
+        .filter(d=>d.date === date)
         .sort((a,b)=>b.score - a.score);
 
       rankTable[date] = {};
@@ -281,20 +265,19 @@ window.drawChart = function(){
       });
     });
 
-    datasets = checked.map(clan=>{
-      const color = clanColors[clan] || "#000000";
+   datasets = checked.map(clan=>{
+  const color = clanColors[clan] || "#000000";
 
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          return rankTable[date]?.[clan] ?? null;
-        }),
-        borderColor: color,
-        backgroundColor: color + "33",
-        spanGaps: true,
-        pointRadius: 4
-      };
-    });
+  return {
+    label: clan,
+    data: dates.map(date=>{
+      return rankTable[date]?.[clan] || null;
+    }),
+    borderColor: color,
+    backgroundColor: color + "33",
+    spanGaps: true
+  };
+});
 
   } else {
 
@@ -302,27 +285,20 @@ window.drawChart = function(){
     // 📈 スコアモード
     // =========================
     datasets = checked.map(clan=>{
-      const color = clanColors[clan] || "#000000";
+  const color = clanColors[clan] || "#000000";
 
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          const item = filtered.find(d =>
-            formatDate(d.date) === date && d.clan === clan
-          );
-          return item ? item.score : null;
-        }),
-        borderColor: color,
-        backgroundColor: color + "33",
-        spanGaps: true,
-        pointRadius: 4
-      };
-    });
+  return {
+    label: clan,
+    data: dates.map(date=>{
+      const item = filtered.find(d=>d.date===date && d.clan===clan);
+      return item ? item.score : null;
+    }),
+    borderColor: color,
+    backgroundColor: color + "33",
+    spanGaps: true
+  };
+});
   }
-
-  console.log("filtered", filtered);
-  console.log("dates", dates);
-  console.log("datasets", datasets);
 
   if(chart) chart.destroy();
 
@@ -338,18 +314,16 @@ window.drawChart = function(){
         legend: { position: "bottom" }
       },
       scales: {
-        y: mode === "rank"
-          ? {
-              reverse: true,
-              ticks: { stepSize: 1 }
-            }
-          : {
-              beginAtZero: true,
-              suggestedMax: filtered.length
-                ? Math.max(...filtered.map(d => d.score)) * 1.2
-                : 100
-            }
+  y: mode === "rank"
+    ? {
+        reverse: true,
+        ticks: { stepSize: 1 }
       }
+    : {
+        beginAtZero: true,
+        suggestedMax: Math.max(...filtered.map(d => d.score)) * 1.2
+      }
+}
     }
   });
 };
