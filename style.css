@@ -185,7 +185,10 @@ tr:nth-child(odd){
 }
 
 #modalChart{
-  flex:1;
   width:100% !important;
-  height:100% !important;
+  height:60vh !important;
+}
+
+.graph-modal-content{
+  height:100%;
 }
