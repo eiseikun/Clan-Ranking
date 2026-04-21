@@ -200,11 +200,9 @@ tr:nth-child(odd){
   border-radius: 10px;
   margin-bottom: 10px;
 }
-
 .rank-table .clan-col {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  white-space: nowrap;
-  height: 120px;
   font-size: 10px;
+  max-width: 40px;
+  white-space: nowrap;
 }
+
