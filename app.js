@@ -219,7 +219,15 @@ window.applySelection = function(){
 
   closeModal();
 };
+window.selectAllClans = function(){
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = true);
+};
 
+window.clearAllClans = function(){
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = false);
+};
  // =========================
   // グラフ
   // =========================
