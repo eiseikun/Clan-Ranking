@@ -3,7 +3,9 @@ import {
   getFirestore,
   collection,
   addDoc,
-  onSnapshot
+  onSnapshot,
+  doc,
+  setDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ==============================
@@ -77,7 +79,9 @@ window.add = async function(){
 
   if(!score || !date) return;
 
-  await addDoc(collection(db,"scores"),{
+  const docId = `${date}_${clan}`;
+
+  await setDoc(doc(db, "scores", docId), {
     clan,
     score,
     date,
