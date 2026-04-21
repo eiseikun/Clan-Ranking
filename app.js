@@ -324,13 +324,17 @@ window.importCSV = async function(){
 
   const text = await file.text();
 
-  const rows = text.split("\n").slice(1); // ヘッダー除外
+  const rows = text.split("\n").slice(1);
 
-  for(const row of rows){
+  for(let row of rows){
 
     if(!row.trim()) continue;
 
+    row = row.replace("\r","");
+
     const [date, clan, score] = row.split(",");
+
+    if(!date || !clan || isNaN(Number(score))) continue;
 
     const docId = `${date}_${clan}`;
 
