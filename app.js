@@ -94,9 +94,10 @@ window.add = async function(){
 // ==============================
 // 📡 リアルタイム更新
 // ==============================
+let dataList = [];
 onSnapshot(collection(db,"scores"), (snapshot)=>{
 
-  const dataList = [];
+  dataList = [];
 
   snapshot.forEach(d=>{
     dataList.push(d.data());
@@ -175,3 +176,76 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   document.getElementById("tableWrap").innerHTML = html2;
 
 });
+// クランチェックボックス生成
+const checkboxWrap = document.getElementById("clanCheckboxes");
+
+clans.forEach(c=>{
+  const label = document.createElement("label");
+  label.style.display = "flex";
+  label.style.alignItems = "center";
+  label.style.gap = "4px";
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.value = c;
+
+  label.appendChild(cb);
+  label.appendChild(document.createTextNode(c));
+
+  checkboxWrap.appendChild(label);
+});
+ // =========================
+  // グラフ
+  // =========================
+let chart;
+
+window.drawChart = function(){
+
+  const start = document.getElementById("startDate").value;
+  const end = document.getElementById("endDate").value;
+
+  const checked = [...document.querySelectorAll("#clanCheckboxes input:checked")]
+    .map(cb => cb.value);
+
+  if(checked.length === 0) return alert("クラン選択して");
+
+  // データ整理
+  const filtered = dataList.filter(d=>{
+    return (!start || d.date >= start) &&
+           (!end || d.date <= end) &&
+           checked.includes(d.clan);
+  });
+
+  // 日付一覧
+  const dates = [...new Set(filtered.map(d=>d.date))].sort();
+
+  // クランごとデータ
+  const datasets = checked.map(clan=>{
+    return {
+      label: clan,
+      data: dates.map(date=>{
+        const item = filtered.find(d=>d.date===date && d.clan===clan);
+        return item ? item.score : null;
+      }),
+      spanGaps: true
+    };
+  });
+
+  if(chart) chart.destroy();
+
+  const ctx = document.getElementById("chart");
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      }
+    }
+  });
+};
