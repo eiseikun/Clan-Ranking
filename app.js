@@ -305,3 +305,63 @@ window.drawChart = function(){
     }
   });
 };
+// ==============================
+// 入出力
+// ==============================
+window.toggleManage = function(){
+  const area = document.getElementById("manageArea");
+  const btn = document.getElementById("manageBtn");
+
+  const isOpen = area.style.display === "block";
+
+  area.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "⚙️" : "閉じる";
+};
+window.importCSV = async function(){
+
+  const file = document.getElementById("csvFile").files[0];
+  if(!file) return alert("ファイル選んで");
+
+  const text = await file.text();
+
+  const rows = text.split("\n").slice(1); // ヘッダー除外
+
+  for(const row of rows){
+
+    if(!row.trim()) continue;
+
+    const [date, clan, score] = row.split(",");
+
+    const docId = `${date}_${clan}`;
+
+    await setDoc(doc(db, "scores", docId), {
+      date,
+      clan,
+      score: Number(score),
+      time: Date.now()
+    });
+  }
+
+  alert("CSV取込完了");
+};
+
+window.exportCSV = function(){
+
+  if(dataList.length === 0) return alert("データなし");
+
+  let csv = "date,clan,score\n";
+
+  dataList.forEach(d=>{
+    csv += `${d.date},${d.clan},${d.score}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "scores.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
