@@ -180,9 +180,9 @@ function renderTables() {
   const dates = Object.keys(table)
     .sort((a, b) => new Date(a) - new Date(b));
 
-  let html2 = "<table><tr><th>日付</th>";
-  clans.forEach(c => html2 += `<th>${c}</th>`);
-  html2 += "</tr>";
+let html2 = "<table class='rank-table'><tr><th>日付</th>";
+clans.forEach(c => html2 += `<th class="clan-col">${c}</th>`);
+html2 += "</tr>";
 
   dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
