@@ -56,7 +56,21 @@
     <input type="date" id="startDate">
     <input type="date" id="endDate">
   </div>
-  <div class="row" id="clanCheckboxes"></div>
+  <div class="row">
+  <button onclick="openModal()">クラン選択</button>
+  <span id="selectedClansText">未選択</span>
+</div>
+  <!-- モーダル -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3>クラン選択</h3>
+    <div id="modalCheckboxes"></div>
+    <div class="row">
+      <button onclick="applySelection()">決定</button>
+      <button onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
   
   <div class="row">
   <select id="graphMode">
