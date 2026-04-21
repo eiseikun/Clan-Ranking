@@ -324,20 +324,25 @@ window.importCSV = async function(){
 
   const text = await file.text();
 
-  const rows = text.split("\n").slice(1); // ヘッダー除外
+  const parsed = Papa.parse(text, {
+    header: true,
+    skipEmptyLines: true
+  });
 
-  for(const row of rows){
+  for(const row of parsed.data){
 
-    if(!row.trim()) continue;
+    const date = (row.date || "").trim();
+    const clan = (row.clan || "").trim();
+    const score = Number(row.score);
 
-    const [date, clan, score] = row.split(",");
+    if(!date || !clan || !score) continue;
 
     const docId = `${date}_${clan}`;
 
     await setDoc(doc(db, "scores", docId), {
       date,
       clan,
-      score: Number(score),
+      score,
       time: Date.now()
     });
   }
