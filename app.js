@@ -398,7 +398,18 @@ window.toggleManage = function () {
   area.style.display = open ? "none" : "block";
   btn.textContent = open ? "⚙️" : "閉じる";
 };
+// ==============================
+// グラフの折り畳み
+// ==============================
+window.toggleGraphBox = function () {
+  const box = document.getElementById("graphBox");
 
+  if (box.style.display === "none") {
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
+};
 // ==============================
 // CSV
 // ==============================
