@@ -1,14 +1,14 @@
-// ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   collection,
   addDoc,
-  getDocs,
-  deleteDoc,
-  doc
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// ==============================
+// 🔥 Firebase
+// ==============================
 const firebaseConfig = {
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
@@ -17,124 +17,126 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const colRef = collection(db, "items");
 
-// ================= 日付処理 =================
-const toDate = d => {
-  if (!d) return new Date(0);
-  const parts = d.replaceAll("-", "/").split("/");
-  return new Date(parts[0], parts[1] - 1, parts[2]);
-};
+// ==============================
+// 🏁 クラン定義（12個）
+// ==============================
+const clans = [
+  "クランA","クランB","クランC","クランD",
+  "クランE","クランF","クランG","クランH",
+  "クランI","クランJ","クランK","クランL"
+];
 
-const toSlash = d => d.replaceAll("-", "/");
+const clanSelect = document.getElementById("clan");
 
-// ================= テーブル =================
-function createTable(data = null) {
-  const div = document.getElementById("table");
-  div.innerHTML = "";
-
-  for (let i = 1; i <= 15; i++) {
-    div.innerHTML += `
-      <div>
-        ${i}位
-        <input id="name${i}" value="${data?.[i - 1]?.name || ""}">
-      </div>
-    `;
-  }
-}
-
-// ================= 保存 =================
-async function saveData() {
-  let date = document.getElementById("date").value;
-  if (!date) return alert("日付必須");
-
-  date = toSlash(date);
-
-  const data = [];
-  for (let i = 1; i <= 15; i++) {
-    const name = document.getElementById(`name${i}`).value.trim();
-    data.push({ rank: i, name });
-  }
-
-  const snap = await getDocs(colRef);
-
-  // 同日削除（上書き）
-  for (const d of snap.docs) {
-    if (d.data().date === date) {
-      await deleteDoc(doc(db, "items", d.id));
-    }
-  }
-
-  await addDoc(colRef, { date, data });
-
-  alert("登録完了");
-  init();
-}
-
-// ================= 一覧 =================
-async function loadList() {
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-
-  const snap = await getDocs(colRef);
-
-  const allDocs = snap.docs.map(d => ({
-  id: d.id,
-  ...d.data()
-}));
-
-// 日付ごとに「最後の1件だけ残す」
-const map = new Map();
-
-allDocs.forEach(d => {
-  map.set(d.date, d); // 後に来たものが上書きされる
+clans.forEach(c=>{
+  const opt = document.createElement("option");
+  opt.value = c;
+  opt.textContent = c;
+  clanSelect.appendChild(opt);
 });
 
-const docs = [...map.values()]
-  .sort((a, b) => toDate(b.date) - toDate(a.date));
+// 初期日付
+document.getElementById("date").valueAsDate = new Date();
 
-  docs.forEach(d => {
-    const div = document.createElement("div");
-    div.className = "card";
+// ==============================
+// ➕ データ追加
+// ==============================
+window.add = async function(){
 
-    div.innerHTML = `
-      <b>${d.date}</b><br>
-      ${d.data
-        .filter(p => p.name)
-        .map(p => `${p.rank}位 ${p.name}`)
-        .join("<br>")}
-      <br>
-      <button class="del">削除</button>
-    `;
+  const clan = document.getElementById("clan").value;
+  const score = Number(document.getElementById("score").value);
+  const date = document.getElementById("date").value;
 
-    // 編集
-    div.onclick = e => {
-      if (e.target.classList.contains("del")) return;
+  if(!score || !date) return;
 
-      document.getElementById("date").value = d.date.replaceAll("/", "-");
-      createTable(d.data);
-    };
-
-    // 削除
-    div.querySelector(".del").onclick = async e => {
-      e.stopPropagation();
-      await deleteDoc(doc(db, "items", d.id));
-      init();
-    };
-
-    list.appendChild(div);
+  await addDoc(collection(db,"scores"),{
+    clan,
+    score,
+    date,
+    time: Date.now()
   });
-}
 
-// ================= 初期化 =================
-async function init() {
-  await loadList();
-}
+  document.getElementById("score").value = "";
+};
 
-// ================= 起動 =================
-document.addEventListener("DOMContentLoaded", () => {
-  createTable();
-  init();
+// ==============================
+// 📡 リアルタイム更新
+// ==============================
+onSnapshot(collection(db,"scores"), (snapshot)=>{
 
-  document.getElementById("saveBtn").onclick = saveData;
+  const dataList = [];
+
+  snapshot.forEach(d=>{
+    dataList.push(d.data());
+  });
+
+  // =========================
+  // 🏆 曜日別最高
+  // =========================
+  const weekdayBest = {};
+  const days = ["日","月","火","水","木","金","土"];
+
+  dataList.forEach(d=>{
+    const day = new Date(d.date).getDay();
+
+    if(!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
+
+    if(!weekdayBest[d.clan][day]){
+      weekdayBest[d.clan][day] = d.score;
+    } else {
+      weekdayBest[d.clan][day] =
+        Math.max(weekdayBest[d.clan][day], d.score);
+    }
+  });
+
+  let html = "<table><tr><th>クラン</th>";
+  days.forEach(d=> html += `<th>${d}</th>`);
+  html += "</tr>";
+
+  clans.forEach(clan=>{
+    html += `<tr><td>${clan}</td>`;
+    for(let i=0;i<7;i++){
+      const val = weekdayBest[clan]?.[i] || "-";
+      html += `<td>${val}</td>`;
+    }
+    html += "</tr>";
+  });
+
+  html += "</table>";
+  document.getElementById("weekdayBest").innerHTML = html;
+
+  // =========================
+  // 📊 日付 × クラン表
+  // =========================
+  const table = {};
+
+  dataList.forEach(d=>{
+    if(!table[d.date]) table[d.date] = {};
+    table[d.date][d.clan] = d.score;
+  });
+
+  const dates = Object.keys(table).sort();
+
+  let html2 = "<table><tr><th>日付</th>";
+
+  clans.forEach(c=>{
+    html2 += `<th>${c}</th>`;
+  });
+
+  html2 += "</tr>";
+
+  dates.forEach(date=>{
+    html2 += `<tr><td>${date}</td>`;
+    clans.forEach(c=>{
+      const val = table[date][c] || "-";
+      html2 += `<td>${val}</td>`;
+    });
+    html2 += "</tr>";
+  });
+
+  html2 += "</table>";
+
+  document.getElementById("tableWrap").innerHTML = html2;
+
 });
