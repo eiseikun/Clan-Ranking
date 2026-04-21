@@ -204,8 +204,4 @@ th {
   background:#334155;
   position: sticky;
   top: 0;
-  white-space: nowrap;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  height: 120px;
 }
