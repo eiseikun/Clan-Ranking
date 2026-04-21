@@ -207,22 +207,19 @@ window.applySelection = function(){
 
   closeModal();
 };
-const checked = selectedClans;
 
-if(checked.length === 0) return alert("クラン選択して");
  // =========================
   // グラフ
   // =========================
 let chart;
-
 window.drawChart = function(){
 
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
-  const checked = [...document.querySelectorAll("#clanCheckboxes input:checked")]
-    .map(cb => cb.value);
+  // ✅ モーダルの選択を使う
+  const checked = selectedClans;
 
   if(checked.length === 0) return alert("クラン選択して");
 
@@ -298,7 +295,7 @@ window.drawChart = function(){
       scales: {
         y: mode === "rank"
           ? {
-              reverse: true, // ←順位は1位が上
+              reverse: true,
               ticks: { stepSize: 1 }
             }
           : {
