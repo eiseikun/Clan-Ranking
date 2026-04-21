@@ -233,69 +233,82 @@ window.clearAllClans = function () {
 // ==============================
 window.drawChart = function () {
 
-  if (!dataList.length) return alert("データがまだありません");
+  if (!dataList.length) return alert("データなし");
   if (!selectedClans.length) return alert("クラン選択して");
 
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
-  // フィルタ
+  // ① 日付正規化（最重要）
   const filtered = dataList.filter(d => {
-    return (!start || d.date >= start) &&
-           (!end || d.date <= end) &&
-           selectedClans.includes(d.clan);
+
+    const date = new Date(d.date).getTime();
+    const s = start ? new Date(start).getTime() : -Infinity;
+    const e = end ? new Date(end).getTime() : Infinity;
+
+    return date >= s && date <= e && selectedClans.includes(d.clan);
   });
 
-  const dates = [...new Set(filtered.map(d => d.date))]
+  // ② 全日付リスト（欠損防止）
+  const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
 
-  const daily = {};
+  // ③ スコア正規化（完全版）
+  const scoreMap = {};
 
-  filtered.forEach(d => {
-    if (!daily[d.date]) daily[d.date] = {};
-    daily[d.date][d.clan] = Math.max(
-      daily[d.date][d.clan] ?? 0,
+  dataList.forEach(d => {
+    if (!scoreMap[d.date]) scoreMap[d.date] = {};
+    scoreMap[d.date][d.clan] = Math.max(
+      scoreMap[d.date][d.clan] ?? 0,
       d.score
     );
   });
 
   let datasets = [];
 
+  // 🏆 順位モード（修正版）
   if (mode === "rank") {
 
-    const rank = {};
+    const rankMap = {};
 
     dates.forEach(date => {
-      const list = filtered
+
+      const dayData = dataList
         .filter(d => d.date === date)
         .sort((a, b) => b.score - a.score);
 
-      rank[date] = {};
-      list.forEach((d, i) => {
-        rank[date][d.clan] = i + 1;
+      rankMap[date] = {};
+
+      dayData.forEach((d, i) => {
+        rankMap[date][d.clan] = i + 1;
       });
     });
 
     datasets = selectedClans.map(clan => ({
       label: clan,
-      data: dates.map(d => rank[d]?.[clan] ?? null),
-      borderColor: clanColors[clan],
-      spanGaps: true,
-      pointRadius: 4
-    }));
-
-  } else {
-
-    datasets = selectedClans.map(clan => ({
-      label: clan,
-      data: dates.map(d => daily[d]?.[clan] ?? null),
+      data: dates.map(date => rankMap[date]?.[clan] ?? null),
       borderColor: clanColors[clan],
       spanGaps: true,
       pointRadius: 4
     }));
   }
 
+  // 📈 スコアモード（修正版）
+  else {
+
+    datasets = selectedClans.map(clan => ({
+      label: clan,
+      data: dates.map(date =>
+        scoreMap[date]?.[clan] ?? null
+      ),
+      borderColor: clanColors[clan],
+      spanGaps: true,
+      pointRadius: 4
+    }));
+  }
+
+  // グラフ更新
   if (chart) chart.destroy();
 
   chart = new Chart(document.getElementById("chart"), {
@@ -311,8 +324,13 @@ window.drawChart = function () {
       },
       scales: {
         y: mode === "rank"
-          ? { reverse: true, ticks: { stepSize: 1 } }
-          : { beginAtZero: true }
+          ? {
+              reverse: true,
+              ticks: { stepSize: 1 }
+            }
+          : {
+              beginAtZero: true
+            }
       }
     }
   });
