@@ -33,13 +33,13 @@ window.showPage = function(page){
     p2.style.display="none";
     t1.classList.add("active");
     t2.classList.remove("active");
-    title.textContent="📘 記録ページ";
+    title.textContent="📘 全体記録ページ";
   } else {
     p1.style.display="none";
     p2.style.display="block";
     t1.classList.remove("active");
     t2.classList.add("active");
-    title.textContent="💎 石シミュ";
+    title.textContent="💎 クラン内記録ページ";
   }
 };
 
