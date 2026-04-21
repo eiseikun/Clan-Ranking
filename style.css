@@ -205,3 +205,10 @@ th {
   position: sticky;
   top: 0;
 }
+.rank-table .clan-col {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  height: 120px;
+  font-size: 10px;
+}
