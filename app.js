@@ -250,8 +250,12 @@ window.drawChart = function(){
            checked.includes(d.clan);
   });
 
-  const dates = [...new Set(filtered.map(d=>d.date))]
-  .sort((a, b) => new Date(a) - new Date(b));
+  const dates = [...new Set(dataList.map(d=>d.date))]
+.sort((a, b) => new Date(a) - new Date(b));
+
+suggestedMax: filtered.length
+  ? Math.max(...filtered.map(d => d.score)) * 1.2
+  : 100
 
   let datasets;
 
