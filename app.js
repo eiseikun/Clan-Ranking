@@ -308,10 +308,10 @@ window.drawChart = function(){
 // ==============================
 // 入出力
 // ==============================
-window.importCSV = async function(){
+window.importCSV = async () => {
 
   const file = document.getElementById("csvFile").files[0];
-  if(!file) return alert("ファイル選んで");
+  if (!file) return alert("ファイルなし");
 
   const text = await file.text();
 
@@ -320,31 +320,50 @@ window.importCSV = async function(){
     skipEmptyLines: true
   });
 
-  console.log(parsed.data); // ←追加（デバッグ用）
+  // 🔥 既存データ取得（←元コードの強み）
+  const snap = await getDocs(collection(db, "scores"));
+  let localData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  let count = 0;
+  let addCount = 0;
+  let updateCount = 0;
 
-  for(const row of parsed.data){
+  for (const row of parsed.data) {
 
     const date = (row.date || "").trim();
     const clan = (row.clan || "").trim();
     const score = Number(row.score);
 
-    if(!date || !clan || isNaN(score)) continue;
+    if (!date || !clan || isNaN(score)) continue;
 
-    const docId = `${date}_${clan}`;
+    // 🔥 既存チェック（date + clan）
+    const existing = localData.find(d =>
+      d.date === date && d.clan === clan
+    );
 
-    await setDoc(doc(db, "scores", docId), {
+    const data = {
       date,
       clan,
       score,
       time: Date.now()
-    });
+    };
 
-    count++;
+    if (existing) {
+      // 🔄 更新
+      await updateDoc(doc(db, "scores", existing.id), data);
+      updateCount++;
+
+      Object.assign(existing, data);
+
+    } else {
+      // ➕ 新規追加
+      const docRef = await addDoc(collection(db, "scores"), data);
+      addCount++;
+
+      localData.push({ id: docRef.id, ...data });
+    }
   }
 
-  alert(`CSV取込完了：${count}件`);
+  alert(`CSV完了\n追加: ${addCount}件\n更新: ${updateCount}件`);
 };
 
 window.exportCSV = function(){
