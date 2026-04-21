@@ -192,3 +192,11 @@ tr:nth-child(odd){
 .graph-modal-content{
   height:100%;
 }
+.accordion-title {
+  cursor: pointer;
+  user-select: none;
+  padding: 10px;
+  background: #334155;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
