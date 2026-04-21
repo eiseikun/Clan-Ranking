@@ -248,8 +248,8 @@ window.drawChart = function () {
     return t >= s && t <= e && selectedClans.includes(d.clan);
   });
 
-  const dates = [...new Set(dataList.map(d => d.date))]
-    .sort((a, b) => new Date(a) - new Date(b));
+  const dates = [...new Set(filtered.map(d => d.date))]
+  .sort((a, b) => new Date(a) - new Date(b));
 
   const scoreMap = {};
 
@@ -321,10 +321,35 @@ window.drawChart = function () {
         }
       },
       scales: {
-        y: mode === "rank"
-          ? { reverse: true, ticks: { stepSize: 1 } }
-          : { beginAtZero: true }
+  x: {
+    title: {
+      display: true,
+      text: "日付"
+    },
+    ticks: {
+      maxRotation: 45,
+      minRotation: 45,
+      autoSkip: true,
+      maxTicksLimit: 6
+    }
+  },
+  y: mode === "rank"
+    ? {
+        title: {
+          display: true,
+          text: "順位"
+        },
+        reverse: true,
+        ticks: { stepSize: 1 }
       }
+    : {
+        title: {
+          display: true,
+          text: "スコア"
+        },
+        beginAtZero: true
+      }
+}
     }
   });
 };
