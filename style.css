@@ -76,3 +76,35 @@ tr:hover{
 #tableWrap, #weekdayBest{
   overflow-x:auto;
 }
+/* 横並び調整 */
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* ドロップダウン */
+.dropdown{
+  position:relative;
+}
+
+.dropdown-content{
+  display:none;
+  position:absolute;
+  background:#fff;
+  color:#000;
+  padding:10px;
+  border-radius:8px;
+  max-height:200px;
+  overflow-y:auto;
+  z-index:10;
+}
+
+.dropdown-content.show{
+  display:block;
+}
+
+.dropdown-content label{
+  display:block;
+  margin-bottom:5px;
+}
