@@ -299,7 +299,8 @@ window.drawChart = function () {
 
   // モーダル表示（ここが重要）
   document.getElementById("graphModal").style.display = "block";
-
+  document.body.style.overflow = "hidden";
+  
   if (chart) chart.destroy();
 
   chart = new Chart(document.getElementById("modalChart"), {
@@ -385,6 +386,7 @@ window.drawChart = function () {
 
 window.closeGraphModal = function () {
   document.getElementById("graphModal").style.display = "none";
+  document.body.style.overflow = "auto";
 };
 // ==============================
 // 管理
