@@ -308,62 +308,41 @@ window.drawChart = function(){
 // ==============================
 // 入出力
 // ==============================
-window.importCSV = async () => {
+window.toggleManage = function(){
+  const area = document.getElementById("manageArea");
+  const btn = document.getElementById("manageBtn");
+
+  const isOpen = area.style.display === "block";
+
+  area.style.display = isOpen ? "none" : "block";
+  btn.textContent = isOpen ? "⚙️" : "閉じる";
+};
+window.importCSV = async function(){
 
   const file = document.getElementById("csvFile").files[0];
-  if (!file) return alert("ファイルなし");
+  if(!file) return alert("ファイル選んで");
 
   const text = await file.text();
 
-  const parsed = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true
-  });
+  const rows = text.split("\n").slice(1); // ヘッダー除外
 
-  // 🔥 既存データ取得（←元コードの強み）
-  const snap = await getDocs(collection(db, "scores"));
-  let localData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  for(const row of rows){
 
-  let addCount = 0;
-  let updateCount = 0;
+    if(!row.trim()) continue;
 
-  for (const row of parsed.data) {
+    const [date, clan, score] = row.split(",");
 
-    const date = (row.date || "").trim();
-    const clan = (row.clan || "").trim();
-    const score = Number(row.score);
+    const docId = `${date}_${clan}`;
 
-    if (!date || !clan || isNaN(score)) continue;
-
-    // 🔥 既存チェック（date + clan）
-    const existing = localData.find(d =>
-      d.date === date && d.clan === clan
-    );
-
-    const data = {
+    await setDoc(doc(db, "scores", docId), {
       date,
       clan,
-      score,
+      score: Number(score),
       time: Date.now()
-    };
-
-    if (existing) {
-      // 🔄 更新
-      await updateDoc(doc(db, "scores", existing.id), data);
-      updateCount++;
-
-      Object.assign(existing, data);
-
-    } else {
-      // ➕ 新規追加
-      const docRef = await addDoc(collection(db, "scores"), data);
-      addCount++;
-
-      localData.push({ id: docRef.id, ...data });
-    }
+    });
   }
 
-  alert(`CSV完了\n追加: ${addCount}件\n更新: ${updateCount}件`);
+  alert("CSV取込完了");
 };
 
 window.exportCSV = function(){
