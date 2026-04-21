@@ -152,7 +152,8 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
 }
   });
 
-  const dates = Object.keys(table).sort();
+  const dates = Object.keys(table)
+  .sort((a, b) => new Date(b) - new Date(a));
 
   let html2 = "<table><tr><th>日付</th>";
 
@@ -230,7 +231,8 @@ window.drawChart = function(){
            checked.includes(d.clan);
   });
 
-  const dates = [...new Set(filtered.map(d=>d.date))].sort();
+  const dates = [...new Set(filtered.map(d=>d.date))]
+  .sort((a, b) => new Date(a) - new Date(b));
 
   let datasets;
 
