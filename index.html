@@ -5,6 +5,8 @@
 <title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="module" src="app.js"></script>
 </head>
 <body>
 
@@ -48,6 +50,19 @@
   <div id="weekdayBest"></div>
 </div>
 
+<div class="box">
+  <h3>📈 グラフ生成</h3>
+  <div class="row">
+    <input type="date" id="startDate">
+    <input type="date" id="endDate">
+  </div>
+  <div class="row" id="clanCheckboxes"></div>
+  <div class="row">
+    <button onclick="drawChart()">グラフ生成</button>
+  </div>
+  <canvas id="chart"></canvas>
+</div>
+  
 <!-- 一覧 -->
 <div class="box">
   <h3>📊 一覧</h3>
