@@ -562,3 +562,8 @@ window.exportCSV = function () {
 
   URL.revokeObjectURL(url);
 };
+// ==============================
+// 2ページ目の期間指定
+// ==============================
+document.getElementById("startDate").addEventListener("change", calcAvgRank);
+document.getElementById("endDate").addEventListener("change", calcAvgRank);
