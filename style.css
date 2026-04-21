@@ -209,3 +209,16 @@ tr:nth-child(odd){
 .rank-table th:first-child {
   white-space: nowrap;
 }
+#tableWrap2 {
+  overflow-x: auto;
+}
+
+#avgRankBox table {
+  width: 100%;
+  font-size: 13px;
+}
+
+#avgRankBox td {
+  padding: 6px;
+  border-bottom: 1px solid #475569;
+}
