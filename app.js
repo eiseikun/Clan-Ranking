@@ -219,7 +219,15 @@ window.applySelection = function(){
 
   closeModal();
 };
+window.selectAllClans = function(){
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = true);
+};
 
+window.clearAllClans = function(){
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = false);
+};
  // =========================
   // グラフ
   // =========================
@@ -321,7 +329,9 @@ window.drawChart = function(){
       }
     : {
         beginAtZero: true,
-        suggestedMax: Math.max(...filtered.map(d => d.score)) * 1.2
+        suggestedMax: Math.max( Math.max(...dataList.map(d => d.score)),
+        10
+) * 1.2
       }
 }
     }
