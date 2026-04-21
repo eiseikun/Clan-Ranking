@@ -1,52 +1,84 @@
 body{
   font-family:sans-serif;
-  background:#111;
-  color:#fff;
+  background:#0f172a;
+  color:#e5e7eb;
   margin:0;
 }
 
 .container{
   max-width:420px;
   margin:auto;
-  padding:16px;
+  padding:14px;
 }
 
 h1{
-  text-align:center;
-  font-size:20px;
-  margin-bottom:16px;
+  font-size:18px;
+  margin:0;
+}
+
+h3{
+  margin-top:0;
+  font-size:15px;
 }
 
 .box{
-  background:#222;
+  background:#1e293b;
   padding:14px;
   margin-bottom:14px;
-  border-radius:12px;
+  border-radius:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.3);
 }
 
 .row{
   display:flex;
-  gap:10px;
+  gap:8px;
   margin-bottom:10px;
 }
 
+/* タブ */
+.tabs{
+  display:flex;
+  margin-bottom:10px;
+}
+
+.tabs button{
+  flex:1;
+  padding:10px;
+  background:#1e293b;
+  border:none;
+  color:#aaa;
+}
+
+.tabs button.active{
+  background:#3b82f6;
+  color:#fff;
+  font-weight:bold;
+}
+
+/* 入力 */
 input, select{
   flex:1;
   padding:10px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
-  background:#eee;
+  background:#f1f5f9;
   color:#000;
 }
 
+/* ボタン */
 button{
   padding:10px;
   border-radius:10px;
-  background:#3a7afe;
+  background:#3b82f6;
   color:white;
   border:none;
   font-weight:bold;
   cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover{
+  background:#2563eb;
 }
 
 /* テーブル */
@@ -57,26 +89,44 @@ table{
 }
 
 th{
-  background:#333;
+  background:#334155;
   position: sticky;
   top: 0;
 }
 
 td, th{
   padding:6px;
-  border-bottom:1px solid #444;
+  border-bottom:1px solid #475569;
   text-align:center;
 }
 
-tr:hover{
-  background:rgba(255,255,255,0.05);
+tr:nth-child(even){
+  background:#1e293b;
+}
+
+tr:nth-child(odd){
+  background:#0f172a;
 }
 
 /* 横スクロール */
 #tableWrap, #weekdayBest{
   overflow-x:auto;
 }
-/* モーダル背景 */
+
+/* ヘッダー */
+.header-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+#manageBtn{
+  font-size:18px;
+  padding:6px 10px;
+}
+
+/* モーダル */
 .modal{
   display:none;
   position:fixed;
@@ -87,31 +137,25 @@ tr:hover{
   background:rgba(0,0,0,0.7);
   justify-content:center;
   align-items:center;
-  z-index:1000;
 }
 
-/* モーダル本体 */
 .modal-content{
-  background:#222;
+  background:#1e293b;
   padding:20px;
   border-radius:12px;
   width:90%;
   max-width:320px;
 }
 
-/* チェックボックス整列 */
+/* チェックボックス */
+#modalCheckboxes{
+  max-height:200px;
+  overflow-y:auto;
+  margin-bottom:10px;
+}
+
 #modalCheckboxes label{
   display:flex;
   gap:6px;
   margin-bottom:6px;
-}
-.header-bar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-#manageBtn{
-  font-size:18px;
-  padding:6px 10px;
 }
