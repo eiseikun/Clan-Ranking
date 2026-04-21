@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
   onSnapshot,
   doc,
   setDoc 
@@ -12,7 +11,7 @@ import {
 // 🔥 Firebase
 // ==============================
 const firebaseConfig = {
-  apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
+  apiKey: "AIzaSy...",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
   projectId: "clan-ranking-661e3",
 };
@@ -24,31 +23,19 @@ const db = getFirestore(app);
 // 📄 ページ切り替え
 // ==============================
 window.showPage = function(page){
-  const p1 = document.getElementById("page1");
-  const p2 = document.getElementById("page2");
-  const t1 = document.getElementById("tab1");
-  const t2 = document.getElementById("tab2");
-  const title = document.getElementById("title");
+  page1.style.display = page===1 ? "block" : "none";
+  page2.style.display = page===2 ? "block" : "none";
 
-  if(page===1){
-    p1.style.display="block";
-    p2.style.display="none";
-    t1.classList.add("active");
-    t2.classList.remove("active");
-    title.textContent="📘 全体記録ページ";
-  } else {
-    p1.style.display="none";
-    p2.style.display="block";
-    t1.classList.remove("active");
-    t2.classList.add("active");
-    title.textContent="💎 クラン内記録ページ";
-  }
+  tab1.classList.toggle("active", page===1);
+  tab2.classList.toggle("active", page===2);
+
+  title.textContent = page===1
+    ? "📘 全体記録ページ"
+    : "💎 クラン内記録ページ";
 };
 
-
-
 // ==============================
-// 🏁 クラン定義（12個）
+// 🏁 クラン定義
 // ==============================
 const clans = [
   "クランA","クランB","クランC","クランD",
@@ -56,52 +43,42 @@ const clans = [
   "クランI","クランJ","クランK","クランL"
 ];
 
-const clanSelect = document.getElementById("clan");
-
+// セレクト
 clans.forEach(c=>{
   const opt = document.createElement("option");
   opt.value = c;
   opt.textContent = c;
-  clanSelect.appendChild(opt);
+  clan.appendChild(opt);
 });
 
 // 初期日付
-document.getElementById("date").valueAsDate = new Date();
+date.valueAsDate = new Date();
 
 // ==============================
-// ➕ データ追加
+// ➕ 追加（上書きOK）
 // ==============================
 window.add = async function(){
 
-  const clan = document.getElementById("clan").value;
-  const score = Number(document.getElementById("score").value);
-  const date = document.getElementById("date").value;
-
-  if(!score || !date) return;
-
-  const docId = `${date}_${clan}`;
+  const docId = `${date.value}_${clan.value}`;
 
   await setDoc(doc(db, "scores", docId), {
-    clan,
-    score,
-    date,
+    clan: clan.value,
+    score: Number(score.value),
+    date: date.value,
     time: Date.now()
   });
 
-  document.getElementById("score").value = "";
+  score.value = "";
 };
 
 // ==============================
-// 📡 リアルタイム更新
+// 📡 データ取得
 // ==============================
 let dataList = [];
+
 onSnapshot(collection(db,"scores"), (snapshot)=>{
 
-  dataList = [];
-
-  snapshot.forEach(d=>{
-    dataList.push(d.data());
-  });
+  dataList = snapshot.docs.map(d=>d.data());
 
   // =========================
   // 🏆 曜日別最高
@@ -112,182 +89,147 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   dataList.forEach(d=>{
     const day = new Date(d.date).getDay();
 
-    if(!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
-
-    if(!weekdayBest[d.clan][day]){
-      weekdayBest[d.clan][day] = d.score;
-    } else {
-      weekdayBest[d.clan][day] =
-        Math.max(weekdayBest[d.clan][day], d.score);
-    }
+    weekdayBest[d.clan] ??= {};
+    weekdayBest[d.clan][day] =
+      Math.max(weekdayBest[d.clan][day]||0, d.score);
   });
 
-  let html = "<table><tr><th>クラン</th>";
-  days.forEach(d=> html += `<th>${d}</th>`);
-  html += "</tr>";
-
-  clans.forEach(clan=>{
-    html += `<tr><td>${clan}</td>`;
-    for(let i=0;i<7;i++){
-      const val = weekdayBest[clan]?.[i] || "-";
-      html += `<td>${val}</td>`;
-    }
-    html += "</tr>";
-  });
-
-  html += "</table>";
-  document.getElementById("weekdayBest").innerHTML = html;
+  weekdayBestEl.innerHTML = `
+    <table>
+      <tr><th>クラン</th>${days.map(d=>`<th>${d}</th>`).join("")}</tr>
+      ${clans.map(c=>`
+        <tr>
+          <td>${c}</td>
+          ${[0,1,2,3,4,5,6].map(i=>`<td>${weekdayBest[c]?.[i]||"-"}</td>`).join("")}
+        </tr>
+      `).join("")}
+    </table>
+  `;
 
   // =========================
-  // 📊 日付 × クラン表
+  // 📊 一覧（←ここ修正ポイント）
   // =========================
   const table = {};
 
   dataList.forEach(d=>{
-    if(!table[d.date]) table[d.date] = {};
-    if(!table[d.date][d.clan]){
-  table[d.date][d.clan] = d.score;
-} else {
-  table[d.date][d.clan] = Math.max(table[d.date][d.clan], d.score);
-}
+    table[d.date] ??= {};
+    table[d.date][d.clan] = d.score; // ←上書きOKに変更
   });
 
   const dates = Object.keys(table).sort();
 
-  let html2 = "<table><tr><th>日付</th>";
-
-  clans.forEach(c=>{
-    html2 += `<th>${c}</th>`;
-  });
-
-  html2 += "</tr>";
-
-  dates.forEach(date=>{
-    html2 += `<tr><td>${date}</td>`;
-    clans.forEach(c=>{
-      const val = table[date][c] || "-";
-      html2 += `<td>${val}</td>`;
-    });
-    html2 += "</tr>";
-  });
-
-  html2 += "</table>";
-
-  document.getElementById("tableWrap").innerHTML = html2;
-
+  tableWrap.innerHTML = `
+    <table>
+      <tr><th>日付</th>${clans.map(c=>`<th>${c}</th>`).join("")}</tr>
+      ${dates.map(date=>`
+        <tr>
+          <td>${date}</td>
+          ${clans.map(c=>`<td>${table[date][c]||"-"}</td>`).join("")}
+        </tr>
+      `).join("")}
+    </table>
+  `;
 });
-// クランチェックボックス生成
-const checkboxWrap = document.getElementById("clanCheckboxes");
 
+// ==============================
+// 🔽 クラン選択（ドロップダウン）
+// ==============================
 clans.forEach(c=>{
   const label = document.createElement("label");
-  label.style.display = "flex";
-  label.style.alignItems = "center";
-  label.style.gap = "4px";
 
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.value = c;
+  cb.onchange = updateClanButton;
 
-  label.appendChild(cb);
-  label.appendChild(document.createTextNode(c));
-
-  checkboxWrap.appendChild(label);
+  label.append(cb, document.createTextNode(c));
+  clanDropdown.appendChild(label);
 });
- // =========================
-  // グラフ
-  // =========================
+
+window.toggleClan = function(){
+  clanDropdown.classList.toggle("show");
+};
+
+document.addEventListener("click", (e)=>{
+  if(!document.querySelector(".dropdown").contains(e.target)){
+    clanDropdown.classList.remove("show");
+  }
+});
+
+function updateClanButton(){
+  const n = document.querySelectorAll("#clanDropdown input:checked").length;
+  document.querySelector(".dropdown button").textContent =
+    n ? `クラン(${n})` : "クラン選択 ▼";
+}
+
+// ==============================
+// 📈 グラフ
+// ==============================
 let chart;
 
 window.drawChart = function(){
 
-  const start = document.getElementById("startDate").value;
-  const end = document.getElementById("endDate").value;
-  const mode = document.getElementById("graphMode").value;
+  const mode = graphMode.value;
 
-  const checked = [...document.querySelectorAll("#clanCheckboxes input:checked")]
+  const checked = [...document.querySelectorAll("#clanDropdown input:checked")]
     .map(cb => cb.value);
 
-  if(checked.length === 0) return alert("クラン選択して");
+  if(!checked.length) return alert("クラン選択して");
 
-  // フィルタ
-  const filtered = dataList.filter(d=>{
-    return (!start || d.date >= start) &&
-           (!end || d.date <= end) &&
-           checked.includes(d.clan);
-  });
+  const filtered = dataList.filter(d=>
+    (!startDate.value || d.date >= startDate.value) &&
+    (!endDate.value || d.date <= endDate.value) &&
+    checked.includes(d.clan)
+  );
 
   const dates = [...new Set(filtered.map(d=>d.date))].sort();
 
   let datasets;
 
-  // =========================
-  // 🏆 順位モード
-  // =========================
-  if(mode === "rank"){
-
+  // 順位
+  if(mode==="rank"){
     const rankTable = {};
 
     dates.forEach(date=>{
-      const dayData = dataList
-        .filter(d=>d.date === date)
-        .sort((a,b)=>b.score - a.score);
+      const sorted = dataList
+        .filter(d=>d.date===date)
+        .sort((a,b)=>b.score-a.score);
 
       rankTable[date] = {};
-      dayData.forEach((d,i)=>{
-        rankTable[date][d.clan] = i + 1;
-      });
+      sorted.forEach((d,i)=> rankTable[date][d.clan]=i+1);
     });
 
-    datasets = checked.map(clan=>{
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          return rankTable[date]?.[clan] || null;
-        }),
-        spanGaps: true
-      };
-    });
+    datasets = checked.map(c=>({
+      label:c,
+      data:dates.map(d=>rankTable[d]?.[c]||null),
+      spanGaps:true
+    }));
 
   } else {
 
-    // =========================
-    // 📈 スコアモード
-    // =========================
-    datasets = checked.map(clan=>{
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          const item = filtered.find(d=>d.date===date && d.clan===clan);
-          return item ? item.score : null;
-        }),
-        spanGaps: true
-      };
-    });
+    // スコア
+    datasets = checked.map(c=>({
+      label:c,
+      data:dates.map(d=>{
+        const item = filtered.find(x=>x.date===d && x.clan===c);
+        return item?.score || null;
+      }),
+      spanGaps:true
+    }));
   }
 
-  if(chart) chart.destroy();
+  chart?.destroy();
 
-  chart = new Chart(document.getElementById("chart"), {
-    type: "line",
-    data: {
-      labels: dates,
-      datasets: datasets
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "bottom" }
-      },
-      scales: {
-        y: mode === "rank"
-          ? {
-              reverse: true, // ←順位は1位が上
-              ticks: { stepSize: 1 }
-            }
-          : {
-              beginAtZero: true
-            }
+  chart = new Chart(chartCanvas, {
+    type:"line",
+    data:{labels:dates, datasets},
+    options:{
+      responsive:true,
+      plugins:{legend:{position:"bottom"}},
+      scales:{
+        y: mode==="rank"
+          ? {reverse:true, ticks:{stepSize:1}}
+          : {beginAtZero:true}
       }
     }
   });
