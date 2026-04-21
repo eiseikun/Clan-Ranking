@@ -308,15 +308,6 @@ window.drawChart = function(){
 // ==============================
 // 入出力
 // ==============================
-window.toggleManage = function(){
-  const area = document.getElementById("manageArea");
-  const btn = document.getElementById("manageBtn");
-
-  const isOpen = area.style.display === "block";
-
-  area.style.display = isOpen ? "none" : "block";
-  btn.textContent = isOpen ? "⚙️" : "閉じる";
-};
 window.importCSV = async function(){
 
   const file = document.getElementById("csvFile").files[0];
@@ -329,13 +320,17 @@ window.importCSV = async function(){
     skipEmptyLines: true
   });
 
+  console.log(parsed.data); // ←追加（デバッグ用）
+
+  let count = 0;
+
   for(const row of parsed.data){
 
     const date = (row.date || "").trim();
     const clan = (row.clan || "").trim();
     const score = Number(row.score);
 
-    if(!date || !clan || !score) continue;
+    if(!date || !clan || isNaN(score)) continue;
 
     const docId = `${date}_${clan}`;
 
@@ -345,9 +340,11 @@ window.importCSV = async function(){
       score,
       time: Date.now()
     });
+
+    count++;
   }
 
-  alert("CSV取込完了");
+  alert(`CSV取込完了：${count}件`);
 };
 
 window.exportCSV = function(){
