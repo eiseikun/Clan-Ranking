@@ -311,7 +311,9 @@ suggestedMax: filtered.length
   };
 });
   }
-
+console.log(filtered);
+console.log(dates);
+console.log(datasets);
   if(chart) chart.destroy();
 
   chart = new Chart(document.getElementById("chart"), {
