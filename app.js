@@ -5,11 +5,11 @@ import {
   addDoc,
   onSnapshot,
   doc,
-  setDoc 
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ==============================
-// 🔥 Firebase
+// Firebase
 // ==============================
 const firebaseConfig = {
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
@@ -21,74 +21,82 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==============================
-// 📄 ページ切り替え
+// 状態管理（安定化ポイント）
 // ==============================
-window.showPage = function(page){
-  const p1 = document.getElementById("page1");
-  const p2 = document.getElementById("page2");
-  const t1 = document.getElementById("tab1");
-  const t2 = document.getElementById("tab2");
-  const title = document.getElementById("title");
-
-  if(page===1){
-    p1.style.display="block";
-    p2.style.display="none";
-    t1.classList.add("active");
-    t2.classList.remove("active");
-    title.textContent="📘 全体記録ページ";
-  } else {
-    p1.style.display="none";
-    p2.style.display="block";
-    t1.classList.remove("active");
-    t2.classList.add("active");
-    title.textContent="💎 クラン内記録ページ";
-  }
-};
+let dataList = [];
+let chart = null;
+let selectedClans = [];
 
 // ==============================
-// 🎨 クランカラー（ここで自由に変更OK）
+// クラン
 // ==============================
 const clanColors = {
- "最狂会": "#ff0000", // 赤
-  "魔導特務隊": "#0000ff", // 青
-  "IgnisFloris": "#00ff00", // 緑
-  "ポケポケ会": "#ffa500", // オレンジ
-  "のの教": "#800080", // 紫
-  "PopoWarren": "#8b4513", // 茶
-  "ねこねこねこ": "#ff69b4", // ピンク
-  "たまねぎ班": "#00ffff", // シアン
-  "猫の旅": "#ffff00", // 黄色
-  "ねこ海賊団": "#00ff7f", // ライム系
-  "やまだ家": "#ff00ff", // マゼンタ
-  "アチャ伝": "#000000"  // 黒
+  "最狂会": "#ff0000",
+  "魔導特務隊": "#0000ff",
+  "IgnisFloris": "#00ff00",
+  "ポケポケ会": "#ffa500",
+  "のの教": "#800080",
+  "PopoWarren": "#8b4513",
+  "ねこねこねこ": "#ff69b4",
+  "たまねぎ班": "#00ffff",
+  "猫の旅": "#ffff00",
+  "ねこ海賊団": "#00ff7f",
+  "やまだ家": "#ff00ff",
+  "アチャ伝": "#000000"
+};
+
+const clans = Object.keys(clanColors);
+
+// ==============================
+// 初期UI
+// ==============================
+window.addEventListener("DOMContentLoaded", () => {
+  const clanSelect = document.getElementById("clan");
+
+  clans.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    clanSelect.appendChild(opt);
+  });
+
+  document.getElementById("date").valueAsDate = new Date();
+
+  // モーダル作成
+  const modalWrap = document.getElementById("modalCheckboxes");
+
+  clans.forEach(c => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = c;
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(c));
+    modalWrap.appendChild(label);
+  });
+});
+
+// ==============================
+// ページ切替
+// ==============================
+window.showPage = function (page) {
+  document.getElementById("page1").style.display = page === 1 ? "block" : "none";
+  document.getElementById("page2").style.display = page === 2 ? "block" : "none";
+
+  document.getElementById("tab1").classList.toggle("active", page === 1);
+  document.getElementById("tab2").classList.toggle("active", page === 2);
 };
 
 // ==============================
-// 🏁 クラン定義
+// データ追加（安全化）
 // ==============================
-const clans = Object.keys(clanColors);
-
-const clanSelect = document.getElementById("clan");
-clans.forEach(c=>{
-  const opt = document.createElement("option");
-  opt.value = c;
-  opt.textContent = c;
-  clanSelect.appendChild(opt);
-});
-
-// 初期日付
-document.getElementById("date").valueAsDate = new Date();
-
-// ==============================
-// ➕ データ追加
-// ==============================
-window.add = async function(){
-
+window.add = async function () {
   const clan = document.getElementById("clan").value;
   const score = Number(document.getElementById("score").value);
   const date = document.getElementById("date").value;
 
-  if(!score || !date) return;
+  if (!date) return alert("日付入れて");
+  if (!score || score <= 0) return alert("スコア入れて");
 
   const docId = `${date}_${clan}`;
 
@@ -103,29 +111,37 @@ window.add = async function(){
 };
 
 // ==============================
-// 📡 リアルタイム更新
+// リアルタイム取得
 // ==============================
-let dataList = [];
-onSnapshot(collection(db,"scores"), (snapshot)=>{
+onSnapshot(collection(db, "scores"), (snapshot) => {
 
-  dataList = [];
+  const newData = [];
 
-  snapshot.forEach(d=>{
-    dataList.push(d.data());
+  snapshot.forEach(d => {
+    newData.push(d.data());
   });
 
-  // =========================
-  // 🏆 曜日別最高
-  // =========================
+  dataList = newData;
+
+  renderTables();
+});
+
+// ==============================
+// テーブル描画
+// ==============================
+function renderTables() {
+
+  // ======================
+  // 曜日別
+  // ======================
   const weekdayBest = {};
   const days = ["日","月","火","水","木","金","土"];
 
-  dataList.forEach(d=>{
+  dataList.forEach(d => {
     const day = new Date(d.date).getDay();
 
-    if(!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
-
-    if(!weekdayBest[d.clan][day]){
+    if (!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
+    if (!weekdayBest[d.clan][day]) {
       weekdayBest[d.clan][day] = d.score;
     } else {
       weekdayBest[d.clan][day] =
@@ -134,14 +150,13 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   });
 
   let html = "<table><tr><th>クラン</th>";
-  days.forEach(d=> html += `<th>${d}</th>`);
+  days.forEach(d => html += `<th>${d}</th>`);
   html += "</tr>";
 
-  clans.forEach(clan=>{
+  clans.forEach(clan => {
     html += `<tr><td>${clan}</td>`;
-    for(let i=0;i<7;i++){
-      const val = weekdayBest[clan]?.[i] || "-";
-      html += `<td>${val}</td>`;
+    for (let i = 0; i < 7; i++) {
+      html += `<td>${weekdayBest[clan]?.[i] ?? "-"}</td>`;
     }
     html += "</tr>";
   });
@@ -149,36 +164,30 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   html += "</table>";
   document.getElementById("weekdayBest").innerHTML = html;
 
-  // =========================
-  // 📊 日付 × クラン表
-  // =========================
+  // ======================
+  // 一覧
+  // ======================
   const table = {};
 
-  dataList.forEach(d=>{
-    if(!table[d.date]) table[d.date] = {};
-    if(!table[d.date][d.clan]){
-  table[d.date][d.clan] = d.score;
-} else {
-  table[d.date][d.clan] = Math.max(table[d.date][d.clan], d.score);
-}
+  dataList.forEach(d => {
+    if (!table[d.date]) table[d.date] = {};
+    table[d.date][d.clan] = Math.max(
+      table[d.date][d.clan] ?? 0,
+      d.score
+    );
   });
 
   const dates = Object.keys(table)
-  .sort((a, b) => new Date(b) - new Date(a));
+    .sort((a, b) => new Date(a) - new Date(b));
 
   let html2 = "<table><tr><th>日付</th>";
-
-  clans.forEach(c=>{
-    html2 += `<th>${c}</th>`;
-  });
-
+  clans.forEach(c => html2 += `<th>${c}</th>`);
   html2 += "</tr>";
 
-  dates.forEach(date=>{
+  dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
-    clans.forEach(c=>{
-      const val = table[date][c] || "-";
-      html2 += `<td>${val}</td>`;
+    clans.forEach(c => {
+      html2 += `<td>${table[date]?.[c] ?? "-"}</td>`;
     });
     html2 += "</tr>";
   });
@@ -186,31 +195,20 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   html2 += "</table>";
 
   document.getElementById("tableWrap").innerHTML = html2;
+}
 
-});
-// クランチェックモーダル生成
-const modalWrap = document.getElementById("modalCheckboxes");
-clans.forEach(c=>{
-  const label = document.createElement("label");
-  const cb = document.createElement("input");
-  cb.type = "checkbox";
-  cb.value = c;
-  label.appendChild(cb);
-  label.appendChild(document.createTextNode(c));
-  modalWrap.appendChild(label);
-});
-
-window.openModal = function(){
+// ==============================
+// モーダル
+// ==============================
+window.openModal = () => {
   document.getElementById("modal").style.display = "flex";
 };
 
-window.closeModal = function(){
+window.closeModal = () => {
   document.getElementById("modal").style.display = "none";
 };
-let selectedClans = [];
 
-window.applySelection = function(){
-
+window.applySelection = function () {
   selectedClans = [...document.querySelectorAll("#modalCheckboxes input:checked")]
     .map(cb => cb.value);
 
@@ -219,130 +217,92 @@ window.applySelection = function(){
 
   closeModal();
 };
-window.selectAllClans = function(){
+
+window.selectAllClans = function () {
   document.querySelectorAll("#modalCheckboxes input")
     .forEach(cb => cb.checked = true);
 };
 
-window.clearAllClans = function(){
+window.clearAllClans = function () {
   document.querySelectorAll("#modalCheckboxes input")
     .forEach(cb => cb.checked = false);
 };
- // =========================
-  // グラフ
-  // =========================
-let chart;
-window.drawChart = function(){
+
+// ==============================
+// グラフ（安定化メイン改善）
+// ==============================
+window.drawChart = function () {
+
+  if (!dataList.length) return alert("データがまだありません");
+  if (!selectedClans.length) return alert("クラン選択して");
 
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
-  const checked = selectedClans;
-
-  if(checked.length === 0) return alert("クラン選択して");
-
-  // =========================
-  // フィルタ（Date型で比較）
-  // =========================
-const filtered = dataList.filter(d=>{
-  return (!start || d.date >= start) &&
-         (!end || d.date <= end) &&
-         checked.includes(d.clan);
-});
-
-  // =========================
-  // 日付一覧
-  // =========================
-  const dates = [...new Set(filtered.map(d=>d.date))]
-    .sort((a, b) => new Date(a) - new Date(b));
-
-  // =========================
-  // 日付×クランの最大スコア作成
-  // =========================
-  const dailyMax = {};
-
-  filtered.forEach(d => {
-    if(!dailyMax[d.date]) dailyMax[d.date] = {};
-
-    if(!dailyMax[d.date][d.clan]){
-      dailyMax[d.date][d.clan] = d.score;
-    } else {
-      dailyMax[d.date][d.clan] =
-        Math.max(dailyMax[d.date][d.clan], d.score);
-    }
+  // フィルタ
+  const filtered = dataList.filter(d => {
+    return (!start || d.date >= start) &&
+           (!end || d.date <= end) &&
+           selectedClans.includes(d.clan);
   });
 
-  let datasets;
+  const dates = [...new Set(filtered.map(d => d.date))]
+    .sort((a, b) => new Date(a) - new Date(b));
 
-  // =========================
-  // 🏆 順位モード
-  // =========================
-  if(mode === "rank"){
+  const daily = {};
 
-    const rankTable = {};
+  filtered.forEach(d => {
+    if (!daily[d.date]) daily[d.date] = {};
+    daily[d.date][d.clan] = Math.max(
+      daily[d.date][d.clan] ?? 0,
+      d.score
+    );
+  });
 
-    dates.forEach(date=>{
-      const dayData = filtered
-        .filter(d=>d.date === date)
-        .sort((a,b)=>b.score - a.score);
+  let datasets = [];
 
-      rankTable[date] = {};
-      dayData.forEach((d,i)=>{
-        rankTable[date][d.clan] = i + 1;
+  if (mode === "rank") {
+
+    const rank = {};
+
+    dates.forEach(date => {
+      const list = filtered
+        .filter(d => d.date === date)
+        .sort((a, b) => b.score - a.score);
+
+      rank[date] = {};
+      list.forEach((d, i) => {
+        rank[date][d.clan] = i + 1;
       });
     });
 
-    datasets = checked.map(clan=>{
-      const color = clanColors[clan] || "#000000";
-
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          return rankTable[date]?.[clan] ?? null;
-        }),
-        borderColor: color,
-        backgroundColor: color + "33",
-        spanGaps: true,
-        pointRadius: 3
-      };
-    });
+    datasets = selectedClans.map(clan => ({
+      label: clan,
+      data: dates.map(d => rank[d]?.[clan] ?? null),
+      borderColor: clanColors[clan],
+      spanGaps: true,
+      pointRadius: 4
+    }));
 
   } else {
 
-    // =========================
-    // 📈 スコアモード
-    // =========================
-    datasets = checked.map(clan=>{
-      const color = clanColors[clan] || "#000000";
-
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          return dailyMax[date]?.[clan] ?? null;
-        }),
-        borderColor: color,
-        backgroundColor: color + "33",
-        spanGaps: true,
-        pointRadius: 3
-      };
-    });
+    datasets = selectedClans.map(clan => ({
+      label: clan,
+      data: dates.map(d => daily[d]?.[clan] ?? null),
+      borderColor: clanColors[clan],
+      spanGaps: true,
+      pointRadius: 4
+    }));
   }
 
-  // =========================
-  // 最大値（安全処理）
-  // =========================
-  const maxScore = dataList.length
-    ? Math.max(...dataList.map(d => d.score))
-    : 10;
-
-  if(chart) chart.destroy();
+  if (chart) chart.destroy();
 
   chart = new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
       labels: dates,
-      datasets: datasets
+      datasets
     },
     options: {
       responsive: true,
@@ -351,57 +311,47 @@ const filtered = dataList.filter(d=>{
       },
       scales: {
         y: mode === "rank"
-          ? {
-              reverse: true,
-              ticks: { stepSize: 1 }
-            }
-          : {
-              beginAtZero: true,
-              suggestedMax: maxScore * 1.2
-            }
+          ? { reverse: true, ticks: { stepSize: 1 } }
+          : { beginAtZero: true }
       }
     }
   });
 };
+
 // ==============================
-// 入出力
+// 管理
 // ==============================
-window.toggleManage = function(){
+window.toggleManage = function () {
   const area = document.getElementById("manageArea");
   const btn = document.getElementById("manageBtn");
 
-  const isOpen = area.style.display === "block";
+  const open = area.style.display === "block";
 
-  area.style.display = isOpen ? "none" : "block";
-  btn.textContent = isOpen ? "⚙️" : "閉じる";
+  area.style.display = open ? "none" : "block";
+  btn.textContent = open ? "⚙️" : "閉じる";
 };
-window.importCSV = async function(){
 
+// ==============================
+// CSV
+// ==============================
+window.importCSV = async function () {
   const file = document.getElementById("csvFile").files[0];
-  if(!file) return alert("ファイル選んで");
+  if (!file) return alert("ファイル選んで");
 
   const text = await file.text();
-
   const rows = text.split("\n").slice(1);
 
-  for(let row of rows){
-
-    if(!row.trim()) continue;
-
-    row = row.replace("\r","");
+  for (let row of rows) {
+    if (!row.trim()) continue;
 
     let [date, clan, score] = row.split(",");
+    if (!date || !clan || isNaN(Number(score))) continue;
 
-    if(!date || !clan || isNaN(Number(score))) continue;
+    const fixedDate = date.trim().replace(/\//g, "-");
 
-    const fixedDate = date.trim().replace(/\//g,"-");
-    const fixedClan = clan.trim();
-
-    const docId = `${fixedDate}_${fixedClan}`;
-
-    await setDoc(doc(db, "scores", docId), {
+    await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
-      clan: fixedClan,
+      clan,
       score: Number(score),
       time: Date.now()
     });
@@ -410,13 +360,12 @@ window.importCSV = async function(){
   alert("CSV取込完了");
 };
 
-window.exportCSV = function(){
-
-  if(dataList.length === 0) return alert("データなし");
+window.exportCSV = function () {
+  if (!dataList.length) return alert("データなし");
 
   let csv = "date,clan,score\n";
 
-  dataList.forEach(d=>{
+  dataList.forEach(d => {
     csv += `${d.date},${d.clan},${d.score}\n`;
   });
 
