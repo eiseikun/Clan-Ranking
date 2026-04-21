@@ -332,15 +332,18 @@ window.importCSV = async function(){
 
     row = row.replace("\r","");
 
-    const [date, clan, score] = row.split(",");
+    let [date, clan, score] = row.split(",");
 
     if(!date || !clan || isNaN(Number(score))) continue;
 
-    const docId = `${date}_${clan}`;
+    const fixedDate = date.trim().replace(/\//g,"-");
+    const fixedClan = clan.trim();
+
+    const docId = `${fixedDate}_${fixedClan}`;
 
     await setDoc(doc(db, "scores", docId), {
-      date,
-      clan,
+      date: fixedDate,
+      clan: fixedClan,
       score: Number(score),
       time: Date.now()
     });
