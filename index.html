@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
+
 <body>
 
 <div class="container">
@@ -26,7 +27,7 @@
 <!-- ================= ページ1 ================= -->
 <div id="page1">
 
-<div id="manageArea" style="display:none; margin-bottom:10px;">
+<div id="manageArea" class="box" style="display:none;">
   <input type="file" id="csvFile">
   <div class="row">
     <button onclick="importCSV()">CSV取込</button>
@@ -36,6 +37,7 @@
 
 <!-- 入力 -->
 <div class="box">
+  <h3>➕ データ追加</h3>
 
   <div class="row">
     <select id="clan"></select>
@@ -52,7 +54,6 @@
   <div class="row">
     <button onclick="add()">追加</button>
   </div>
-
 </div>
 
 <!-- 曜日別 -->
@@ -61,43 +62,34 @@
   <div id="weekdayBest"></div>
 </div>
 
+<!-- グラフ -->
 <div class="box">
   <h3>📈 グラフ生成</h3>
+
   <div class="row">
     <input type="date" id="startDate">
     <input type="date" id="endDate">
   </div>
+
   <div class="row">
-  <button onclick="openModal()">クラン選択</button>
-  <span id="selectedClansText">未選択</span>
-</div>
-  <!-- モーダル -->
-<div id="modal" class="modal">
-  <div class="modal-content">
-    <h3>クラン選択</h3>
-    <div id="modalCheckboxes"></div>
-    <div class="row">
-      <button onclick="selectAllClans()">全選択</button>
-      <button onclick="clearAllClans()">全解除</button>
-      <button onclick="applySelection()">決定</button>
-      <button onclick="closeModal()">閉じる</button>
-    </div>
+    <button onclick="openModal()">クラン選択</button>
+    <span id="selectedClansText">未選択</span>
   </div>
-</div>
-  
+
   <div class="row">
-  <select id="graphMode">
-    <option value="score">スコア推移</option>
-    <option value="rank">順位推移</option>
-  </select>
-</div>
-  
+    <select id="graphMode">
+      <option value="score">スコア推移</option>
+      <option value="rank">順位推移</option>
+    </select>
+  </div>
+
   <div class="row">
     <button onclick="drawChart()">グラフ生成</button>
   </div>
+
   <canvas id="chart"></canvas>
 </div>
-  
+
 <!-- 一覧 -->
 <div class="box">
   <h3>📊 一覧</h3>
@@ -108,23 +100,30 @@
 
 <!-- ================= ページ2 ================= -->
 <div id="page2" style="display:none">
-
 <div class="box">
   <h3>🛠 開発中ページ</h3>
   <p>ここに新しい機能を追加していきます</p>
 </div>
-
-<div class="box">
-  <h3>💡 予定</h3>
-  <ul>
-    <li>ランキング</li>
-    <li>グラフ</li>
-    <li>平均スコア</li>
-  </ul>
 </div>
 
 </div>
 
+<!-- モーダル -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3>クラン選択</h3>
+    <div id="modalCheckboxes"></div>
+
+    <div class="row">
+      <button onclick="selectAllClans()">全選択</button>
+      <button onclick="clearAllClans()">全解除</button>
+    </div>
+
+    <div class="row">
+      <button onclick="applySelection()">決定</button>
+      <button onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
 </div>
 
 <script type="module" src="app.js"></script>
