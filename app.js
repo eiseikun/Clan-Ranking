@@ -260,7 +260,7 @@ function renderRankTable() {
   document.getElementById("tableWrap2").innerHTML = html;
 }
 
-function calcAvgRank() {
+window.calcAvgRank = function () {
 
   const start = document.getElementById("startDateRank")?.value;
   const end = document.getElementById("endDateRank")?.value;
