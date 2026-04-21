@@ -105,3 +105,13 @@ tr:hover{
   gap:6px;
   margin-bottom:6px;
 }
+.header-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+#manageBtn{
+  font-size:18px;
+  padding:6px 10px;
+}
