@@ -12,7 +12,10 @@
 
 <div class="container">
 
-<h1 id="title">🏆ランキング管理</h1>
+<div class="header-bar">
+  <h1 id="title">🏆ランキング管理</h1>
+  <button onclick="toggleManage()" id="manageBtn">⚙️</button>
+</div>
 
 <!-- タブ -->
 <div class="tabs">
@@ -22,6 +25,14 @@
 
 <!-- ================= ページ1 ================= -->
 <div id="page1">
+
+<div id="manageArea" style="display:none; margin-bottom:10px;">
+  <input type="file" id="csvFile">
+  <div class="row">
+    <button onclick="importCSV()">CSV取込</button>
+    <button onclick="exportCSV()">CSV出力</button>
+  </div>
+</div>
 
 <!-- 入力 -->
 <div class="box">
