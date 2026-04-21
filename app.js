@@ -176,24 +176,40 @@ onSnapshot(collection(db,"scores"), (snapshot)=>{
   document.getElementById("tableWrap").innerHTML = html2;
 
 });
-// クランチェックボックス生成
-const checkboxWrap = document.getElementById("clanCheckboxes");
-
+// クランチェックモーダル生成
+const modalWrap = document.getElementById("modalCheckboxes");
 clans.forEach(c=>{
   const label = document.createElement("label");
-  label.style.display = "flex";
-  label.style.alignItems = "center";
-  label.style.gap = "4px";
-
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.value = c;
-
   label.appendChild(cb);
   label.appendChild(document.createTextNode(c));
-
-  checkboxWrap.appendChild(label);
+  modalWrap.appendChild(label);
 });
+
+window.openModal = function(){
+  document.getElementById("modal").style.display = "flex";
+};
+
+window.closeModal = function(){
+  document.getElementById("modal").style.display = "none";
+};
+let selectedClans = [];
+
+window.applySelection = function(){
+
+  selectedClans = [...document.querySelectorAll("#modalCheckboxes input:checked")]
+    .map(cb => cb.value);
+
+  document.getElementById("selectedClansText").textContent =
+    selectedClans.length ? selectedClans.join(", ") : "未選択";
+
+  closeModal();
+};
+const checked = selectedClans;
+
+if(checked.length === 0) return alert("クラン選択して");
  // =========================
   // グラフ
   // =========================
