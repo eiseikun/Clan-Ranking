@@ -263,8 +263,8 @@ function renderRankTable() {
 
 function calcAvgRank() {
 
-  const start = document.getElementById("startDate")?.value;
-  const end = document.getElementById("endDate")?.value;
+  const start = document.getElementById("startDateRank")?.value;
+  const end = document.getElementById("endDateRank")?.value;
 
   const s = start ? new Date(start).getTime() : -Infinity;
   const e = end ? new Date(end).getTime() : Infinity;
@@ -275,8 +275,6 @@ function calcAvgRank() {
   rankList.forEach(d => {
 
     const t = new Date(d.date).getTime();
-
-    // ★期間フィルタ追加
     if (t < s || t > e) return;
 
     if (!sum[d.member]) {
@@ -565,5 +563,5 @@ window.exportCSV = function () {
 // ==============================
 // 2ページ目の期間指定
 // ==============================
-document.getElementById("startDate").addEventListener("change", calcAvgRank);
-document.getElementById("endDate").addEventListener("change", calcAvgRank);
+document.getElementById("startDateRank").addEventListener("change", calcAvgRank);
+document.getElementById("endDateRank").addEventListener("change", calcAvgRank);
