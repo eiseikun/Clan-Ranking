@@ -203,39 +203,72 @@ window.drawChart = function(){
 
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
+  const mode = document.getElementById("graphMode").value;
 
   const checked = [...document.querySelectorAll("#clanCheckboxes input:checked")]
     .map(cb => cb.value);
 
   if(checked.length === 0) return alert("クラン選択して");
 
-  // データ整理
+  // フィルタ
   const filtered = dataList.filter(d=>{
     return (!start || d.date >= start) &&
            (!end || d.date <= end) &&
            checked.includes(d.clan);
   });
 
-  // 日付一覧
   const dates = [...new Set(filtered.map(d=>d.date))].sort();
 
-  // クランごとデータ
-  const datasets = checked.map(clan=>{
-    return {
-      label: clan,
-      data: dates.map(date=>{
-        const item = filtered.find(d=>d.date===date && d.clan===clan);
-        return item ? item.score : null;
-      }),
-      spanGaps: true
-    };
-  });
+  let datasets;
+
+  // =========================
+  // 🏆 順位モード
+  // =========================
+  if(mode === "rank"){
+
+    const rankTable = {};
+
+    dates.forEach(date=>{
+      const dayData = dataList
+        .filter(d=>d.date === date)
+        .sort((a,b)=>b.score - a.score);
+
+      rankTable[date] = {};
+      dayData.forEach((d,i)=>{
+        rankTable[date][d.clan] = i + 1;
+      });
+    });
+
+    datasets = checked.map(clan=>{
+      return {
+        label: clan,
+        data: dates.map(date=>{
+          return rankTable[date]?.[clan] || null;
+        }),
+        spanGaps: true
+      };
+    });
+
+  } else {
+
+    // =========================
+    // 📈 スコアモード
+    // =========================
+    datasets = checked.map(clan=>{
+      return {
+        label: clan,
+        data: dates.map(date=>{
+          const item = filtered.find(d=>d.date===date && d.clan===clan);
+          return item ? item.score : null;
+        }),
+        spanGaps: true
+      };
+    });
+  }
 
   if(chart) chart.destroy();
 
-  const ctx = document.getElementById("chart");
-
-  chart = new Chart(ctx, {
+  chart = new Chart(document.getElementById("chart"), {
     type: "line",
     data: {
       labels: dates,
@@ -245,6 +278,16 @@ window.drawChart = function(){
       responsive: true,
       plugins: {
         legend: { position: "bottom" }
+      },
+      scales: {
+        y: mode === "rank"
+          ? {
+              reverse: true, // ←順位は1位が上
+              ticks: { stepSize: 1 }
+            }
+          : {
+              beginAtZero: true
+            }
       }
     }
   });
