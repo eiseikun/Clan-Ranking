@@ -560,4 +560,8 @@ window.exportCSV = function () {
 
   URL.revokeObjectURL(url);
 };
-
+// ==============================
+// 2ページ目の期間指定
+// ==============================
+document.getElementById("startDateRank").addEventListener("change", calcAvgRank);
+document.getElementById("endDateRank").addEventListener("change", calcAvgRank);
