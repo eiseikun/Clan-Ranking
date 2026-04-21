@@ -113,10 +113,38 @@
 
 <!-- ================= ページ2 ================= -->
 <div id="page2" style="display:none">
+
+<!-- ★追加：順位入力 -->
 <div class="box">
-  <h3>🛠 開発中ページ</h3>
-  <p>ここに新しい機能を追加していきます</p>
+  <h3>➕ 順位データ追加</h3>
+
+  <div class="row">
+    <input id="member" placeholder="メンバー名">
+  </div>
+
+  <div class="row">
+    <input id="rank" type="number" placeholder="順位">
+  </div>
+
+  <div class="row">
+    <input id="date2" type="date">
+  </div>
+
+  <div class="row">
+    <button onclick="addRank()">追加</button>
+  </div>
 </div>
+
+<!-- ★追加：平均順位 -->
+<div class="box">
+  <h3>📊 平均順位（期間）</h3>
+  <div id="avgRankBox"></div>
+</div>
+
+<!-- ★追加：一覧 -->
+<div class="box">
+  <h3>📋 順位一覧</h3>
+  <div id="tableWrap2"></div>
 </div>
 
 </div>
