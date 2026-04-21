@@ -245,12 +245,11 @@ window.drawChart = function(){
   // =========================
   // フィルタ（Date型で比較）
   // =========================
-  const filtered = dataList.filter(d=>{
-    const dDate = new Date(d.date);
-    return (!start || dDate >= new Date(start)) &&
-           (!end || dDate <= new Date(end)) &&
-           checked.includes(d.clan);
-  });
+const filtered = dataList.filter(d=>{
+  return (!start || d.date >= start) &&
+         (!end || d.date <= end) &&
+         checked.includes(d.clan);
+});
 
   // =========================
   // 日付一覧
