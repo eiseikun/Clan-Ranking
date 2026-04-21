@@ -2,29 +2,81 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ランキング管理（シンプル版）</title>
+<title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="style.css">
-<script type="module" src="app.js"></script>
 </head>
-
 <body>
 
-<h1>🏆 ランキング管理</h1>
+<div class="container">
+
+<h1 id="title">🏆ランキング管理</h1>
+
+<!-- タブ -->
+<div class="tabs">
+  <button id="tab1" class="active" onclick="showPage(1)">記録</button>
+  <button id="tab2" onclick="showPage(2)">ページ2</button>
+</div>
+
+<!-- ================= ページ1 ================= -->
+<div id="page1">
+
+<!-- 入力 -->
+<div class="box">
+
+  <div class="row">
+    <select id="clan"></select>
+  </div>
+
+  <div class="row">
+    <input id="score" type="number" placeholder="スコア">
+  </div>
+
+  <div class="row">
+    <input id="date" type="date">
+  </div>
+
+  <div class="row">
+    <button onclick="add()">追加</button>
+  </div>
+
+</div>
+
+<!-- 曜日別 -->
+<div class="box">
+  <h3>🏆 曜日別最高スコア</h3>
+  <div id="weekdayBest"></div>
+</div>
+
+<!-- 一覧 -->
+<div class="box">
+  <h3>📊 一覧</h3>
+  <div id="tableWrap"></div>
+</div>
+
+</div>
+
+<!-- ================= ページ2 ================= -->
+<div id="page2" style="display:none">
 
 <div class="box">
-  <h2>✏️ 手動入力</h2>
-  <input type="date" id="date">
-  <button id="saveBtn">登録</button>
-
-  <div id="table" class="rank-table"></div>
+  <h3>🛠 開発中ページ</h3>
+  <p>ここに新しい機能を追加していきます</p>
 </div>
 
 <div class="box">
-  <h2>📋 一覧</h2>
-  <div id="list" class="list"></div>
+  <h3>💡 予定</h3>
+  <ul>
+    <li>ランキング</li>
+    <li>グラフ</li>
+    <li>平均スコア</li>
+  </ul>
 </div>
 
+</div>
+
+</div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>
