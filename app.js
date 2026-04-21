@@ -229,7 +229,7 @@ window.clearAllClans = function () {
 };
 
 // ==============================
-// グラフ（安定化メイン改善）
+// グラフ
 // ==============================
 window.drawChart = function () {
 
@@ -240,21 +240,17 @@ window.drawChart = function () {
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
-  // ① 日付正規化（最重要）
   const filtered = dataList.filter(d => {
-
-    const date = new Date(d.date).getTime();
+    const t = new Date(d.date).getTime();
     const s = start ? new Date(start).getTime() : -Infinity;
     const e = end ? new Date(end).getTime() : Infinity;
 
-    return date >= s && date <= e && selectedClans.includes(d.clan);
+    return t >= s && t <= e && selectedClans.includes(d.clan);
   });
 
-  // ② 全日付リスト（欠損防止）
   const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
 
-  // ③ スコア正規化（完全版）
   const scoreMap = {};
 
   dataList.forEach(d => {
@@ -267,20 +263,17 @@ window.drawChart = function () {
 
   let datasets = [];
 
-  // 🏆 順位モード（修正版）
   if (mode === "rank") {
 
     const rankMap = {};
 
     dates.forEach(date => {
-
-      const dayData = dataList
+      const list = dataList
         .filter(d => d.date === date)
         .sort((a, b) => b.score - a.score);
 
       rankMap[date] = {};
-
-      dayData.forEach((d, i) => {
+      list.forEach((d, i) => {
         rankMap[date][d.clan] = i + 1;
       });
     });
@@ -292,26 +285,24 @@ window.drawChart = function () {
       spanGaps: true,
       pointRadius: 4
     }));
-  }
 
-  // 📈 スコアモード（修正版）
-  else {
+  } else {
 
     datasets = selectedClans.map(clan => ({
       label: clan,
-      data: dates.map(date =>
-        scoreMap[date]?.[clan] ?? null
-      ),
+      data: dates.map(date => scoreMap[date]?.[clan] ?? null),
       borderColor: clanColors[clan],
       spanGaps: true,
       pointRadius: 4
     }));
   }
 
-  // グラフ更新
+  // モーダル表示（ここが重要）
+  document.getElementById("graphModal").style.display = "block";
+
   if (chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("chart"), {
+  chart = new Chart(document.getElementById("modalChart"), {
     type: "line",
     data: {
       labels: dates,
@@ -319,23 +310,28 @@ window.drawChart = function () {
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom" }
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 12,
+            font: { size: 10 }
+          }
+        }
       },
       scales: {
         y: mode === "rank"
-          ? {
-              reverse: true,
-              ticks: { stepSize: 1 }
-            }
-          : {
-              beginAtZero: true
-            }
+          ? { reverse: true, ticks: { stepSize: 1 } }
+          : { beginAtZero: true }
       }
     }
   });
 };
 
+window.closeGraphModal = function () {
+  document.getElementById("graphModal").style.display = "none";
+};
 // ==============================
 // 管理
 // ==============================
