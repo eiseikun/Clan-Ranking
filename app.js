@@ -45,19 +45,30 @@ window.showPage = function(page){
   }
 };
 
-
+// ==============================
+// 🎨 クランカラー（ここで自由に変更OK）
+// ==============================
+const clanColors = {
+  "クランA": "#ff0000",
+  "クランB": "#00ff00",
+  "クランC": "#0000ff",
+  "クランD": "#ff9900",
+  "クランE": "#cc00ff",
+  "クランF": "#00cccc",
+  "クランG": "#ff66cc",
+  "クランH": "#999900",
+  "クランI": "#6666ff",
+  "クランJ": "#ff3333",
+  "クランK": "#33cc33",
+  "クランL": "#333333"
+};
 
 // ==============================
-// 🏁 クラン定義（12個）
+// 🏁 クラン定義
 // ==============================
-const clans = [
-  "クランA","クランB","クランC","クランD",
-  "クランE","クランF","クランG","クランH",
-  "クランI","クランJ","クランK","クランL"
-];
+const clans = Object.keys(clanColors);
 
 const clanSelect = document.getElementById("clan");
-
 clans.forEach(c=>{
   const opt = document.createElement("option");
   opt.value = c;
@@ -254,15 +265,19 @@ window.drawChart = function(){
       });
     });
 
-    datasets = checked.map(clan=>{
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          return rankTable[date]?.[clan] || null;
-        }),
-        spanGaps: true
-      };
-    });
+   datasets = checked.map(clan=>{
+  const color = clanColors[clan] || "#000000";
+
+  return {
+    label: clan,
+    data: dates.map(date=>{
+      return rankTable[date]?.[clan] || null;
+    }),
+    borderColor: color,
+    backgroundColor: color + "33",
+    spanGaps: true
+  };
+});
 
   } else {
 
@@ -270,15 +285,19 @@ window.drawChart = function(){
     // 📈 スコアモード
     // =========================
     datasets = checked.map(clan=>{
-      return {
-        label: clan,
-        data: dates.map(date=>{
-          const item = filtered.find(d=>d.date===date && d.clan===clan);
-          return item ? item.score : null;
-        }),
-        spanGaps: true
-      };
-    });
+  const color = clanColors[clan] || "#000000";
+
+  return {
+    label: clan,
+    data: dates.map(date=>{
+      const item = filtered.find(d=>d.date===date && d.clan===clan);
+      return item ? item.score : null;
+    }),
+    borderColor: color,
+    backgroundColor: color + "33",
+    spanGaps: true
+  };
+});
   }
 
   if(chart) chart.destroy();
