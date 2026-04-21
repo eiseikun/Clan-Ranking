@@ -4,9 +4,15 @@
 <meta charset="UTF-8">
 <title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="style.css">
+
+<!-- 🔥 ① ライブラリ（先に読み込む） -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- 🔥 ② 自分のJS -->
 <script type="module" src="app.js"></script>
+
 </head>
 <body>
 
@@ -50,27 +56,40 @@
   <div id="weekdayBest"></div>
 </div>
 
+<!-- 🔥 グラフ -->
 <div class="box">
   <h3>📈 グラフ生成</h3>
+
+  <!-- 期間 -->
   <div class="row">
     <input type="date" id="startDate">
     <input type="date" id="endDate">
   </div>
-  <div class="row" id="clanCheckboxes"></div>
-  
+
+  <!-- 🔥 操作UI（横並び） -->
   <div class="row">
-  <select id="graphMode">
-    <option value="score">スコア推移</option>
-    <option value="rank">順位推移</option>
-  </select>
-</div>
-  
-  <div class="row">
-    <button onclick="drawChart()">グラフ生成</button>
+
+    <!-- モード切替 -->
+    <select id="graphMode">
+      <option value="score">スコア</option>
+      <option value="rank">順位</option>
+    </select>
+
+    <!-- クラン選択（ドロップダウン） -->
+    <div class="dropdown">
+      <button onclick="toggleClan()">クラン選択 ▼</button>
+
+      <div id="clanDropdown" class="dropdown-content"></div>
+    </div>
+
+    <!-- 実行 -->
+    <button onclick="drawChart()">生成</button>
+
   </div>
+
   <canvas id="chart"></canvas>
 </div>
-  
+
 <!-- 一覧 -->
 <div class="box">
   <h3>📊 一覧</h3>
