@@ -284,38 +284,61 @@ window.calcAvgRank = function () {
   const s = start ? new Date(start).getTime() : -Infinity;
   const e = end ? new Date(end).getTime() : Infinity;
 
+  const OUT_RANK = 16;
+
+  // 🔥 全日付取得
+  const allDates = [...new Set(rankList.map(d => d.date))]
+    .filter(date => {
+      const t = new Date(date).getTime();
+      return t >= s && t <= e;
+    });
+
+  // 🔥 全メンバー
+  const members = [...new Set(rankList.map(d => d.member))];
+
   const sum = {};
   const count = {};
 
-  rankList.forEach(d => {
-
-    const t = new Date(d.date).getTime();
-    if (t < s || t > e) return;
-
-    if (!sum[d.member]) {
-      sum[d.member] = 0;
-      count[d.member] = 0;
-    }
-
-    sum[d.member] += d.rank;
-    count[d.member]++;
+  members.forEach(m => {
+    sum[m] = 0;
+    count[m] = 0;
   });
 
-  // 🔥 平均計算 + 配列化
-  const avgArray = Object.keys(sum).map(m => ({
+  // 🔥 日付ごとに処理
+  allDates.forEach(date => {
+
+    const dayData = rankList.filter(d => d.date === date);
+
+    members.forEach(m => {
+
+      const record = dayData.find(d => d.member === m);
+
+      if (record) {
+        sum[m] += record.rank;
+      } else {
+        sum[m] += OUT_RANK; // ←これが超重要
+      }
+
+      count[m]++;
+    });
+  });
+
+  // 平均
+  const avgArray = members.map(m => ({
     member: m,
     avg: sum[m] / count[m]
   }));
 
-  // 平均順位が良い順（小さい順）
+  // 並び替え（良い順）
   avgArray.sort((a, b) => a.avg - b.avg);
 
-  // 表作成
+  // 表
   let html = "<table>";
   avgArray.forEach(d => {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
   html += "</table>";
+
   document.getElementById("avgRankBox").innerHTML = html;
 };
 // ==============================
