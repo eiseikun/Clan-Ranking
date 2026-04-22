@@ -301,17 +301,23 @@ window.calcAvgRank = function () {
     count[d.member]++;
   });
 
+  // 🔥 平均計算 + 配列化
+  const avgArray = Object.keys(sum).map(m => ({
+    member: m,
+    avg: sum[m] / count[m]
+  }));
+
+  // 平均順位が良い順（小さい順）
+  avgArray.sort((a, b) => a.avg - b.avg);
+
+  // 表作成
   let html = "<table>";
-
-  Object.keys(sum).forEach(m => {
-    const avg = (sum[m] / count[m]).toFixed(2);
-    html += `<tr><td>${m}</td><td>${avg}</td></tr>`;
+  avgArray.forEach(d => {
+    html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
-
   html += "</table>";
-
   document.getElementById("avgRankBox").innerHTML = html;
-}
+};
 // ==============================
 // モーダル
 // ==============================
