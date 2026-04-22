@@ -114,11 +114,16 @@ tr:nth-child(odd){
 }
 
 /* ヘッダー */
-.header-bar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:10px;
+.header-bar {
+  display: flex;
+  justify-content: center; /* 中央寄せ */
+  align-items: center;
+  position: relative;
+}
+
+.header-bar button {
+  position: absolute;
+  right: 0;
 }
 
 #manageBtn{
