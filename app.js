@@ -488,7 +488,7 @@ window.closeGraphModal = function () {
   document.body.style.overflow = "auto";
 };
 // ==============================
-// 管理
+// 管理1
 // ==============================
 window.toggleManage = function () {
   const area = document.getElementById("manageArea");
@@ -498,6 +498,15 @@ window.toggleManage = function () {
 
   area.style.display = open ? "none" : "block";
   btn.textContent = open ? "⚙️" : "閉じる";
+};
+// ==============================
+// 管理1
+// ==============================
+window.toggleManage2 = function () {
+  const area = document.getElementById("manageArea2");
+
+  const open = area.style.display === "block";
+  area.style.display = open ? "none" : "block";
 };
 // ==============================
 // グラフの折り畳み
@@ -555,6 +564,28 @@ window.exportCSV = function () {
   const a = document.createElement("a");
   a.href = url;
   a.download = "scores.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
+// ==============================
+// CSV2
+// ==============================
+window.exportCSV2 = function () {
+  if (!rankList.length) return alert("データなし");
+
+  let csv = "date,member,rank\n";
+
+  rankList.forEach(d => {
+    csv += `${d.date},${d.member},${d.rank}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ranks.csv";
   a.click();
 
   URL.revokeObjectURL(url);
