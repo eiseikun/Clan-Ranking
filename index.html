@@ -15,7 +15,6 @@
 
 <div id="page1Header" class="header-bar">
   <h1>🏆ランキング管理</h1>
-  <button onclick="toggleManage()" id="manageBtn">⚙️</button>
 </div>
 
 <!-- タブ -->
@@ -25,7 +24,12 @@
 </div>
 
 <!-- ================= ページ1 ================= -->
-<div id="page1">
+<div id="page1" style="display:none">
+
+<div id="page1Header" class="header-bar">
+  <h1>📊全体記録</h1>
+  <button onclick="toggleManage()" id="manageBtn">⚙️</button>
+</div>
 
 <div id="manageArea" class="box" style="display:none;">
   <input type="file" id="csvFile">
@@ -111,7 +115,7 @@
 
 </div>
 
-<!-- ================= ページ2 ================= -->
+<!-- ================= ページ2 ================= -->  
 <div id="page2" style="display:none">
 
 <div id="page2Header" class="header-bar">
