@@ -284,38 +284,64 @@ window.calcAvgRank = function () {
   const s = start ? new Date(start).getTime() : -Infinity;
   const e = end ? new Date(end).getTime() : Infinity;
 
-  const sum = {};
-  const count = {};
+  const OUT_RANK = 16;
 
+  // 🔥 日付（範囲内のみ）
+  const allDates = [...new Set(rankList.map(d => d.date))]
+    .filter(date => {
+      const t = new Date(date).getTime();
+      return t >= s && t <= e;
+    })
+    .sort((a, b) => new Date(a) - new Date(b));
+
+  // 🔥 メンバー（固定推奨）
+  const members = [...new Set(rankList.map(d => d.member))];
+
+  // 🔥 日付ごとのマップ化（超重要）
+  const dateMap = {};
   rankList.forEach(d => {
-
-    const t = new Date(d.date).getTime();
-    if (t < s || t > e) return;
-
-    if (!sum[d.member]) {
-      sum[d.member] = 0;
-      count[d.member] = 0;
-    }
-
-    sum[d.member] += d.rank;
-    count[d.member]++;
+    if (!dateMap[d.date]) dateMap[d.date] = {};
+    dateMap[d.date][d.member] = d.rank;
   });
 
-  // 🔥 平均計算 + 配列化
-  const avgArray = Object.keys(sum).map(m => ({
-    member: m,
-    avg: sum[m] / count[m]
-  }));
+  const result = [];
 
-  // 平均順位が良い順（小さい順）
-  avgArray.sort((a, b) => a.avg - b.avg);
+  members.forEach(member => {
 
-  // 表作成
+    let total = 0;
+    let count = 0;
+
+    allDates.forEach(date => {
+
+      const rank = dateMap[date]?.[member];
+
+      if (rank !== undefined) {
+        total += rank;
+      } else {
+        total += OUT_RANK;
+      }
+
+      count++;
+    });
+
+    if (count > 0) {
+      result.push({
+        member,
+        avg: total / count
+      });
+    }
+  });
+
+  // 並び替え
+  result.sort((a, b) => a.avg - b.avg);
+
+  // 表
   let html = "<table>";
-  avgArray.forEach(d => {
+  result.forEach(d => {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
   html += "</table>";
+
   document.getElementById("avgRankBox").innerHTML = html;
 };
 // ==============================
