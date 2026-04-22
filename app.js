@@ -567,64 +567,31 @@ window.importCSV = async function () {
 
 window.exportCSV = function () {
   if (!dataList.length) return alert("データなし");
-
-let csv = "date,clan,score\r\n";
-
-window.exportCSV = function () {
-  if (!dataList.length) return alert("データなし");
-
   let csv = "date,clan,score\r\n";
-
-  // ======================
-  // ① 日付一覧（昇順）
-  // ======================
+  // 日付一覧（昇順）
   const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
-
-  // ======================
-  // ② 最初の日付
-  // ======================
+  // 最初の日付
   const firstDate = dates[0];
-
-  // ======================
-  // ③ 最初の日のスコアでクラン順決定
-  // ======================
+  // 最初の日のスコアでクラン順決定
   const firstDayData = dataList
     .filter(d => d.date === firstDate)
     .sort((a, b) => b.score - a.score);
-
   const clanOrder = firstDayData.map(d => d.clan);
-
-  // ======================
-  // ④ 出力（日付 → 固定クラン順）
-  // ======================
+  // 出力（日付 → 固定クラン順）
   dates.forEach(date => {
     clanOrder.forEach(clan => {
 
       const row = dataList.find(d =>
         d.date === date && d.clan === clan
       );
-
       if (row) {
         csv += `${row.date},${row.clan},${row.score}\r\n`;
       } else {
         csv += `${date},${clan},-\r\n`;
       }
-
     });
   });
-
-  const BOM = "\uFEFF";
-  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "scores.csv";
-  a.click();
-
-  URL.revokeObjectURL(url);
-};
 
   const BOM = "\uFEFF";
   const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
