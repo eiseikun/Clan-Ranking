@@ -281,29 +281,46 @@ window.calcAvgRank = function () {
   const start = document.getElementById("startDateRank")?.value;
   const end = document.getElementById("endDateRank")?.value;
 
-  const s = start ? new Date(start).getTime() : -Infinity;
-  const e = end ? new Date(end).getTime() : Infinity;
+  // 🔥 日付を安全に変換（ズレ防止）
+  const toTime = (str) => {
+    if (!str) return null;
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime(); // ←これが重要
+  };
+
+  const s = start ? toTime(start) : -Infinity;
+  const e = end ? toTime(end) : Infinity;
 
   const OUT_RANK = 16;
 
-  // 🔥 日付（範囲内のみ）
+  // 日付抽出（範囲内）
   const allDates = [...new Set(rankList.map(d => d.date))]
     .filter(date => {
-      const t = new Date(date).getTime();
+      const t = toTime(date);
       return t >= s && t <= e;
     })
-    .sort((a, b) => new Date(a) - new Date(b));
+    .sort((a, b) => toTime(a) - toTime(b));
 
-  // 🔥 メンバー（固定推奨）
-  const members = [...new Set(rankList.map(d => d.member))];
+  // メンバー（ハイブリッド）
+  const baseMembers = [
+    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
+    "大蒜マン","きゃりら","norix9815","かずまる","すわろう","肉おじゃ",
+    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
+    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
+  ];
 
-  // 🔥 日付ごとのマップ化（超重要）
+  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
+
+  const members = [...new Set([...baseMembers, ...dynamicMembers])];
+
+  // 日付 → メンバー → 順位
   const dateMap = {};
   rankList.forEach(d => {
     if (!dateMap[d.date]) dateMap[d.date] = {};
     dateMap[d.date][d.member] = d.rank;
   });
 
+  // 平均計算
   const result = [];
 
   members.forEach(member => {
@@ -318,7 +335,7 @@ window.calcAvgRank = function () {
       if (rank !== undefined) {
         total += rank;
       } else {
-        total += OUT_RANK;
+        total += OUT_RANK; // ←圏外
       }
 
       count++;
@@ -332,10 +349,10 @@ window.calcAvgRank = function () {
     }
   });
 
-  // 並び替え
+  // ソート（平均順位良い順）
   result.sort((a, b) => a.avg - b.avg);
 
-  // 表
+  // 表示
   let html = "<table>";
   result.forEach(d => {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
