@@ -607,6 +607,32 @@ window.exportCSV = function () {
 // ==============================
 // CSV2
 // ==============================
+window.importCSV2 = async function () {
+  const file = document.getElementById("csvFile2").files[0];
+  if (!file) return alert("ファイル選んで");
+
+  const text = await file.text();
+  const rows = text.split("\n").slice(1);
+
+  for (let row of rows) {
+    if (!row.trim()) continue;
+
+    let [date, member, rank] = row.split(",");
+    if (!date || !member || isNaN(Number(rank))) continue;
+
+    const fixedDate = date.trim().replace(/\//g, "-");
+
+    await setDoc(doc(db, "ranks", `${fixedDate}_${member}`), {
+      clan: "ねこ海賊団",
+      member,
+      rank: Number(rank),
+      date: fixedDate,
+      time: Date.now()
+    });
+  }
+
+  alert("CSV取込完了");
+};
 window.exportCSV2 = function () {
   if (!rankList.length) return alert("データなし");
 
