@@ -568,13 +568,14 @@ window.importCSV = async function () {
 window.exportCSV = function () {
   if (!dataList.length) return alert("データなし");
 
-  let csv = "date,clan,score\n";
+let csv = "date,clan,score\r\n";
 
-  dataList.forEach(d => {
-    csv += `${d.date},${d.clan},${d.score}\n`;
-  });
+dataList.forEach(d => {
+  csv += `${d.date},${d.clan},${d.score}\r\n`;
+});
 
-  const blob = new Blob([csv], { type: "text/csv" });
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -590,13 +591,14 @@ window.exportCSV = function () {
 window.exportCSV2 = function () {
   if (!rankList.length) return alert("データなし");
 
-  let csv = "date,member,rank\n";
+  let csv = "date,member,rank\r\n";
 
-  rankList.forEach(d => {
-    csv += `${d.date},${d.member},${d.rank}\n`;
-  });
+rankList.forEach(d => {
+  csv += `${d.date},${d.member},${d.rank}\r\n`;
+});
 
-  const blob = new Blob([csv], { type: "text/csv" });
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
