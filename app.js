@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
   onSnapshot,
   doc,
   setDoc
@@ -446,6 +445,7 @@ window.drawChart = function () {
       label: clan,
       data: dates.map(date => rankMap[date]?.[clan] ?? null),
       borderColor: clanColors[clan],
+      borderWidth: 3,
       spanGaps: true,
       pointRadius: 4
     }));
@@ -456,6 +456,7 @@ window.drawChart = function () {
       label: clan,
       data: dates.map(date => scoreMap[date]?.[clan] ?? null),
       borderColor: clanColors[clan],
+      borderWidth: 3,
       spanGaps: true,
       pointRadius: 4
     }));
@@ -565,13 +566,16 @@ window.toggleManage = function () {
   btn.textContent = open ? "⚙️" : "閉じる";
 };
 // ==============================
-// 管理1
+// 管理2
 // ==============================
 window.toggleManage2 = function () {
   const area = document.getElementById("manageArea2");
+  const btn = document.getElementById("manageBtn2");
 
   const open = area.style.display === "block";
+
   area.style.display = open ? "none" : "block";
+  btn.textContent = open ? "⚙️" : "閉じる";
 };
 // ==============================
 // グラフの折り畳み
