@@ -224,5 +224,6 @@ tr:nth-child(odd){
 }
 #tableWrap2 th {
   writing-mode: vertical-rl;
-  text-orientation: upright;
+  text-orientation: mixed;
+  white-space: nowrap;
 }
