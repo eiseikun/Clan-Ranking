@@ -570,7 +570,13 @@ window.exportCSV = function () {
 
 let csv = "date,clan,score\r\n";
 
-dataList.forEach(d => {
+const sorted = [...dataList].sort((a, b) => {
+  const dateDiff = new Date(a.date) - new Date(b.date);
+  if (dateDiff !== 0) return dateDiff;
+  return a.clan.localeCompare(b.clan, "ja");
+});
+
+sorted.forEach(d => {
   csv += `${d.date},${d.clan},${d.score}\r\n`;
 });
 
@@ -593,7 +599,15 @@ window.exportCSV2 = function () {
 
   let csv = "date,member,rank\r\n";
 
-rankList.forEach(d => {
+// 🔥 日付 → 順位順にソート
+const sorted = [...rankList].sort((a, b) => {
+  const dateDiff = new Date(a.date) - new Date(b.date);
+  if (dateDiff !== 0) return dateDiff;
+
+  return a.rank - b.rank; // ←順位が小さいほど上（1位→2位→…）
+});
+
+sorted.forEach(d => {
   csv += `${d.date},${d.member},${d.rank}\r\n`;
 });
 
