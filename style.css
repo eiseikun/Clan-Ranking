@@ -126,7 +126,7 @@ tr:nth-child(odd){
   right: 0;
 }
 
-#manageBtn{
+#manageBtn, #manageBtn2{
   font-size:18px;
   padding:6px 10px;
 }
