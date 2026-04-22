@@ -222,3 +222,8 @@ tr:nth-child(odd){
   padding: 6px;
   border-bottom: 1px solid #475569;
 }
+#tableWrap2 th {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+}
