@@ -762,11 +762,16 @@ function renderMemoTable(data = []) {
   let html = "";
 
   for (let i = 0; i < 10; i++) {
+
+    const rowData = data.find(d => d.id === i)?.cells || [];
+
     html += "<tr>";
+
     for (let j = 0; j < 5; j++) {
-      const value = data[i]?.[j] ?? "";
-      html += `<td contenteditable="true">${value}</td>`; // ← 修正
+      const value = rowData[j] ?? "";
+      html += `<td contenteditable="true">${value}</td>`;
     }
+
     html += "</tr>";
   }
 
@@ -777,14 +782,19 @@ function renderMemoTable(data = []) {
 window.saveMemo = async function () {
   try {
     const rows = document.querySelectorAll("#memoTable tr");
+
     const data = [];
 
-    rows.forEach(tr => {
+    rows.forEach((tr, i) => {
       const row = [];
       tr.querySelectorAll("td").forEach(td => {
         row.push(td.innerText.trim());
       });
-      data.push(row);
+
+      data.push({
+        id: i,
+        cells: row
+      });
     });
 
     await setDoc(doc(db, "memo", "table1"), {
@@ -792,9 +802,7 @@ window.saveMemo = async function () {
       time: Date.now()
     });
 
-    // ★ 保存後すぐ反映
     renderMemoTable(data);
-
     alert("保存した");
 
   } catch (e) {
