@@ -787,7 +787,7 @@ window.saveMemo = async function () {
 
   alert("保存した");
 };
-import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
 async function loadMemo() {
   const snap = await getDoc(doc(db, "memo", "table1"));
