@@ -116,12 +116,16 @@ window.addEventListener("DOMContentLoaded", () => {
 window.showPage = function (page) {
   document.getElementById("page1").style.display = page === 1 ? "block" : "none";
   document.getElementById("page2").style.display = page === 2 ? "block" : "none";
+  document.getElementById("page3").style.display = page === 3 ? "block" : "none";
 
   document.getElementById("tab1").classList.toggle("active", page === 1);
   document.getElementById("tab2").classList.toggle("active", page === 2);
-
-  document.getElementById("page3").style.display = page === 3 ? "block" : "none";
   document.getElementById("tab3").classList.toggle("active", page === 3);
+
+  // ★これ追加
+  if (page === 3) {
+    loadMemo();
+  }
 };
 
 // ==============================
@@ -753,31 +757,59 @@ sorted.forEach(d => {
 // ==============================
 // 3ページ目用
 // ==============================
+// テーブル描画
+function renderMemoTable(data = []) {
+  let html = "";
+
+  for (let i = 0; i < 10; i++) {
+    html += "<tr>";
+    for (let j = 0; j < 5; j++) {
+      const value = data[i]?.[j] ?? "";
+      html += `<td contenteditable="true">${value}</td>`; // ← 修正
+    }
+    html += "</tr>";
+  }
+
+  document.getElementById("memoTable").innerHTML = html;
+}
+
+// 保存
 window.saveMemo = async function () {
   try {
     const rows = document.querySelectorAll("#memoTable tr");
-
     const data = [];
 
     rows.forEach(tr => {
       const row = [];
       tr.querySelectorAll("td").forEach(td => {
-        row.push(td.innerText);
+        row.push(td.innerText.trim());
       });
       data.push(row);
     });
-
-    console.log("保存データ", data); // ←追加
 
     await setDoc(doc(db, "memo", "table1"), {
       data,
       time: Date.now()
     });
 
-    alert("保存成功");
+    // ★ 保存後すぐ反映
+    renderMemoTable(data);
+
+    alert("保存した");
 
   } catch (e) {
     console.error(e);
     alert("保存失敗：" + e.message);
   }
 };
+
+// 読み込み
+async function loadMemo() {
+  const snap = await getDoc(doc(db, "memo", "table1"));
+
+  if (snap.exists()) {
+    renderMemoTable(snap.data().data);
+  } else {
+    renderMemoTable();
+  }
+}
