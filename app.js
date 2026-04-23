@@ -281,7 +281,75 @@ window.drawChart = function () {
       pointRadius: 4
     }));
   }
-}
+// ==============================
+// ▼ グラフ描画（Chart.js）
+// ==============================
+  document.getElementById("graphModal").style.display = "block";
+  document.body.style.overflow = "hidden";
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("modalChart"), {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        padding: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 10
+        }
+      },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 14,
+            boxHeight: 14,
+            padding: 15,
+            color: "#ffffff",
+            font: { size: 14, weight: "bold" }
+          }
+        },
+        tooltip: {
+          titleColor: "#fff",
+          bodyColor: "#fff"
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#ffffff",
+            font: { size: 12 },
+            maxRotation: 45,
+            minRotation: 45
+          },
+          grid: {
+            color: "rgba(255,255,255,0.1)"
+          }
+        },
+        y: mode === "rank"
+          ? {
+              reverse: true,
+              ticks: { stepSize: 1, color: "#ffffff", font: { size: 12 } },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            }
+          : {
+              beginAtZero: true,
+              ticks: { color: "#ffffff", font: { size: 12 } },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            }
+      }
+    }
+  });
+};
+
 // ==============================
 // ▼▼▼ ページ2：ねこ海賊団 ▼▼▼
 // ==============================
@@ -444,74 +512,7 @@ window.clearAllClans = function () {
     .forEach(cb => cb.checked = false);
 };
 
-// ==============================
-// ▼ グラフ描画（Chart.js）
-// ==============================
-  document.getElementById("graphModal").style.display = "block";
-  document.body.style.overflow = "hidden";
 
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("modalChart"), {
-    type: "line",
-    data: {
-      labels: dates,
-      datasets
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: {
-        padding: {
-          left: 10,
-          right: 10,
-          top: 10,
-          bottom: 10
-        }
-      },
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: {
-            boxWidth: 14,
-            boxHeight: 14,
-            padding: 15,
-            color: "#ffffff",
-            font: { size: 14, weight: "bold" }
-          }
-        },
-        tooltip: {
-          titleColor: "#fff",
-          bodyColor: "#fff"
-        }
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: "#ffffff",
-            font: { size: 12 },
-            maxRotation: 45,
-            minRotation: 45
-          },
-          grid: {
-            color: "rgba(255,255,255,0.1)"
-          }
-        },
-        y: mode === "rank"
-          ? {
-              reverse: true,
-              ticks: { stepSize: 1, color: "#ffffff", font: { size: 12 } },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            }
-          : {
-              beginAtZero: true,
-              ticks: { color: "#ffffff", font: { size: 12 } },
-              grid: { color: "rgba(255,255,255,0.1)" }
-            }
-      }
-    }
-  });
-};
 
 
 // ==============================
