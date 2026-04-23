@@ -123,11 +123,12 @@ window.showPage = function (page) {
 // ==============================
 window.add = async function () {
   const clan = document.getElementById("clan").value;
-  const score = Number(document.getElementById("score").value);
+  const scoreInput = Number(document.getElementById("score").value);
+  const score = scoreInput * 1000; // ★ここ追加
   const date = document.getElementById("date").value;
 
   if (!date) return alert("日付入れて");
-  if (!score || score <= 0) return alert("スコア入れて");
+  if (!scoreInput || scoreInput <= 0) return alert("スコア入れて");
 
   const docId = `${date}_${clan}`;
 
