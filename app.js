@@ -419,7 +419,8 @@ function renderRankTable() {
     table[d.date][d.member] = d.rank;
   });
 
-  const dates = Object.keys(table).sort();
+  const dates = Object.keys(table)
+  .sort((a, b) => new Date(b) - new Date(a));
 
   const members = [...new Set(rankList.map(d => d.member))];
 
