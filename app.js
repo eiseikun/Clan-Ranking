@@ -390,7 +390,7 @@ window.addRank = async function () {
   const rank = Number(document.getElementById("rank").value);
    const scoreInput = Number(document.getElementById("score2").value);
    const unit = document.getElementById("scoreUnit2").value;
-   const score = toB(scoreInput, unit);
+   const score = scoreInput;
   const date = document.getElementById("date2").value;
 
   if (!member) return alert("メンバー名");
