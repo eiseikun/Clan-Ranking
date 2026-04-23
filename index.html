@@ -11,151 +11,175 @@
 
 <body>
 <div class="container">
-
-<!-- =============================
-  ■ 全体ヘッダー
-============================= -->
 <div class="header-bar">
   <h1>🏆ランキング管理</h1>
 </div>
 
-<!-- =============================
-  ■ タブ
-============================= -->
+
+<!-- タブ -->
 <div class="tabs">
   <button id="tab1" class="active" onclick="showPage(1)">全体記録</button>
   <button id="tab2" onclick="showPage(2)">ねこ海賊団</button>
 </div>
 
-<!-- =============================
-  ▼ ページ1：全体記録
-============================= -->
+<!-- ================= ページ1 ================= -->
 <div id="page1">
 
-  <!-- ヘッダー -->
-  <div class="header-bar">
-    <h1>📊全体記録</h1>
-    <button onclick="toggleManage()" id="manageBtn">⚙️</button>
+<div id="page1Header" class="header-bar">
+  <h1>📊全体記録</h1>
+  <button onclick="toggleManage()" id="manageBtn">⚙️</button>
+</div>
+
+<div id="manageArea" class="box" style="display:none;">
+  <input type="file" id="csvFile">
+  <div class="row">
+    <button onclick="importCSV()">CSV取込</button>
+    <button onclick="exportCSV()">CSV出力</button>
+  </div>
+</div>
+
+<!-- 入力 -->
+<div class="box">
+  <h3>➕ データ追加</h3>
+
+  <div class="row">
+    <select id="clan"></select>
   </div>
 
-  <!-- CSV管理 -->
-  <div id="manageArea" class="box" style="display:none;">
-    <input type="file" id="csvFile">
-    <div class="row">
-      <button onclick="importCSV()">CSV取込</button>
-      <button onclick="exportCSV()">CSV出力</button>
+  <div class="row">
+    <input id="score" type="number" placeholder="スコア">
+  </div>
+
+  <div class="row">
+    <input id="date" type="date">
+  </div>
+
+  <div class="row">
+    <button onclick="add()">追加</button>
+  </div>
+</div>
+
+<!-- 曜日別 -->
+<div class="box">
+  <h3>🏆 曜日別最高スコア</h3>
+  <div id="weekdayBest"></div>
+</div>
+
+<!-- グラフ -->
+<div class="box">
+  <h3 class="accordion-title" onclick="toggleGraphBox()">
+    📈 グラフ生成
+  </h3>
+
+  <div id="graphBox" style="display:none;">
+  <div class="row">
+    <input type="date" id="startDate">
+    <input type="date" id="endDate">
+  </div>
+
+  <div class="row">
+    <button onclick="openModal()">クラン選択</button>
+    <span id="selectedClansText">未選択</span>
+  </div>
+
+  <div class="row">
+    <select id="graphMode">
+      <option value="score">スコア推移</option>
+      <option value="rank">順位推移</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <button onclick="drawChart()">グラフ生成</button>
+  </div>
+ <div id="graphModal" class="graph-modal">
+    <div class="graph-modal-content">
+
+      <div class="graph-header">
+        <h3>📊 グラフ表示</h3>
+        <button onclick="closeGraphModal()">閉じる</button>
+      </div>
+
+      <canvas id="modalChart"></canvas>
+
     </div>
   </div>
-
-  <!-- データ追加 -->
-  <div class="box">
-    <h3>➕ データ追加</h3>
-    <div class="row"><select id="clan"></select></div>
-    <div class="row"><input id="score" type="number" placeholder="スコア"></div>
-    <div class="row"><input id="date" type="date"></div>
-    <div class="row"><button onclick="add()">追加</button></div>
-  </div>
-
-  <!-- 曜日別 -->
-  <div class="box">
-    <h3>🏆 曜日別最高スコア</h3>
-    <div id="weekdayBest"></div>
-  </div>
-
-  <!-- グラフ -->
-  <div class="box">
-    <h3 class="accordion-title" onclick="toggleGraphBox()">📈 グラフ生成</h3>
-
-    <div id="graphBox" style="display:none;">
-      <div class="row">
-        <input type="date" id="startDate">
-        <input type="date" id="endDate">
-      </div>
-
-      <div class="row">
-        <button onclick="openModal()">クラン選択</button>
-        <span id="selectedClansText">未選択</span>
-      </div>
-
-      <div class="row">
-        <select id="graphMode">
-          <option value="score">スコア推移</option>
-          <option value="rank">順位推移</option>
-        </select>
-      </div>
-
-      <div class="row">
-        <button onclick="drawChart()">グラフ生成</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 一覧 -->
-  <div class="box">
-    <h3>📊 一覧</h3>
-    <div id="tableWrap"></div>
-  </div>
+　</div>
+</div>
+<!-- 一覧 -->
+<div class="box">
+  <h3>📊 一覧</h3>
+  <div id="tableWrap"></div>
+</div>
 
 </div>
 
-<!-- =============================
-  ▼ ページ2：ねこ海賊団
-============================= -->
+<!-- ================= ページ2 ================= -->  
 <div id="page2" style="display:none">
 
-  <div class="header-bar">
-    <h1>📊ねこ海賊団</h1>
-    <button onclick="toggleManage2()" id="manageBtn2">⚙️</button>
+<div id="page2Header" class="header-bar">
+  <h1>📊ねこ海賊団</h1>
+  <button onclick="toggleManage2()" id="manageBtn2">⚙️</button>
+</div>
+
+<div id="manageArea2" class="box" style="display:none;">
+  <input type="file" id="csvFile2">
+  <div class="row">
+    <button onclick="importCSV2()">CSV取込</button>
+    <button onclick="exportCSV2()">CSV出力</button>
+  </div>
+</div>
+
+<!-- ★追加：順位入力 -->
+<div class="box">
+  <h3>➕ 順位データ追加</h3>
+
+  <div class="row">
+    <input id="member" list="memberList" placeholder="メンバー名">
+    <datalist id="memberList"></datalist>
   </div>
 
-  <!-- CSV -->
-  <div id="manageArea2" class="box" style="display:none;">
-    <input type="file" id="csvFile2">
-    <div class="row">
-      <button onclick="importCSV2()">CSV取込</button>
-      <button onclick="exportCSV2()">CSV出力</button>
-    </div>
+  <div class="row">
+    <input id="rank" type="number" placeholder="順位">
   </div>
 
-  <!-- 順位追加 -->
-  <div class="box">
-    <h3>➕ 順位データ追加</h3>
-    <div class="row">
-      <input id="member" list="memberList" placeholder="メンバー名">
-      <datalist id="memberList"></datalist>
-    </div>
-    <div class="row"><input id="rank" type="number" placeholder="順位"></div>
-    <div class="row"><input id="date2" type="date"></div>
-    <div class="row"><button onclick="addRank()">追加</button></div>
+  <div class="row">
+    <input id="date2" type="date">
   </div>
 
-  <!-- 期間 -->
-  <div class="box">
-    <h3>📅 期間指定</h3>
-    <div class="row">
-      <input type="date" id="startDateRank">
-      <input type="date" id="endDateRank">
-    </div>
-    <div class="row"><button onclick="applyAvgRank()">反映</button></div>
+  <div class="row">
+    <button onclick="addRank()">追加</button>
+  </div>
+</div>
+  
+<div class="box">
+  <h3>📅 期間指定</h3>
+
+  <div class="row">
+<input type="date" id="startDateRank">
+<input type="date" id="endDateRank">
   </div>
 
-  <!-- 平均順位 -->
-  <div class="box">
-    <h3>📊 平均順位</h3>
-    <div id="avgRankBox"></div>
+  <div class="row">
+    <button onclick="applyAvgRank()">反映</button>
   </div>
+</div>
+  
+<!-- ★追加：平均順位 -->
+<div class="box">
+  <h3>📊 平均順位（期間）</h3>
+  <div id="avgRankBox"></div>
+</div>
 
-  <!-- 一覧 -->
-  <div class="box">
-    <h3>📋 順位一覧</h3>
-    <div id="tableWrap2"></div>
-  </div>
+<!-- ★追加：一覧 -->
+<div class="box">
+  <h3>📋 順位一覧</h3>
+  <div id="tableWrap2"></div>
+</div>
 
 </div>
 
-<!-- =============================
-  ■ モーダル
-============================= -->
+<!-- モーダル -->
 <div id="modal" class="modal">
   <div class="modal-content">
     <h3>クラン選択</h3>
@@ -170,17 +194,6 @@
       <button onclick="applySelection()">決定</button>
       <button onclick="closeModal()">閉じる</button>
     </div>
-  </div>
-</div>
-
-<!-- グラフモーダル -->
-<div id="graphModal" class="graph-modal">
-  <div class="graph-modal-content">
-    <div class="graph-header">
-      <h3>📊 グラフ表示</h3>
-      <button onclick="closeGraphModal()">閉じる</button>
-    </div>
-    <canvas id="modalChart"></canvas>
   </div>
 </div>
 
