@@ -2,7 +2,7 @@
 // ■ Firebase
 // ==============================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc,query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
@@ -122,7 +122,9 @@ window.add = async function () {
 // ==============================
 // リアルタイム取得
 // ==============================
-onSnapshot(collection(db, "scores"), (snapshot) => {
+onSnapshot(
+  query(collection(db, "scores"), orderBy("date")),
+  (snapshot) => {
 
   const newData = [];
 
@@ -135,13 +137,16 @@ onSnapshot(collection(db, "scores"), (snapshot) => {
   renderTables();
 });
 // 2ページ目用
-onSnapshot(collection(db, "ranks"), (snapshot) => {
-  const newData = [];
-  snapshot.forEach(d => {
-    newData.push(d.data());
-  });
-  rankList = newData;
-  renderRankTable();
+onSnapshot(
+  query(collection(db, "ranks"), orderBy("date")),
+  (snapshot) => {
+    const newData = [];
+    snapshot.forEach(d => {
+      newData.push(d.data());
+    });
+    rankList = newData;
+    renderRankTable();
+  renderBestScore(); // ★追加
 });
 // ==============================
 // ▼▼▼ ページ1：全体記録  ▼▼▼
@@ -360,6 +365,7 @@ window.addRank = async function () {
 
   const member = document.getElementById("member").value;
   const rank = Number(document.getElementById("rank").value);
+  const score = Number(document.getElementById("score2").value); // ★追加
   const date = document.getElementById("date2").value;
 
   if (!member) return alert("メンバー名");
@@ -372,6 +378,7 @@ window.addRank = async function () {
     clan: "ねこ海賊団",
     member,
     rank,
+    score: score || null, // ★追加
     date,
     time: Date.now()
   });
@@ -481,6 +488,38 @@ window.calcAvgRank = function () {
   html += "</table>";
   document.getElementById("avgRankBox").innerHTML = html;
 };
+// ==============================
+// ■ 個人別最高スコア
+// ==============================
+function renderBestScore() {
+  const bestMap = {};
+  rankList.forEach(d => {
+    if (!d.score) return;
+    if (!bestMap[d.member] || bestMap[d.member].score < d.score) {
+      bestMap[d.member] = {
+        score: d.score,
+        date: d.date
+      };
+    }
+  });
+  const result = Object.entries(bestMap)
+    .map(([member, v]) => ({
+      member,
+      score: v.score,
+      date: v.date
+    }))
+    .sort((a, b) => b.score - a.score);
+  let html = "<table>";
+  result.forEach(d => {
+    html += `<tr>
+      <td>${d.member}</td>
+      <td>${d.score}</td>
+      <td>${d.date}</td>
+    </tr>`;
+  });
+  html += "</table>";
+  document.getElementById("bestScoreBox").innerHTML = html;
+}
 // ==============================
 // ▼ モーダル・UI
 // ==============================
