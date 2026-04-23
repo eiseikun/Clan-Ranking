@@ -1,15 +1,9 @@
+// ==============================
+// ■ Firebase
+// ==============================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  onSnapshot,
-  doc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-let rankList = [];
-// ==============================
-// Firebase
-// ==============================
+import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
   authDomain: "clan-ranking-661e3.firebaseapp.com",
@@ -20,14 +14,15 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==============================
-// 状態管理（安定化ポイント）
+// ■ 状態
 // ==============================
 let dataList = [];
+let rankList = [];
 let chart = null;
 let selectedClans = [];
 
 // ==============================
-// クラン
+// ■ クラン
 // ==============================
 const clanColors = {
   "最狂会": "#00B050",        //緑
@@ -43,7 +38,6 @@ const clanColors = {
   "やまだ家": "#FFC000",      // 黄色
   "アチャ伝": "#7030A0"       // 紫
 };
-
 const clans = Object.keys(clanColors);
 
 // ==============================
