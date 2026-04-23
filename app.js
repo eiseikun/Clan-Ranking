@@ -196,7 +196,7 @@ function renderTables() {
   clans.forEach(clan => {
     html += `<tr><td>${clan}</td>`;
     for (let i = 0; i < 7; i++) {
-      html += `<td>${weekdayBest[clan]?.[i] ?? "-"}</td>`;
+      html += `<td>${formatScore(weekdayBest[clan]?.[i])}</td>`;
     }
     html += "</tr>";
   });
@@ -383,7 +383,9 @@ window.addRank = async function () {
 
   const member = document.getElementById("member").value;
   const rank = Number(document.getElementById("rank").value);
-  const score = Number(document.getElementById("score2").value); // ★追加
+   const scoreInput = Number(document.getElementById("score2").value);
+   const unit = document.getElementById("scoreUnit2").value;
+   const score = toB(scoreInput, unit);
   const date = document.getElementById("date2").value;
 
   if (!member) return alert("メンバー名");
@@ -531,7 +533,7 @@ function renderBestScore() {
   result.forEach(d => {
     html += `<tr>
       <td>${d.member}</td>
-      <td>${d.score}</td>
+      <td>${formatScore(d.score)}</td>
       <td>${d.date}</td>
     </tr>`;
   });
