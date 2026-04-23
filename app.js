@@ -703,23 +703,25 @@ window.importCSV2 = async function () {
   const rows = text.split("\n").slice(1);
   for (let row of rows) {
     if (!row.trim()) continue;
-    let [date, member, rank] = row.split(",");
+    let [date, member, rank, score] = row.split(",");
     if (!date || !member || isNaN(Number(rank))) continue;
+    const scoreValue = Number(score);
     const fixedDate = date.trim().replace(/\//g, "-");
     await setDoc(doc(db, "ranks", `${fixedDate}_${member}`), {
       clan: "ねこ海賊団",
       member,
       rank: Number(rank),
+      score: isNaN(scoreValue) ? null : scoreValue, // ★追加
       date: fixedDate,
       time: Date.now()
-    });
+});
   }
   alert("CSV取込完了");
 };
 
 window.exportCSV2 = function () {
   if (!rankList.length) return alert("データなし");
-  let csv = "date,member,rank\r\n";
+  let csv = "date,member,rank,score\r\n";
 // 🔥 日付 → 順位順にソート
 const sorted = [...rankList].sort((a, b) => {
   const dateDiff = new Date(a.date) - new Date(b.date);
@@ -728,7 +730,7 @@ const sorted = [...rankList].sort((a, b) => {
 });
 
 sorted.forEach(d => {
-  csv += `${d.date},${d.member},${d.rank}\r\n`;
+  csv += `${d.date},${d.member},${d.rank},${d.score ?? ""}\r\n`;
 });
 
   const BOM = "\uFEFF";
