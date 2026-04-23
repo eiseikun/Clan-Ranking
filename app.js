@@ -285,12 +285,6 @@ window.drawChart = function () {
 // ==============================
 // ▼▼▼ ページ2：ねこ海賊団 ▼▼▼
 // ==============================
-
-
-
-// ==============================
-// 2ページ目関数
-// ==============================
 // ==============================
 // ■ データ追加
 // ==============================
@@ -417,28 +411,10 @@ window.calcAvgRank = function () {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
   html += "</table>";
-
   document.getElementById("avgRankBox").innerHTML = html;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
 // ==============================
-// モーダル
+// ▼ モーダル・UI
 // ==============================
 window.openModal = () => {
   document.getElementById("modal").style.display = "flex";
@@ -468,12 +444,12 @@ window.clearAllClans = function () {
     .forEach(cb => cb.checked = false);
 };
 
-
-
-  // モーダル表示（ここが重要）
+// ==============================
+// ▼ グラフ描画（Chart.js）
+// ==============================
   document.getElementById("graphModal").style.display = "block";
   document.body.style.overflow = "hidden";
-  
+
   if (chart) chart.destroy();
 
   chart = new Chart(document.getElementById("modalChart"), {
@@ -483,86 +459,63 @@ window.clearAllClans = function () {
       datasets
     },
     options: {
-  responsive: true,
-  maintainAspectRatio: false,
-
-  layout: {
-    padding: {
-      left: 10,
-      right: 10,
-      top: 10,
-      bottom: 10
-    }
-  },
-
-  plugins: {
-    legend: {
-      position: "bottom",
-      labels: {
-        boxWidth: 14,
-        boxHeight: 14,
-        padding: 15,
-        color: "#ffffff",
-        font: {
-          size: 14,
-          weight: "bold"
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: {
+        padding: {
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 10
         }
-      }
-    },
-    tooltip: {
-      titleColor: "#fff",
-      bodyColor: "#fff"
-    }
-  },
-
-  scales: {
-    x: {
-      ticks: {
-        color: "#ffffff",
-        font: {
-          size: 12
-        },
-        maxRotation: 45,
-        minRotation: 45
       },
-      grid: {
-        color: "rgba(255,255,255,0.1)"
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            boxWidth: 14,
+            boxHeight: 14,
+            padding: 15,
+            color: "#ffffff",
+            font: { size: 14, weight: "bold" }
+          }
+        },
+        tooltip: {
+          titleColor: "#fff",
+          bodyColor: "#fff"
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#ffffff",
+            font: { size: 12 },
+            maxRotation: 45,
+            minRotation: 45
+          },
+          grid: {
+            color: "rgba(255,255,255,0.1)"
+          }
+        },
+        y: mode === "rank"
+          ? {
+              reverse: true,
+              ticks: { stepSize: 1, color: "#ffffff", font: { size: 12 } },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            }
+          : {
+              beginAtZero: true,
+              ticks: { color: "#ffffff", font: { size: 12 } },
+              grid: { color: "rgba(255,255,255,0.1)" }
+            }
       }
-    },
-
-    y: mode === "rank"
-      ? {
-          reverse: true,
-          ticks: {
-            stepSize: 1,
-            color: "#ffffff",
-            font: { size: 12 }
-          },
-          grid: {
-            color: "rgba(255,255,255,0.1)"
-          }
-        }
-      : {
-          beginAtZero: true,
-          ticks: {
-            color: "#ffffff",
-            font: { size: 12 }
-          },
-          grid: {
-            color: "rgba(255,255,255,0.1)"
-          }
-        }
-  }
-}
+    }
   });
 };
 
-window.closeGraphModal = function () {
-  document.getElementById("graphModal").style.display = "none";
-  document.body.style.overflow = "auto";
-};
+
 // ==============================
-// 管理1
+// ▼ 管理・UI
 // ==============================
 window.toggleManage = function () {
   const area = document.getElementById("manageArea");
@@ -573,9 +526,7 @@ window.toggleManage = function () {
   area.style.display = open ? "none" : "block";
   btn.textContent = open ? "⚙️" : "閉じる";
 };
-// ==============================
-// 管理2
-// ==============================
+
 window.toggleManage2 = function () {
   const area = document.getElementById("manageArea2");
   const btn = document.getElementById("manageBtn2");
@@ -585,9 +536,8 @@ window.toggleManage2 = function () {
   area.style.display = open ? "none" : "block";
   btn.textContent = open ? "⚙️" : "閉じる";
 };
-// ==============================
+
 // グラフの折り畳み
-// ==============================
 window.toggleGraphBox = function () {
   const box = document.getElementById("graphBox");
 
@@ -597,9 +547,20 @@ window.toggleGraphBox = function () {
     box.style.display = "none";
   }
 };
+
+window.closeGraphModal = function () {
+  document.getElementById("graphModal").style.display = "none";
+  document.body.style.overflow = "auto";
+};
+// 2ページ目期間指定用
+window.applyAvgRank = function () {
+  calcAvgRank();
+};
+
 // ==============================
 // CSV
 // ==============================
+// 1ページ目
 window.importCSV = async function () {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選んで");
@@ -609,12 +570,9 @@ window.importCSV = async function () {
 
   for (let row of rows) {
     if (!row.trim()) continue;
-
     let [date, clan, score] = row.split(",");
     if (!date || !clan || isNaN(Number(score))) continue;
-
     const fixedDate = date.trim().replace(/\//g, "-");
-
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
       clan,
@@ -622,7 +580,6 @@ window.importCSV = async function () {
       time: Date.now()
     });
   }
-
   alert("CSV取込完了");
 };
 
@@ -665,24 +622,18 @@ window.exportCSV = function () {
 
   URL.revokeObjectURL(url);
 };
-// ==============================
-// CSV2
-// ==============================
+
+// 2ページ目
 window.importCSV2 = async function () {
   const file = document.getElementById("csvFile2").files[0];
   if (!file) return alert("ファイル選んで");
-
   const text = await file.text();
   const rows = text.split("\n").slice(1);
-
   for (let row of rows) {
     if (!row.trim()) continue;
-
     let [date, member, rank] = row.split(",");
     if (!date || !member || isNaN(Number(rank))) continue;
-
     const fixedDate = date.trim().replace(/\//g, "-");
-
     await setDoc(doc(db, "ranks", `${fixedDate}_${member}`), {
       clan: "ねこ海賊団",
       member,
@@ -691,19 +642,16 @@ window.importCSV2 = async function () {
       time: Date.now()
     });
   }
-
   alert("CSV取込完了");
 };
+
 window.exportCSV2 = function () {
   if (!rankList.length) return alert("データなし");
-
   let csv = "date,member,rank\r\n";
-
 // 🔥 日付 → 順位順にソート
 const sorted = [...rankList].sort((a, b) => {
   const dateDiff = new Date(a.date) - new Date(b.date);
   if (dateDiff !== 0) return dateDiff;
-
   return a.rank - b.rank; // ←順位が小さいほど上（1位→2位→…）
 });
 
@@ -722,9 +670,4 @@ sorted.forEach(d => {
 
   URL.revokeObjectURL(url);
 };
-// ==============================
-// 2ページ目期間指定用
-// ==============================
-window.applyAvgRank = function () {
-  calcAvgRank();
-};
+
