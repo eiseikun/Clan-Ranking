@@ -25,6 +25,7 @@
 <div class="tabs">
   <button id="tab1" class="active" onclick="showPage(1)">全体記録</button>
   <button id="tab2" onclick="showPage(2)">ねこ海賊団</button>
+  <button id="tab3" onclick="showPage(3)">個人用</button>
 </div>
 
 <!-- =============================
@@ -161,6 +162,27 @@
   </div>
 
 </div>
+
+<!-- =============================
+  ▼ ページ3：個人用
+============================= -->
+
+<div id="page3" style="display:none">
+
+  <div class="header-bar">
+    <h1>📝メモ表</h1>
+  </div>
+
+  <div class="box">
+    <table id="memoTable"></table>
+  </div>
+
+  <div class="box">
+    <button onclick="saveMemo()">保存</button>
+  </div>
+
+</div>
+
 
 <!-- =============================
   ■ モーダル
