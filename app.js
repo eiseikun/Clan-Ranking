@@ -635,16 +635,23 @@ window.importCSV = async function () {
 
   for (let row of rows) {
     if (!row.trim()) continue;
+
     let [date, clan, score] = row.split(",");
     if (!date || !clan || isNaN(Number(score))) continue;
+
     const fixedDate = date.trim().replace(/\//g, "-");
+
+    const scoreInput = Number(score);
+    const scoreB = scoreInput * 1000; // ★ここ重要
+
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
       clan,
-      score: Number(score),
+      score: scoreB,
       time: Date.now()
     });
   }
+
   alert("CSV取込完了");
 };
 
