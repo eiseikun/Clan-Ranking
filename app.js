@@ -757,23 +757,34 @@ sorted.forEach(d => {
 // ==============================
 // 3ページ目用
 // ==============================
+const memoTemplate = [
+  "月","火","水","木","金","土","日"
+];
 // テーブル描画
-function renderMemoTable(data = []) {
-  let html = "";
+function renderMemoTable(data = {}) {
+  const days = ["月","火","水","木","金","土","日"];
 
-  for (let i = 0; i < 10; i++) {
+  let html = "<table>";
 
-    const rowData = data.find(d => d.id === i)?.cells || [];
+  // ヘッダー
+  html += "<tr><th></th><th>2計代</th><th>1計代</th></tr>";
 
+  days.forEach((day, i) => {
     html += "<tr>";
 
-    for (let j = 0; j < 5; j++) {
-      const value = rowData[j] ?? "";
-      html += `<td contenteditable="true">${value}</td>`;
+    html += `<th>${day}</th>`;
+
+    for (let j = 0; j < 2; j++) {
+      const key = `${i}_${j}`;
+      const value = data[key] ?? "";
+
+      html += `<td contenteditable="true" data-key="${key}">${value}</td>`;
     }
 
     html += "</tr>";
-  }
+  });
+
+  html += "</table>";
 
   document.getElementById("memoTable").innerHTML = html;
 }
@@ -781,20 +792,13 @@ function renderMemoTable(data = []) {
 // 保存
 window.saveMemo = async function () {
   try {
-    const rows = document.querySelectorAll("#memoTable tr");
+    const cells = document.querySelectorAll("#memoTable td");
 
-    const data = [];
+    const data = {};
 
-    rows.forEach((tr, i) => {
-      const row = [];
-      tr.querySelectorAll("td").forEach(td => {
-        row.push(td.innerText.trim());
-      });
-
-      data.push({
-        id: i,
-        cells: row
-      });
+    cells.forEach(td => {
+      const key = td.dataset.key;
+      data[key] = td.innerText.trim();
     });
 
     await setDoc(doc(db, "memo", "table1"), {
@@ -802,11 +806,9 @@ window.saveMemo = async function () {
       time: Date.now()
     });
 
-    renderMemoTable(data);
-    alert("保存した");
+    alert("保存しました!!");
 
   } catch (e) {
-    console.error(e);
     alert("保存失敗：" + e.message);
   }
 };
@@ -818,6 +820,6 @@ async function loadMemo() {
   if (snap.exists()) {
     renderMemoTable(snap.data().data);
   } else {
-    renderMemoTable();
+    renderMemoTable({});
   }
 }
