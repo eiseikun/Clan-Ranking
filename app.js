@@ -41,7 +41,7 @@ function formatScore(value) {
 // ★ T固定表示（1ページ目用）
 function formatScoreT(value) {
   if (value == null) return "-";
-  return (value / 1000).toFixed(2) + "T";
+  return (value).toFixed(2) + "T";
 }
 // ==============================
 // ■ クラン設定
