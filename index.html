@@ -125,6 +125,9 @@
       <datalist id="memberList"></datalist>
     </div>
     <div class="row"><input id="rank" type="number" placeholder="順位"></div>
+    <div class="row">
+      <input id="score2" type="number" placeholder="スコア（任意）">
+    </div>
     <div class="row"><input id="date2" type="date"></div>
     <div class="row"><button onclick="addRank()">追加</button></div>
   </div>
@@ -144,7 +147,13 @@
     <h3>📊 平均順位</h3>
     <div id="avgRankBox"></div>
   </div>
-
+  
+  <!-- 最高スコアランキング -->
+  <div class="box">
+    <h3>🏆 最高スコアランキング</h3>
+    <div id="bestScoreBox"></div>
+  </div>
+  
   <!-- 一覧 -->
   <div class="box">
     <h3>📋 順位一覧</h3>
