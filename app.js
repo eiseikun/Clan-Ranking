@@ -14,7 +14,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==============================
-// ■ 状態
+// ■ グローバル状態
 // ==============================
 let dataList = [];
 let rankList = [];
@@ -22,30 +22,31 @@ let chart = null;
 let selectedClans = [];
 
 // ==============================
-// ■ クラン
+// ■ クラン設定
 // ==============================
 const clanColors = {
-  "最狂会": "#00B050",        //緑
-  "魔導特務隊": "#4472C4",    // 青
-  "IgnisFloris": "#FFCCFF",   // 薄ピンク
-  "ポケポケ会": "#E97132",    // オレンジ
-  "のの教": "#92D050",        // 黄緑
-  "PopoWarren": "#A02B93",    // 紫ピンク
-  "ねこねこねこ": "#FF66B2",  // ピンク
-  "たまねぎ班": "#8FAADC",    // 薄め青紫
-  "猫の旅": "#FF0000",        // 赤
-  "ねこ海賊団": "#00AEF0",    // 水色寄り
-  "やまだ家": "#FFC000",      // 黄色
-  "アチャ伝": "#7030A0"       // 紫
+  "最狂会": "#00B050",
+  "魔導特務隊": "#4472C4",
+  "IgnisFloris": "#FFCCFF",
+  "ポケポケ会": "#E97132",
+  "のの教": "#92D050",
+  "PopoWarren": "#A02B93",
+  "ねこねこねこ": "#FF66B2",
+  "たまねぎ班": "#8FAADC",
+  "猫の旅": "#FF0000",
+  "ねこ海賊団": "#00AEF0",
+  "やまだ家": "#FFC000",
+  "アチャ伝": "#7030A0"
 };
 const clans = Object.keys(clanColors);
 
 // ==============================
-// 初期UI
+// ■ 初期UI
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
-  const clanSelect = document.getElementById("clan");
 
+  // クラン選択
+  const clanSelect = document.getElementById("clan");
   clans.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c;
@@ -53,11 +54,11 @@ window.addEventListener("DOMContentLoaded", () => {
     clanSelect.appendChild(opt);
   });
 
+  // 日付初期値
   document.getElementById("date").valueAsDate = new Date();
 
-  // モーダル作成
+  // モーダル（クラン選択）
   const modalWrap = document.getElementById("modalCheckboxes");
-
   clans.forEach(c => {
     const label = document.createElement("label");
     const cb = document.createElement("input");
@@ -67,26 +68,25 @@ window.addEventListener("DOMContentLoaded", () => {
     label.appendChild(document.createTextNode(c));
     modalWrap.appendChild(label);
   });
-  // ===== メンバー候補 =====
-const members = [
-  "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
-  "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
-  "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
-  "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
 
-];
+  // メンバー候補
+  const members = [
+    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
+    "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
+    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
+    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
+  ];
 
-const memberList = document.getElementById("memberList");
-
-members.forEach(m => {
-  const opt = document.createElement("option");
-  opt.value = m;
-  memberList.appendChild(opt);
-});
+  const memberList = document.getElementById("memberList");
+  members.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    memberList.appendChild(opt);
+  });
 });
 
 // ==============================
-// ページ切替
+// ■ ページ切替
 // ==============================
 window.showPage = function (page) {
   document.getElementById("page1").style.display = page === 1 ? "block" : "none";
@@ -144,13 +144,13 @@ onSnapshot(collection(db, "ranks"), (snapshot) => {
   renderRankTable();
 });
 // ==============================
-// テーブル描画
+// ▼▼▼ ページ1：全体記録  ▼▼▼
+// ==============================
+// ==============================
+// ■ テーブル描画（曜日別＋一覧）
 // ==============================
 function renderTables() {
-
-  // ======================
   // 曜日別
-  // ======================
   const weekdayBest = {};
   const days = ["日","月","火","水","木","金","土"];
 
@@ -181,11 +181,8 @@ function renderTables() {
   html += "</table>";
   document.getElementById("weekdayBest").innerHTML = html;
 
-  // ======================
   // 一覧
-  // ======================
   const table = {};
-
   dataList.forEach(d => {
     if (!table[d.date]) table[d.date] = {};
     table[d.date][d.clan] = Math.max(
@@ -213,177 +210,6 @@ html2 += "</tr>";
 
   document.getElementById("tableWrap").innerHTML = html2;
 }
-
-// ==============================
-// 2ページ目関数
-// ==============================
-window.addRank = async function () {
-
-  const member = document.getElementById("member").value;
-  const rank = Number(document.getElementById("rank").value);
-  const date = document.getElementById("date2").value;
-
-  if (!member) return alert("メンバー名");
-  if (!rank) return alert("順位");
-  if (!date) return alert("日付");
-
-  const id = `${date}_${member}`;
-
-  await setDoc(doc(db, "ranks", id), {
-    clan: "ねこ海賊団",
-    member,
-    rank,
-    date,
-    time: Date.now()
-  });
-};
-
-function renderRankTable() {
-
-  const table = {};
-
-  rankList.forEach(d => {
-    if (!table[d.date]) table[d.date] = {};
-    table[d.date][d.member] = d.rank;
-  });
-
-  const dates = Object.keys(table).sort();
-
-  const members = [...new Set(rankList.map(d => d.member))];
-
-  let html = "<table><tr><th>日付</th>";
-
-  members.forEach(m => html += `<th>${m}</th>`);
-  html += "</tr>";
-
-  dates.forEach(date => {
-    html += `<tr><td>${date}</td>`;
-    members.forEach(m => {
-      html += `<td>${table[date]?.[m] ?? "-"}</td>`;
-    });
-    html += "</tr>";
-  });
-
-  html += "</table>";
-
-  document.getElementById("tableWrap2").innerHTML = html;
-}
-
-window.calcAvgRank = function () {
-
-  const start = document.getElementById("startDateRank")?.value;
-  const end = document.getElementById("endDateRank")?.value;
-
-  // 🔥 日付を安全に変換（ズレ防止）
-  const toTime = (str) => {
-    if (!str) return null;
-    const [y, m, d] = str.split("-").map(Number);
-    return new Date(y, m - 1, d).getTime(); // ←これが重要
-  };
-
-  const s = start ? toTime(start) : -Infinity;
-  const e = end ? toTime(end) : Infinity;
-
-  const OUT_RANK = 16;
-
-  // 日付抽出（範囲内）
-  const allDates = [...new Set(rankList.map(d => d.date))]
-    .filter(date => {
-      const t = toTime(date);
-      return t >= s && t <= e;
-    })
-    .sort((a, b) => toTime(a) - toTime(b));
-
-  // メンバー（ハイブリッド）
-  const baseMembers = [
-    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
-    "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
-    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
-    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
-  ];
-
-  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
-
-  const members = [...new Set([...baseMembers, ...dynamicMembers])];
-
-  // 日付 → メンバー → 順位
-  const dateMap = {};
-  rankList.forEach(d => {
-    if (!dateMap[d.date]) dateMap[d.date] = {};
-    dateMap[d.date][d.member] = d.rank;
-  });
-
-  // 平均計算
-  const result = [];
-
-  members.forEach(member => {
-
-    let total = 0;
-    let count = 0;
-
-    allDates.forEach(date => {
-
-      const rank = dateMap[date]?.[member];
-
-      if (rank !== undefined) {
-        total += rank;
-      } else {
-        total += OUT_RANK; // ←圏外
-      }
-
-      count++;
-    });
-
-    if (count > 0) {
-      result.push({
-        member,
-        avg: total / count
-      });
-    }
-  });
-
-  // ソート（平均順位良い順）
-  result.sort((a, b) => a.avg - b.avg);
-
-  // 表示
-  let html = "<table>";
-  result.forEach(d => {
-    html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
-  });
-  html += "</table>";
-
-  document.getElementById("avgRankBox").innerHTML = html;
-};
-// ==============================
-// モーダル
-// ==============================
-window.openModal = () => {
-  document.getElementById("modal").style.display = "flex";
-};
-
-window.closeModal = () => {
-  document.getElementById("modal").style.display = "none";
-};
-
-window.applySelection = function () {
-  selectedClans = [...document.querySelectorAll("#modalCheckboxes input:checked")]
-    .map(cb => cb.value);
-
-  document.getElementById("selectedClansText").textContent =
-    selectedClans.length ? selectedClans.join(", ") : "未選択";
-
-  closeModal();
-};
-
-window.selectAllClans = function () {
-  document.querySelectorAll("#modalCheckboxes input")
-    .forEach(cb => cb.checked = true);
-};
-
-window.clearAllClans = function () {
-  document.querySelectorAll("#modalCheckboxes input")
-    .forEach(cb => cb.checked = false);
-};
 
 // ==============================
 // グラフ
@@ -455,6 +281,194 @@ window.drawChart = function () {
       pointRadius: 4
     }));
   }
+
+// ==============================
+// ▼▼▼ ページ2：ねこ海賊団 ▼▼▼
+// ==============================
+
+
+
+// ==============================
+// 2ページ目関数
+// ==============================
+// ==============================
+// ■ データ追加
+// ==============================
+window.addRank = async function () {
+
+  const member = document.getElementById("member").value;
+  const rank = Number(document.getElementById("rank").value);
+  const date = document.getElementById("date2").value;
+
+  if (!member) return alert("メンバー名");
+  if (!rank) return alert("順位");
+  if (!date) return alert("日付");
+
+  const id = `${date}_${member}`;
+
+  await setDoc(doc(db, "ranks", id), {
+    clan: "ねこ海賊団",
+    member,
+    rank,
+    date,
+    time: Date.now()
+  });
+};
+// ==============================
+// ■ ランキングテーブル
+// ==============================
+function renderRankTable() {
+
+  const table = {};
+
+  rankList.forEach(d => {
+    if (!table[d.date]) table[d.date] = {};
+    table[d.date][d.member] = d.rank;
+  });
+
+  const dates = Object.keys(table).sort();
+
+  const members = [...new Set(rankList.map(d => d.member))];
+
+  let html = "<table><tr><th>日付</th>";
+
+  members.forEach(m => html += `<th>${m}</th>`);
+  html += "</tr>";
+
+  dates.forEach(date => {
+    html += `<tr><td>${date}</td>`;
+    members.forEach(m => {
+      html += `<td>${table[date]?.[m] ?? "-"}</td>`;
+    });
+    html += "</tr>";
+  });
+
+  html += "</table>";
+
+  document.getElementById("tableWrap2").innerHTML = html;
+}
+// ==============================
+// ■ 平均順位
+// ==============================
+window.calcAvgRank = function () {
+
+  const start = document.getElementById("startDateRank")?.value;
+  const end = document.getElementById("endDateRank")?.value;
+
+  const toTime = (str) => {
+    if (!str) return null;
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
+  };
+
+  const s = start ? toTime(start) : -Infinity;
+  const e = end ? toTime(end) : Infinity;
+
+  const OUT_RANK = 16;
+
+  const allDates = [...new Set(rankList.map(d => d.date))]
+    .filter(date => {
+      const t = toTime(date);
+      return t >= s && t <= e;
+    })
+    .sort((a, b) => toTime(a) - toTime(b));
+
+  const baseMembers = [
+    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
+    "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
+    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
+    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
+  ];
+
+  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
+  const members = [...new Set([...baseMembers, ...dynamicMembers])];
+
+  const dateMap = {};
+  rankList.forEach(d => {
+    if (!dateMap[d.date]) dateMap[d.date] = {};
+    dateMap[d.date][d.member] = d.rank;
+  });
+
+  const result = [];
+
+  members.forEach(member => {
+
+    let total = 0;
+    let count = 0;
+
+    allDates.forEach(date => {
+      const rank = dateMap[date]?.[member];
+      total += (rank !== undefined) ? rank : OUT_RANK;
+      count++;
+    });
+
+    if (count > 0) {
+      result.push({
+        member,
+        avg: total / count
+      });
+    }
+  });
+
+  result.sort((a, b) => a.avg - b.avg);
+
+  let html = "<table>";
+  result.forEach(d => {
+    html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
+  });
+  html += "</table>";
+
+  document.getElementById("avgRankBox").innerHTML = html;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+// ==============================
+// モーダル
+// ==============================
+window.openModal = () => {
+  document.getElementById("modal").style.display = "flex";
+};
+
+window.closeModal = () => {
+  document.getElementById("modal").style.display = "none";
+};
+
+window.applySelection = function () {
+  selectedClans = [...document.querySelectorAll("#modalCheckboxes input:checked")]
+    .map(cb => cb.value);
+
+  document.getElementById("selectedClansText").textContent =
+    selectedClans.length ? selectedClans.join(", ") : "未選択";
+
+  closeModal();
+};
+
+window.selectAllClans = function () {
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = true);
+};
+
+window.clearAllClans = function () {
+  document.querySelectorAll("#modalCheckboxes input")
+    .forEach(cb => cb.checked = false);
+};
+
+
 
   // モーダル表示（ここが重要）
   document.getElementById("graphModal").style.display = "block";
