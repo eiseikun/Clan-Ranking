@@ -38,7 +38,11 @@ function formatScore(value) {
     return value + "B";
   }
 }
-
+// ★ T固定表示（1ページ目用）
+function formatScoreT(value) {
+  if (value == null) return "-";
+  return (value / 1000).toFixed(2) + "T";
+}
 // ==============================
 // ■ クラン設定
 // ==============================
@@ -196,7 +200,7 @@ function renderTables() {
   clans.forEach(clan => {
     html += `<tr><td>${clan}</td>`;
     for (let i = 0; i < 7; i++) {
-      html += `<td>${formatScore(weekdayBest[clan]?.[i])}</td>`;
+      html += `<td>${formatScoreT(weekdayBest[clan]?.[i])}</td>`;
     }
     html += "</tr>";
   });
@@ -224,7 +228,7 @@ html2 += "</tr>";
   dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
     clans.forEach(c => {
-      html2 += `<td>${table[date]?.[c] ?? "-"}</td>`;
+      html2 += `<td>${formatScoreT(table[date]?.[c])}</td>`;
     });
     html2 += "</tr>";
   });
