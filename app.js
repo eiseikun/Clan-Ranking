@@ -753,48 +753,31 @@ sorted.forEach(d => {
 // ==============================
 // 3ページ目用
 // ==============================
-function renderMemoTable(data = []) {
-  let html = "";
-
-  for (let i = 0; i < 10; i++) {
-    html += "<tr>";
-    for (let j = 0; j < 5; j++) {
-      const value = data[i]?.[j] ?? "";
-      html += `<td contenteditable="true">${value}</td>`;
-    }
-    html += "</tr>";
-  }
-
-  document.getElementById("memoTable").innerHTML = html;
-}
 window.saveMemo = async function () {
-  const rows = document.querySelectorAll("#memoTable tr");
+  try {
+    const rows = document.querySelectorAll("#memoTable tr");
 
-  const data = [];
+    const data = [];
 
-  rows.forEach(tr => {
-    const row = [];
-    tr.querySelectorAll("td").forEach(td => {
-      row.push(td.innerText);
+    rows.forEach(tr => {
+      const row = [];
+      tr.querySelectorAll("td").forEach(td => {
+        row.push(td.innerText);
+      });
+      data.push(row);
     });
-    data.push(row);
-  });
 
-  await setDoc(doc(db, "memo", "table1"), {
-    data,
-    time: Date.now()
-  });
+    console.log("保存データ", data); // ←追加
 
-  alert("保存した");
-};
+    await setDoc(doc(db, "memo", "table1"), {
+      data,
+      time: Date.now()
+    });
 
+    alert("保存成功");
 
-async function loadMemo() {
-  const snap = await getDoc(doc(db, "memo", "table1"));
-
-  if (snap.exists()) {
-    renderMemoTable(snap.data().data);
-  } else {
-    renderMemoTable();
+  } catch (e) {
+    console.error(e);
+    alert("保存失敗：" + e.message);
   }
-}
+};
