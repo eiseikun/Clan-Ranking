@@ -389,7 +389,6 @@ window.addRank = async function () {
   const member = document.getElementById("member").value;
   const rank = Number(document.getElementById("rank").value);
    const scoreInput = Number(document.getElementById("score2").value);
-   const unit = document.getElementById("scoreUnit2").value;
    const score = scoreInput;
   const date = document.getElementById("date2").value;
 
