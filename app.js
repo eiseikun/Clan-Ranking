@@ -22,6 +22,24 @@ let chart = null;
 let selectedClans = [];
 
 // ==============================
+// ■ スコア変換（T / B）
+// ==============================
+// 入力 → Bに変換
+function toB(value, unit) {
+  if (!value) return null;
+  return unit === "T" ? value * 1000 : value;
+}
+// 表示用（B → T/B）
+function formatScore(value) {
+  if (value == null) return "-";
+  if (value >= 1000) {
+    return (value / 1000).toFixed(2) + "T";
+  } else {
+    return value + "B";
+  }
+}
+
+// ==============================
 // ■ クラン設定
 // ==============================
 const clanColors = {
