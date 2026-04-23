@@ -642,7 +642,7 @@ window.importCSV = async function () {
     const fixedDate = date.trim().replace(/\//g, "-");
 
     const scoreInput = Number(score);
-    const scoreB = scoreInput * 1000; // ★ここ重要
+    const scoreB = scoreInput;
 
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
