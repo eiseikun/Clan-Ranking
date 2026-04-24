@@ -152,13 +152,30 @@ function updateMemberList() {
   if (!datalist) return;
 
   // 重複なしメンバー取得
-  const members = [...new Set(rankList.map(d => d.member))];
-
+  function updateMemberList() {
+  const datalist = document.getElementById("memberList");
+  if (!datalist) return;
+  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
+  const members = [
+    ...baseMembers,
+    ...dynamicMembers.filter(m => !baseMembers.includes(m))
+  ];
+  datalist.innerHTML = members
+    .map(m => `<option value="${m}">`)
+    .join("");
+}
   // HTML生成
   datalist.innerHTML = members
     .map(m => `<option value="${m}">`)
     .join("");
 }
+// 表示順の基準メンバー
+const baseMembers = [
+  "モジュ","えいせい","にゃんこ船長","大蒜マン","タケシEX","AK1104","Alutemaika",
+  "なーさんdesu","すわろう","きゃりら","norix9815","かずまる55","肉おじゃ",
+  "なはやまか","アンロイ","ジャック99","マグノリア",
+  "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
+];
 // ==============================
 // リアルタイム取得
 // ==============================
