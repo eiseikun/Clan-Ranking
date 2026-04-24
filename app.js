@@ -144,7 +144,21 @@ window.add = async function () {
 
   document.getElementById("score").value = "";
 };
+// ==============================
+// メンバー候補
+// ==============================
+function updateMemberList() {
+  const datalist = document.getElementById("memberList");
+  if (!datalist) return;
 
+  // 重複なしメンバー取得
+  const members = [...new Set(rankList.map(d => d.member))];
+
+  // HTML生成
+  datalist.innerHTML = members
+    .map(m => `<option value="${m}">`)
+    .join("");
+}
 // ==============================
 // リアルタイム取得
 // ==============================
