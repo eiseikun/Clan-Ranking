@@ -258,25 +258,27 @@ window.saveWeekdayBestImage = async function () {
 
   const clone = original.cloneNode(true);
 
-  // ★重要：余白込みで確実に広げる
-  const fullWidth = original.scrollWidth + 100;
-
-  clone.style.width = fullWidth + "px";
+  // ★重要：いったん画面に出して正確な幅を取る
+  clone.style.position = "absolute";
+  clone.style.visibility = "hidden";
+  clone.style.left = "0";
+  clone.style.top = "0";
+  clone.style.width = "auto";
+  clone.style.whiteSpace = "nowrap";
   clone.style.background = "#111";
   clone.style.color = "white";
-  clone.style.position = "absolute";
-  clone.style.top = "-9999px";
-  clone.style.left = "0";
   clone.style.padding = "10px";
 
   document.body.appendChild(clone);
 
+  // ★実際の「完全描画後の幅」を取得
+  const fullWidth = clone.getBoundingClientRect().width + 120;
+
   const canvas = await html2canvas(clone, {
     scale: 3,
     backgroundColor: "#111",
-
-    // ★ここが最重要（右切れ防止）
-    windowWidth: fullWidth
+    windowWidth: fullWidth,
+    width: fullWidth
   });
 
   document.body.removeChild(clone);
