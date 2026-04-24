@@ -261,7 +261,10 @@ window.saveWeekdayBestImage = async function () {
   clone.style.position = "fixed";
   clone.style.left = "0";
   clone.style.top = "0";
-  clone.style.zIndex = "-9999";
+
+  clone.style.opacity = "0";          // ← これが本命
+  clone.style.visibility = "hidden";  // ← 保険（チラ見え完全防止）
+  clone.style.pointerEvents = "none"; // ← 操作不可
   clone.style.background = "#111";
   clone.style.color = "white";
   clone.style.padding = "10px";
