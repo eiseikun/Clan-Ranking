@@ -40,14 +40,19 @@
   </div>
 
   <!-- CSV管理 -->
-  <div id="manageArea" class="box" style="display:none;">
-    <input type="file" id="csvFile">
-    <div class="row">
-      <button onclick="importCSV()">CSV取込</button>
-      <button onclick="exportCSV()">CSV出力</button>
-    </div>
+ <div id="manageArea" class="box" style="display:none;">
+  <input type="file" id="csvFile">
+  <div class="row">
+    <button onclick="importCSV()">CSV取込</button>
+    <button onclick="exportCSV()">CSV出力</button>
   </div>
-
+  <!-- 画像 -->
+  <div class="row">
+    <button onclick="saveWeekdayBestImage()">📸 曜日別画像保存</button>
+  </div>
+</div>
+  
+  
   <!-- データ追加 -->
   <div class="box">
     <h3>➕ データ追加</h3>
@@ -56,9 +61,8 @@
     <div class="row"><input id="date" type="date"></div>
     <div class="row"><button onclick="add()">追加</button></div>
   </div>
-
-  <!-- 曜日別 -->
-  <div class="box">
+  
+  <div class="box" id="weekdayCapture">
     <h3>🏆 曜日別最高スコア</h3>
     <div id="weekdayBest"></div>
   </div>
