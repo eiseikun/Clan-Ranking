@@ -499,9 +499,15 @@ function renderRankTable() {
   });
 
   const dates = Object.keys(table)
-  .sort((a, b) => new Date(b) - new Date(a));
+    .sort((a, b) => new Date(b) - new Date(a));
 
-  const members = [...new Set(rankList.map(d => d.member))];
+  // 👇ここを修正
+  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
+
+  const members = [
+    ...baseMembers,
+    ...dynamicMembers.filter(m => !baseMembers.includes(m))
+  ];
 
   let html = "<table><tr><th>日付</th>";
 
@@ -546,12 +552,7 @@ window.calcAvgRank = function () {
     })
     .sort((a, b) => toTime(a) - toTime(b));
 
-  const baseMembers = [
-    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
-    "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
-    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
-    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
-  ];
+  
 
   const dynamicMembers = [...new Set(rankList.map(d => d.member))];
   const members = [...new Set([...baseMembers, ...dynamicMembers])];
