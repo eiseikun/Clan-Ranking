@@ -258,11 +258,15 @@ window.saveWeekdayBestImage = async function () {
 
   const clone = original.cloneNode(true);
 
-  clone.style.width = original.scrollWidth + "px";
+  // ★重要：余白込みで確実に広げる
+  const fullWidth = original.scrollWidth + 100;
+
+  clone.style.width = fullWidth + "px";
   clone.style.background = "#111";
   clone.style.color = "white";
   clone.style.position = "absolute";
   clone.style.top = "-9999px";
+  clone.style.left = "0";
   clone.style.padding = "10px";
 
   document.body.appendChild(clone);
@@ -270,7 +274,9 @@ window.saveWeekdayBestImage = async function () {
   const canvas = await html2canvas(clone, {
     scale: 3,
     backgroundColor: "#111",
-    width: clone.scrollWidth
+
+    // ★ここが最重要（右切れ防止）
+    windowWidth: fullWidth
   });
 
   document.body.removeChild(clone);
