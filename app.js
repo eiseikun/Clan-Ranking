@@ -172,7 +172,8 @@ onSnapshot(
     });
     rankList = newData;
     renderRankTable();
-  renderBestScore(); // ★追加
+    renderBestScore(); // ★追加
+    updateMemberList();
 });
 // ==============================
 // ▼▼▼ ページ1：全体記録  ▼▼▼
