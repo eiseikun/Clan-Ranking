@@ -44,6 +44,14 @@ function formatScoreT(value) {
   return (value).toFixed(2) + "T";
 }
 // ==============================
+// ■ 曜日巻子
+// ==============================
+function getWeekday(dateStr) {
+  const days = ["日","月","火","水","木","金","土"];
+  const d = new Date(dateStr);
+  return days[d.getDay()];
+}
+// ==============================
 // ■ クラン設定
 // ==============================
 const clanColors = {
@@ -580,11 +588,11 @@ function renderBestScore() {
     .sort((a, b) => b.score - a.score);
   let html = "<table>";
   result.forEach(d => {
-    html += `<tr>
-      <td>${d.member}</td>
-      <td>${formatScore(d.score)}</td>
-      <td>${d.date}</td>
-    </tr>`;
+html += `<tr>
+  <td>${d.member}</td>
+  <td>${formatScore(d.score)}</td>
+  <td>${d.date}（${getWeekday(d.date)}）</td>
+</tr>`;
   });
   html += "</table>";
   document.getElementById("bestScoreBox").innerHTML = html;
