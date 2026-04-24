@@ -91,21 +91,6 @@ window.addEventListener("DOMContentLoaded", () => {
     modalWrap.appendChild(label);
   });
 
-  // メンバー候補
-  const members = [
-    "えいせい","モジュ","にゃんこ船長","タケシEX","AK1104","Alutemaika",
-    "大蒜マン","きゃりら","norix9815","かずまる55","すわろう","肉おじゃ",
-    "なーさんdesu","なはやまか","アンロイ","ジャック99","マグノリア",
-    "パルムぅ","もにゃか","トコブル","RIKKUN","ぽぽん390"
-  ];
-
-  const memberList = document.getElementById("memberList");
-  members.forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m;
-    memberList.appendChild(opt);
-  });
-
    // 3ページのためだけ
   loadMemo();
 });
