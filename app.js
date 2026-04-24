@@ -151,20 +151,15 @@ function updateMemberList() {
   const datalist = document.getElementById("memberList");
   if (!datalist) return;
 
-  // 重複なしメンバー取得
-  function updateMemberList() {
-  const datalist = document.getElementById("memberList");
-  if (!datalist) return;
+  // DBにいるメンバー
   const dynamicMembers = [...new Set(rankList.map(d => d.member))];
+
+  // 固定順 + 新規追加（後ろに）
   const members = [
     ...baseMembers,
     ...dynamicMembers.filter(m => !baseMembers.includes(m))
   ];
-  datalist.innerHTML = members
-    .map(m => `<option value="${m}">`)
-    .join("");
-}
-  // HTML生成
+
   datalist.innerHTML = members
     .map(m => `<option value="${m}">`)
     .join("");
