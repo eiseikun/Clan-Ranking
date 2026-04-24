@@ -248,7 +248,46 @@ html2 += "</tr>";
 
   document.getElementById("tableWrap").innerHTML = html2;
 }
+// ==============================
+// 画像スクショ
+// ==============================
+window.saveWeekdayBestImage = async function () {
+  const original = document.getElementById("weekdayCapture");
 
+  if (!original) return alert("対象が見つかりません");
+
+  const clone = original.cloneNode(true);
+
+  clone.style.width = original.scrollWidth + "px";
+  clone.style.background = "#111";
+  clone.style.color = "white";
+  clone.style.position = "absolute";
+  clone.style.top = "-9999px";
+  clone.style.padding = "10px";
+
+  document.body.appendChild(clone);
+
+  const canvas = await html2canvas(clone, {
+    scale: 3,
+    backgroundColor: "#111",
+    width: clone.scrollWidth
+  });
+
+  document.body.removeChild(clone);
+
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], "weekday_best.png", { type: "image/png" });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+    } else {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "weekday_best.png";
+      link.click();
+    }
+  });
+};
 // ==============================
 // グラフ
 // ==============================
