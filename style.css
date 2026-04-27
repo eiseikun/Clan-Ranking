@@ -273,21 +273,18 @@ tr:nth-child(odd){
   font-weight: bold;
 }
 
-/* 1位 */
 .rank1 td:first-child {
-  background: none;
-  color: #FFD700; /* 金 */
+  color: #FFD700;
+  text-shadow: 0 0 6px rgba(255,215,0,0.7);
 }
 
-/* 2位 */
 .rank2 td:first-child {
-  background: none;
-  color: #C0C0C0; /* 銀 */
+  color: #C0C0C0;
+  text-shadow: 0 0 6px rgba(192,192,192,0.7);
 }
 
-/* 3位 */
 .rank3 td:first-child {
-  background: none;
-  color: #CD7F32; /* 銅 */
+  color: #CD7F32;
+  text-shadow: 0 0 6px rgba(205,127,50,0.7);
 }
 
