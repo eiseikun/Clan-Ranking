@@ -269,21 +269,21 @@ tr:nth-child(odd){
 }
 
 /* 1位（順位セルだけ） */
-#bestScoreBox td:first-child {
+.rank1, .rank2, .rank3 {
   font-weight: bold;
 }
 
-.rank1 td:first-child {
+.rank1 {
   color: #FFD700;
   text-shadow: 0 0 6px rgba(255,215,0,0.7);
 }
 
-.rank2 td:first-child {
+.rank2 {
   color: #C0C0C0;
   text-shadow: 0 0 6px rgba(192,192,192,0.7);
 }
 
-.rank3 td:first-child {
+.rank3 {
   color: #CD7F32;
   text-shadow: 0 0 6px rgba(205,127,50,0.7);
 }
