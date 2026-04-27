@@ -855,7 +855,7 @@ function renderMemoTable(data = {}) {
   let html = "<table>";
 
   // ヘッダー
-  html += "<tr><th></th><th>2計代</th><th>1計代</th></tr>";
+  html += "<tr><th></th><th>2討伐</th><th>1討伐</th></tr>";
 
   days.forEach((day, i) => {
     html += "<tr>";
