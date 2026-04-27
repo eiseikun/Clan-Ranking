@@ -603,6 +603,7 @@ window.calcAvgRank = function () {
 // ==============================
 function renderBestScore() {
   const bestMap = {};
+
   rankList.forEach(d => {
     if (!d.score) return;
     if (!bestMap[d.member] || bestMap[d.member].score < d.score) {
@@ -612,6 +613,7 @@ function renderBestScore() {
       };
     }
   });
+
   const result = Object.entries(bestMap)
     .map(([member, v]) => ({
       member,
@@ -619,15 +621,29 @@ function renderBestScore() {
       date: v.date
     }))
     .sort((a, b) => b.score - a.score);
+
   let html = "<table>";
-  result.forEach(d => {
-html += `<tr>
-  <td>${d.member}</td>
-  <td>${formatScore(d.score)}</td>
-  <td>${d.date}（${getWeekday(d.date)}）</td>
-</tr>`;
+
+  result.forEach((d, i) => {
+
+    const rank = i + 1;
+
+    // ★クラス付与
+    let rankClass = "";
+    if (rank === 1) rankClass = "rank1";
+    else if (rank === 2) rankClass = "rank2";
+    else if (rank === 3) rankClass = "rank3";
+
+    html += `<tr class="${rankClass}">
+      <td>${rank}位</td>
+      <td>${d.member}</td>
+      <td>${formatScore(d.score)}</td>
+      <td>${d.date}（${getWeekday(d.date)}）</td>
+    </tr>`;
   });
+
   html += "</table>";
+
   document.getElementById("bestScoreBox").innerHTML = html;
 }
 // ==============================
