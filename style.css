@@ -268,22 +268,22 @@ tr:nth-child(odd){
   font-weight: bold;
 }
 
-/* 1位 */
-.rank1 {
+/* 1位（順位セルだけ） */
+.rank1 td:first-child {
   background: linear-gradient(90deg, #FFD700, #fff2a8);
   color: #000;
   font-weight: bold;
 }
 
 /* 2位 */
-.rank2 {
+.rank2 td:first-child {
   background: linear-gradient(90deg, #C0C0C0, #e5e7eb);
   color: #000;
   font-weight: bold;
 }
 
 /* 3位 */
-.rank3 {
+.rank3 td:first-child {
   background: linear-gradient(90deg, #CD7F32, #f5d0a9);
   color: #000;
   font-weight: bold;
