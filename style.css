@@ -269,23 +269,25 @@ tr:nth-child(odd){
 }
 
 /* 1位（順位セルだけ） */
-.rank1 td:first-child {
-  background: linear-gradient(90deg, #FFD700, #fff2a8);
-  color: #000;
+#bestScoreBox td:first-child {
   font-weight: bold;
+}
+
+/* 1位 */
+.rank1 td:first-child {
+  background: none;
+  color: #FFD700; /* 金 */
 }
 
 /* 2位 */
 .rank2 td:first-child {
-  background: linear-gradient(90deg, #C0C0C0, #e5e7eb);
-  color: #000;
-  font-weight: bold;
+  background: none;
+  color: #C0C0C0; /* 銀 */
 }
 
 /* 3位 */
 .rank3 td:first-child {
-  background: linear-gradient(90deg, #CD7F32, #f5d0a9);
-  color: #000;
-  font-weight: bold;
+  background: none;
+  color: #CD7F32; /* 銅 */
 }
 
