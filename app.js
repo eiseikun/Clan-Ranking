@@ -634,12 +634,12 @@ function renderBestScore() {
     else if (rank === 2) rankClass = "rank2";
     else if (rank === 3) rankClass = "rank3";
 
-    html += `<tr class="${rankClass}">
-      <td>${rank}位</td>
-      <td>${d.member}</td>
-      <td>${formatScore(d.score)}</td>
-      <td>${d.date}（${getWeekday(d.date)}）</td>
-    </tr>`;
+html += `<tr>
+  <td class="${rankClass}">${rank}位</td>
+  <td>${d.member}</td>
+  <td>${formatScore(d.score)}</td>
+  <td>${d.date}（${getWeekday(d.date)}）</td>
+</tr>`;
   });
 
   html += "</table>";
