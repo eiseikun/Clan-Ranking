@@ -709,20 +709,16 @@ window.applyAvgRank = function () {
 window.importCSV = async function () {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選んで");
-
   const text = await file.text();
   const rows = text.split("\n").slice(1);
-
   for (let row of rows) {
     if (!row.trim()) continue;
-
     let [date, clan, score] = row.split(",");
     if (!date || !clan || isNaN(Number(score))) continue;
-
     const fixedDate = date.trim().replace(/\//g, "-");
-
-    const scoreInput = Number(score); // CSVはTで入ってくる
-    const scoreB = scoreInput * 1000;
+    // 🔥 CSVは必ずT
+    const scoreT = Number(score);
+    const scoreB = scoreT * 1000;
 
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
@@ -731,27 +727,34 @@ window.importCSV = async function () {
       time: Date.now()
     });
   }
-
   alert("CSV取込完了");
 };
 
 window.exportCSV = function () {
   if (!dataList.length) return alert("データなし");
-  let csv = "date,clan,score(T)\r\n"; // ←Tって分かるように
+
+  let csv = "date,clan,score(T)\r\n";
+
   const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
+
   const firstDate = dates[0];
+
   const firstDayData = dataList
     .filter(d => d.date === firstDate)
     .sort((a, b) => b.score - a.score);
+
   const clanOrder = firstDayData.map(d => d.clan);
+
   dates.forEach(date => {
     clanOrder.forEach(clan => {
+
       const row = dataList.find(d =>
         d.date === date && d.clan === clan
       );
+
       if (row && row.score != null) {
-        // 🔥 ここが重要（B → Tに変換）
+        // 🔥 B → T
         const scoreT = (row.score / 1000).toFixed(2);
         csv += `${row.date},${row.clan},${scoreT}\r\n`;
       } else {
@@ -759,14 +762,14 @@ window.exportCSV = function () {
       }
     });
   });
+
   const BOM = "\uFEFF";
   const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
-  a.href = url;
-  a.download = "scores_T.csv"; // ←名前も変えとくと親切
+  a.href = URL.createObjectURL(blob);
+  a.download = "scores_T.csv";
   a.click();
-  URL.revokeObjectURL(url);
 };
 
 // 2ページ目
