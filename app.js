@@ -148,21 +148,18 @@ window.add = async function () {
 // メンバー候補
 // ==============================
 function updateMemberList() {
-  const datalist = document.getElementById("memberList");
-  if (!datalist) return;
+  const select = document.getElementById("member");
+  if (!select) return;
 
-  // DBにいるメンバー
   const dynamicMembers = [...new Set(rankList.map(d => d.member))];
 
-  // 固定順 + 新規追加（後ろに）
   const members = [
     ...baseMembers,
     ...dynamicMembers.filter(m => !baseMembers.includes(m))
   ];
 
-  datalist.innerHTML = members
-    .map(m => `<option value="${m}">`)
-    .join("");
+  select.innerHTML = '<option value="">選択してください</option>' +
+    members.map(m => `<option value="${m}">${m}</option>`).join("");
 }
 // 表示順の基準メンバー
 const baseMembers = [
@@ -465,10 +462,15 @@ window.drawChart = function () {
 // ==============================
 window.addRank = async function () {
 
-  const member = document.getElementById("member").value;
+  const selected = document.getElementById("member").value;
+  const newMember = document.getElementById("newMember").value.trim();
+
+  // ★優先：新規入力 → なければ選択
+  const member = newMember || selected;
+
   const rank = Number(document.getElementById("rank").value);
-   const scoreInput = Number(document.getElementById("score2").value);
-   const score = scoreInput;
+  const scoreInput = Number(document.getElementById("score2").value);
+  const score = scoreInput;
   const date = document.getElementById("date2").value;
 
   if (!member) return alert("メンバー名");
@@ -481,10 +483,13 @@ window.addRank = async function () {
     clan: "ねこ海賊団",
     member,
     rank,
-    score: score || null, // ★追加
+    score: score || null,
     date,
     time: Date.now()
   });
+
+  // 入力リセット
+  document.getElementById("newMember").value = "";
 };
 // ==============================
 // ■ ランキングテーブル
