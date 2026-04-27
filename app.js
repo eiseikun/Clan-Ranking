@@ -721,8 +721,8 @@ window.importCSV = async function () {
 
     const fixedDate = date.trim().replace(/\//g, "-");
 
-    const scoreInput = Number(score);
-    const scoreB = scoreInput;
+    const scoreInput = Number(score); // CSVはTで入ってくる
+    const scoreB = scoreInput * 1000;
 
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
@@ -737,41 +737,35 @@ window.importCSV = async function () {
 
 window.exportCSV = function () {
   if (!dataList.length) return alert("データなし");
-  let csv = "date,clan,score\r\n";
-  // 日付一覧（昇順）
+  let csv = "date,clan,score(T)\r\n"; // ←Tって分かるように
   const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
-  // 最初の日付
   const firstDate = dates[0];
-  // 最初の日のスコアでクラン順決定
   const firstDayData = dataList
     .filter(d => d.date === firstDate)
     .sort((a, b) => b.score - a.score);
   const clanOrder = firstDayData.map(d => d.clan);
-  // 出力（日付 → 固定クラン順）
   dates.forEach(date => {
     clanOrder.forEach(clan => {
-
       const row = dataList.find(d =>
         d.date === date && d.clan === clan
       );
-      if (row) {
-        csv += `${row.date},${row.clan},${row.score}\r\n`;
+      if (row && row.score != null) {
+        // 🔥 ここが重要（B → Tに変換）
+        const scoreT = (row.score / 1000).toFixed(2);
+        csv += `${row.date},${row.clan},${scoreT}\r\n`;
       } else {
         csv += `${date},${clan},-\r\n`;
       }
     });
   });
-
   const BOM = "\uFEFF";
   const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
-  a.download = "scores.csv";
+  a.download = "scores_T.csv"; // ←名前も変えとくと親切
   a.click();
-
   URL.revokeObjectURL(url);
 };
 
