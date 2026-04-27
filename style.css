@@ -263,4 +263,29 @@ tr:nth-child(odd){
   border-bottom: 1px solid #475569;
 }
 
+/* 個人別最高スコア */
+#bestScoreBox td:first-child {
+  font-weight: bold;
+}
+
+/* 1位 */
+.rank1 {
+  background: linear-gradient(90deg, #FFD700, #fff2a8);
+  color: #000;
+  font-weight: bold;
+}
+
+/* 2位 */
+.rank2 {
+  background: linear-gradient(90deg, #C0C0C0, #e5e7eb);
+  color: #000;
+  font-weight: bold;
+}
+
+/* 3位 */
+.rank3 {
+  background: linear-gradient(90deg, #CD7F32, #f5d0a9);
+  color: #000;
+  font-weight: bold;
+}
 
