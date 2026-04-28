@@ -780,6 +780,11 @@ window.toggleGraphBox = function () {
   }
 };
 
+window.toggleGraphBox3 = function () {
+  const box = document.getElementById("graphBox3");
+  box.style.display = (box.style.display === "none") ? "block" : "none";
+};
+
 window.closeGraphModal = function () {
   document.getElementById("graphModal").style.display = "none";
   document.body.style.overflow = "auto";
@@ -993,12 +998,25 @@ window.drawChart3 = function () {
   const start = document.getElementById("startDate3").value;
   const end = document.getElementById("endDate3").value;
 
+  // ★曜日取得（チェックされてるやつ）
+  const selectedDays = [...document.querySelectorAll("#graphBox3 input[type=checkbox]:checked")]
+    .map(cb => Number(cb.value));
+
   const filtered = myDataList.filter(d => {
     const t = new Date(d.date).getTime();
     const s = start ? new Date(start).getTime() : -Infinity;
     const e = end ? new Date(end).getTime() : Infinity;
-    return t >= s && t <= e;
+
+    const day = new Date(d.date).getDay();
+
+    return t >= s && t <= e &&
+      (selectedDays.length === 0 || selectedDays.includes(day));
   });
+
+  if (!filtered.length) {
+    alert("データなし");
+    return;
+  }
 
   const dates = filtered.map(d => d.date);
   const scores = filtered.map(d => d.score);
@@ -1015,8 +1033,26 @@ window.drawChart3 = function () {
         label: "自分",
         data: scores,
         borderColor: "#00E5FF",
-        borderWidth: 3
+        borderWidth: 3,
+        pointRadius: 4,
+        spanGaps: true
       }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: { color: "#fff" }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#fff" }
+        },
+        y: {
+          ticks: { color: "#fff" }
+        }
+      }
     }
   });
 };
