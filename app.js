@@ -101,9 +101,18 @@ window.addEventListener("DOMContentLoaded", () => {
     label.appendChild(document.createTextNode(c));
     modalWrap.appendChild(label);
   });
+  // 3ページ目全曜日
+  document.getElementById("allDays").addEventListener("change", function () {
+    const checked = this.checked;
 
-   // 3ページのためだけ
-  loadMemo();
+    document.querySelectorAll("#graphBox3 input[type=checkbox]")
+      .forEach(cb => {
+        if (cb.id !== "allDays") {
+          cb.checked = checked;
+        }
+      });
+  });
+
 });
 
 // ==============================
