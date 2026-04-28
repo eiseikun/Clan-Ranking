@@ -116,7 +116,7 @@ tr:nth-child(odd){
 }
 
 /* 横スクロール */
-#tableWrap, #weekdayBest, #tableWrap2, , #weekdayBest3{
+#tableWrap, #weekdayBest, #tableWrap2, #weekdayBest3{
   overflow-x:auto;
 }
 #weekdayBest td:first-child,
