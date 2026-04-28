@@ -950,49 +950,91 @@ window.exportCSV3 = function () {
 // 3ページ目用
 // ==============================
 window.add3 = async function () {
-  const scoreInput = Number(document.getElementById("score3").value);
-  const score = scoreInput; // ← Bそのまま保存（2ページ目と統一）
+const scoreInput = Number(document.getElementById("score3").value);
+const score1Input = Number(document.getElementById("score3_1").value);
+
+const score = scoreInput;     // 2回合計
+const score1 = score1Input || null; // 1回（任意）
   const date = document.getElementById("date3").value;
 
   if (!date) return alert("日付入れて");
   if (!scoreInput) return alert("スコア入れて");
 
   await setDoc(doc(db, "myScores", date), {
-    score,
-    date,
-    time: Date.now()
-  });
+  score,
+  score1, // ←追加
+  date,
+  time: Date.now()
+});
 
   document.getElementById("score3").value = "";
 };
 
-
 function renderTables3() {
-  // 曜日別
-  const weekdayBest = {};
+
+  const best2 = {}; // 2回合計
+  const best1 = {}; // 1回
+
   const days = ["日","月","火","水","木","金","土"];
+
   myDataList.forEach(d => {
     const day = new Date(d.date).getDay();
-    weekdayBest[day] = Math.max(weekdayBest[day] ?? 0, d.score);
+
+    // 2回合計
+    if (d.score != null) {
+      best2[day] = Math.max(best2[day] ?? 0, d.score);
+    }
+
+    // 1回
+    if (d.score1 != null) {
+      best1[day] = Math.max(best1[day] ?? 0, d.score1);
+    }
   });
-  let html = "<table><tr>";
+
+  // ▼ 表作成
+  let html = "<table><tr><th>曜日</th>";
   days.forEach(d => html += `<th>${d}</th>`);
-  html += "</tr><tr>";
+  html += "</tr>";
+
+  // 2回合計
+  html += "<tr><td>2回合計</td>";
   for (let i = 0; i < 7; i++) {
-    html += `<td>${formatScoreT(weekdayBest[i])}</td>`;
+    html += `<td>${formatScoreT(best2[i])}</td>`;
   }
-  html += "</tr></table>";
+  html += "</tr>";
+
+  // 1回
+  html += "<tr><td>1回</td>";
+  for (let i = 0; i < 7; i++) {
+    html += `<td>${formatScoreT(best1[i])}</td>`;
+  }
+  html += "</tr>";
+
+  html += "</table>";
+
   document.getElementById("weekdayBest3").innerHTML = html;
-  // 一覧
+
+  // ======================
+  // ▼ 一覧（2回のみ）
+  // ======================
   let html2 = "<table><tr><th>日付</th><th>スコア</th></tr>";
+
   const sorted = [...myDataList]
     .sort((a, b) => new Date(b.date) - new Date(a.date));
+
   sorted.forEach(d => {
-    html2 += `<tr><td>${d.date}</td><td>${formatScoreT(d.score)}</td></tr>`;
+    html2 += `<tr>
+      <td>${d.date}</td>
+      <td>${formatScoreT(d.score)}</td>
+    </tr>`;
   });
+
   html2 += "</table>";
+
   document.getElementById("tableWrap3").innerHTML = html2;
 }
+document.getElementById("score3_1").value = "";
+
 window.drawChart3 = function () {
 
   const start = document.getElementById("startDate3").value;
