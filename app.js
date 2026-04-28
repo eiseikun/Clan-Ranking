@@ -59,14 +59,14 @@ const clanColors = {
   "魔導特務隊": "#4472C4",
   "IgnisFloris": "#FFCCFF",
   "ポケポケ会": "#E97132",
-  "のの教": "#92D050",
+  "ねねこねこ教": "#92D050",
   "PopoWarren": "#A02B93",
-  "ねこねこねこ": "#FF66B2",
   "たまねぎ班": "#8FAADC",
   "猫の旅": "#FF0000",
   "ねこ海賊団": "#00AEF0",
   "やまだ家": "#FFC000",
-  "アチャ伝": "#7030A0"
+  "アチャ伝": "#FF66B2",
+
 };
 const clans = Object.keys(clanColors);
 
