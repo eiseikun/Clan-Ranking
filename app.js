@@ -920,12 +920,14 @@ window.importCSV3 = async function () {
   const rows = text.split("\n").slice(1);
 
   for (let row of rows) {
-    let [date, score] = row.split(",");
-    const scoreB = Number(score);
+    if (!row.trim()) continue;
+
+    let [date, score, score1] = row.split(",");
 
     await setDoc(doc(db, "myScores", date), {
       date,
-      score: scoreB,
+      score: Number(score) || null,
+      score1: Number(score1) || null, // ←追加
       time: Date.now()
     });
   }
@@ -934,10 +936,10 @@ window.importCSV3 = async function () {
 };
 
 window.exportCSV3 = function () {
-  let csv = "date,score(B)\n";
+  let csv = "date,score,score1\n";
 
   myDataList.forEach(d => {
-    csv += `${d.date},${d.score}\n`;
+    csv += `${d.date},${d.score ?? ""},${d.score1 ?? ""}\n`;
   });
 
   const blob = new Blob([csv], { type: "text/csv" });
