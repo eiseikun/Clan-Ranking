@@ -175,15 +175,56 @@
 <div id="page3" style="display:none">
 
   <div class="header-bar">
-    <h1>📝メモ表</h1>
+    <h1>👤個人記録</h1>
+    <button onclick="toggleManage3()" id="manageBtn3">⚙️</button>
   </div>
 
-  <div class="box">
-    <table id="memoTable"></table>
+  <!-- CSV -->
+  <div id="manageArea3" class="box" style="display:none;">
+    <input type="file" id="csvFile3">
+    <div class="row">
+      <button onclick="importCSV3()">CSV取込</button>
+      <button onclick="exportCSV3()">CSV出力</button>
+    </div>
+    <div class="row">
+      <button onclick="saveWeekdayBestImage3()">📸 曜日別画像保存</button>
+    </div>
   </div>
 
+  <!-- データ追加 -->
   <div class="box">
-    <button onclick="saveMemo()">保存</button>
+    <h3>➕ データ追加</h3>
+    <div class="row"><input id="score3" type="number" placeholder="スコア"></div>
+    <div class="row"><input id="date3" type="date"></div>
+    <div class="row"><button onclick="add3()">追加</button></div>
+  </div>
+
+  <!-- 曜日別 -->
+  <div class="box" id="weekdayCapture3">
+    <h3>🏆 曜日別最高スコア</h3>
+    <div id="weekdayBest3"></div>
+  </div>
+
+  <!-- グラフ -->
+  <div class="box">
+    <h3 class="accordion-title" onclick="toggleGraphBox3()">📈 グラフ生成</h3>
+
+    <div id="graphBox3" style="display:none;">
+      <div class="row">
+        <input type="date" id="startDate3">
+        <input type="date" id="endDate3">
+      </div>
+
+      <div class="row">
+        <button onclick="drawChart3()">グラフ生成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 一覧 -->
+  <div class="box">
+    <h3>📊 一覧</h3>
+    <div id="tableWrap3"></div>
   </div>
 
 </div>
