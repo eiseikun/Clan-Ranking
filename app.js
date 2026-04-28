@@ -916,6 +916,8 @@ sorted.forEach(d => {
 // 3ページ目
 window.importCSV3 = async function () {
   const file = document.getElementById("csvFile3").files[0];
+  if (!file) return alert("ファイル選んで");
+
   const text = await file.text();
   const rows = text.split("\n").slice(1);
 
@@ -924,17 +926,23 @@ window.importCSV3 = async function () {
 
     let [date, score, score1] = row.split(",");
 
-    await setDoc(doc(db, "myScores", date), {
-      date,
-      score: Number(score) || null,
-      score1: Number(score1) || null, // ←追加
+    if (!date) continue;
+
+    const fixedDate = date.trim().replace(/\//g, "-");
+
+    const s = score ? Number(score.trim()) : null;
+    const s1 = score1 ? Number(score1.trim()) : null;
+
+    await setDoc(doc(db, "myScores", fixedDate + "_" + Date.now()), {
+      date: fixedDate,
+      score: s,
+      score1: s1,
       time: Date.now()
     });
   }
 
   alert("CSV取込完了");
 };
-
 window.exportCSV3 = function () {
   let csv = "date,score,score1\n";
 
