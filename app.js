@@ -21,6 +21,9 @@ let rankList = [];
 let chart = null;
 let selectedClans = [];
 
+let myDataList = [];
+let myChart = null;
+
 // ==============================
 // ■ スコア変換（T / B）
 // ==============================
@@ -198,6 +201,16 @@ onSnapshot(
     renderBestScore(); // ★追加
     updateMemberList();
 });
+// 3ページ目用
+onSnapshot(
+  query(collection(db, "myScores"), orderBy("date")),
+  (snapshot) => {
+    const newData = [];
+    snapshot.forEach(d => newData.push(d.data()));
+    myDataList = newData;
+    renderTables3();
+  }
+);
 // ==============================
 // ▼▼▼ ページ1：全体記録  ▼▼▼
 // ==============================
@@ -703,6 +716,14 @@ window.toggleManage2 = function () {
   btn.textContent = open ? "⚙️" : "閉じる";
 };
 
+window.toggleManage3 = function () {
+  const area = document.getElementById("manageArea3");
+  const btn = document.getElementById("manageBtn3");
+
+  const open = area.style.display === "block";
+  area.style.display = open ? "none" : "block";
+  btn.textContent = open ? "⚙️" : "閉じる";
+};
 // グラフの折り畳み
 window.toggleGraphBox = function () {
   const box = document.getElementById("graphBox");
@@ -842,40 +863,115 @@ sorted.forEach(d => {
 
   URL.revokeObjectURL(url);
 };
+// 3ページ目
+window.importCSV3 = async function () {
+  const file = document.getElementById("csvFile3").files[0];
+  const text = await file.text();
+  const rows = text.split("\n").slice(1);
+
+  for (let row of rows) {
+    let [date, score] = row.split(",");
+    const scoreB = Number(score);
+
+    await setDoc(doc(db, "myScores", date), {
+      date,
+      score: scoreB,
+      time: Date.now()
+    });
+  }
+
+  alert("CSV取込完了");
+};
+
+window.exportCSV3 = function () {
+  let csv = "date,score(T)\n";
+
+  myDataList.forEach(d => {
+    csv += `${d.date},${d.score}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "myScores.csv";
+  a.click();
+};
 // ==============================
 // 3ページ目用
 // ==============================
-const memoTemplate = [
-  "月","火","水","木","金","土","日"
-];
-// テーブル描画
-function renderMemoTable(data = {}) {
-  const days = ["月","火","水","木","金","土","日"];
+window.add3 = async function () {
+  const score = Number(document.getElementById("score3").value);
+  const score = scoreInput * 1000;
+  const date = document.getElementById("date3").value;
+  if (!date) return alert("日付入れて");
+  if (!scoreInput) return alert("スコア入れて");
+  await setDoc(doc(db, "myScores", date), {
+    score,
+    date,
+    time: Date.now()
+  });
+  document.getElementById("score3").value = "";
+};
 
-  let html = "<table>";
 
-  // ヘッダー
-  html += "<tr><th></th><th>2討伐</th><th>1討伐</th></tr>";
+function renderTables3() {
+  // 曜日別
+  const weekdayBest = {};
+  const days = ["日","月","火","水","木","金","土"];
+  myDataList.forEach(d => {
+    const day = new Date(d.date).getDay();
+    weekdayBest[day] = Math.max(weekdayBest[day] ?? 0, d.score);
+  });
+  let html = "<table><tr>";
+  days.forEach(d => html += `<th>${d}</th>`);
+  html += "</tr><tr>";
+  for (let i = 0; i < 7; i++) {
+    html += `<td>${formatScoreT(weekdayBest[i])}</td>`;
+  }
+  html += "</tr></table>";
+  document.getElementById("weekdayBest3").innerHTML = html;
+  // 一覧
+  let html2 = "<table><tr><th>日付</th><th>スコア</th></tr>";
+  const sorted = [...myDataList]
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  sorted.forEach(d => {
+    html2 += `<tr><td>${d.date}</td><td>${formatScoreT(d.score)}</td></tr>`;
+  });
+  html2 += "</table>";
+  document.getElementById("tableWrap3").innerHTML = html2;
+}
+window.drawChart3 = function () {
 
-  days.forEach((day, i) => {
-    html += "<tr>";
+  const start = document.getElementById("startDate3").value;
+  const end = document.getElementById("endDate3").value;
 
-    html += `<th>${day}</th>`;
-
-    for (let j = 0; j < 2; j++) {
-      const key = `${i}_${j}`;
-      const value = data[key] ?? "";
-
-      html += `<td contenteditable="true" data-key="${key}">${value}</td>`;
-    }
-
-    html += "</tr>";
+  const filtered = myDataList.filter(d => {
+    const t = new Date(d.date).getTime();
+    const s = start ? new Date(start).getTime() : -Infinity;
+    const e = end ? new Date(end).getTime() : Infinity;
+    return t >= s && t <= e;
   });
 
-  html += "</table>";
+  const dates = filtered.map(d => d.date);
+  const scores = filtered.map(d => d.score);
 
-  document.getElementById("memoTable").innerHTML = html;
-}
+  if (myChart) myChart.destroy();
+
+  document.getElementById("graphModal").style.display = "block";
+
+  myChart = new Chart(document.getElementById("modalChart"), {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [{
+        label: "自分",
+        data: scores,
+        borderColor: "#00E5FF",
+        borderWidth: 3
+      }]
+    }
+  });
+};
 
 // 保存
 window.saveMemo = async function () {
