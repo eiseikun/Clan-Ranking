@@ -207,24 +207,36 @@
 </div>
   </div>
 
-  <!-- グラフ -->
-  <div class="box">
-    <h3 class="accordion-title" onclick="toggleGraphBox3()">📈 グラフ生成</h3>
+ <!-- グラフ -->
+<div class="box">
+  <h3 class="accordion-title" onclick="toggleGraphBox3()">📈 グラフ生成</h3>
 
-    <div id="graphBox3" style="display:none;">
-      <div class="row">
-        <input type="date" id="startDate3">
-        <input type="date" id="endDate3">
-      </div>
-
-      <div class="row">
-        <button onclick="toggleGraphBox3()">📊 グラフ</button>
-        <div id="graphBox3" style="display:none;">
-          <!-- ここに期間・曜日選択 -->
-        </div>
-      </div>
+  <div id="graphBox3" style="display:none;">
+    
+    <!-- 期間 -->
+    <div class="row">
+      <input type="date" id="startDate3">
+      <input type="date" id="endDate3">
     </div>
+
+    <!-- 曜日選択 -->
+    <div class="row">
+      <label><input type="checkbox" value="0">日</label>
+      <label><input type="checkbox" value="1">月</label>
+      <label><input type="checkbox" value="2">火</label>
+      <label><input type="checkbox" value="3">水</label>
+      <label><input type="checkbox" value="4">木</label>
+      <label><input type="checkbox" value="5">金</label>
+      <label><input type="checkbox" value="6">土</label>
+    </div>
+
+    <!-- 実行 -->
+    <div class="row">
+      <button onclick="drawChart3()">グラフ生成</button>
+    </div>
+
   </div>
+</div>
 
   <!-- 一覧 -->
   <div class="box">
