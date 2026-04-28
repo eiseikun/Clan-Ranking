@@ -119,7 +119,10 @@ tr:nth-child(odd){
 #tableWrap, #weekdayBest, #tableWrap2{
   overflow-x:auto;
 }
-
+#weekdayBest td:first-child,
+#weekdayBest th:first-child {
+  white-space: nowrap;
+}
 /* ==============================
 ■ ヘッダー
 ============================== */
