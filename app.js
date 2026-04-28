@@ -55,7 +55,7 @@ function getWeekday(dateStr) {
 // ■ クラン設定
 // ==============================
 const clanColors = {
-  "最狂会あ": "#00B050",
+  "最狂会": "#00B050",
   "魔導特務隊": "#4472C4",
   "IgnisFloris": "#FFCCFF",
   "ポケポケ会": "#E97132",
