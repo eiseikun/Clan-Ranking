@@ -946,7 +946,10 @@ window.importCSV3 = async function () {
 window.exportCSV3 = function () {
   let csv = "date,score,score1\n";
 
-  myDataList.forEach(d => {
+  const sorted = [...myDataList]
+    .sort((a, b) => new Date(a.date) - new Date(b.date)); // ←昇順
+
+  sorted.forEach(d => {
     csv += `${d.date},${d.score ?? ""},${d.score1 ?? ""}\n`;
   });
 
