@@ -884,7 +884,7 @@ window.importCSV3 = async function () {
 };
 
 window.exportCSV3 = function () {
-  let csv = "date,score(T)\n";
+  let csv = "date,score(B)\n";
 
   myDataList.forEach(d => {
     csv += `${d.date},${d.score}\n`;
@@ -900,16 +900,19 @@ window.exportCSV3 = function () {
 // 3ページ目用
 // ==============================
 window.add3 = async function () {
-  const score = Number(document.getElementById("score3").value);
-  const score = scoreInput * 1000;
+  const scoreInput = Number(document.getElementById("score3").value);
+  const score = scoreInput; // ← Bそのまま保存（2ページ目と統一）
   const date = document.getElementById("date3").value;
+
   if (!date) return alert("日付入れて");
   if (!scoreInput) return alert("スコア入れて");
+
   await setDoc(doc(db, "myScores", date), {
     score,
     date,
     time: Date.now()
   });
+
   document.getElementById("score3").value = "";
 };
 
