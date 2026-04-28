@@ -1009,15 +1009,13 @@ function renderTables3() {
   // 2回合計
   html += "<tr><td>2回合計</td>";
   for (let i = 0; i < 7; i++) {
-    html += `<td>${formatScoreT(best2[i])}</td>`;
-  }
+     html += `<td>${formatScore(best2[i])}</td>`;  }
   html += "</tr>";
 
   // 1回
   html += "<tr><td>1回</td>";
   for (let i = 0; i < 7; i++) {
-    html += `<td>${formatScoreT(best1[i])}</td>`;
-  }
+     html += `<td>${formatScore(best1[i])}</td>`;  }
   html += "</tr>";
 
   html += "</table>";
@@ -1035,8 +1033,8 @@ function renderTables3() {
   sorted.forEach(d => {
     html2 += `<tr>
       <td>${d.date}</td>
-      <td>${formatScoreT(d.score)}</td>
-    </tr>`;
+      <td>${formatScore(d.score)}</td>
+  </tr>`;
   });
 
   html2 += "</table>";
