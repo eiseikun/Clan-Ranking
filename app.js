@@ -516,7 +516,11 @@ window.drawChart = function () {
             }
           : {
               beginAtZero: true,
-              ticks: { color: "#ffffff", font: { size: 12 } },
+              ticks: {
+                color: "#ffffff",
+                font: { size: 12 },
+                callback: (value) => Math.round(value) // ←小数点消す
+                  },
               grid: { color: "rgba(255,255,255,0.1)" }
             }
       }
