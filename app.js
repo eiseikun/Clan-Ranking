@@ -69,7 +69,7 @@ const clanColors = {
   "ねこ海賊団": "#00AEF0",
   "やまだ家": "#FFC000",
   "アチャ伝": "#FF66B2",
-
+  "天狼の戦弓団": "00E5FF",
 };
 const clans = Object.keys(clanColors);
 
