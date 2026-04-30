@@ -519,7 +519,10 @@ window.drawChart = function () {
               ticks: {
                 color: "#ffffff",
                 font: { size: 12 },
-                callback: (value) => Math.round(value) // ←小数点消す
+                callback: (value) => {
+                  if (value >= 1000) return (value / 1000) + "T";
+                  return value;
+                }
                   },
               grid: { color: "rgba(255,255,255,0.1)" }
             }
