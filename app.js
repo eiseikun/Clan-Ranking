@@ -1074,15 +1074,17 @@ window.drawChart3 = function () {
     return t >= s && t <= e &&
       (selectedDays.length === 0 || selectedDays.includes(day));
   });
-
+  const sorted = [...filtered]
+  .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
   if (!filtered.length) {
     alert("データなし");
     return;
   }
 
-  const dates = filtered.map(d => d.date);
-  const scores = filtered.map(d => d.score);
-
+const dates = sorted.map(d => d.date);
+const scores = sorted.map(d => d.score);
+  
   if (myChart) myChart.destroy();
 
   document.getElementById("graphModal").style.display = "block";
