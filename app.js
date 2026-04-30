@@ -445,7 +445,10 @@ window.drawChart = function () {
 
     datasets = selectedClans.map(clan => ({
       label: clan,
-      data: dates.map(date => scoreMap[date]?.[clan] ?? null),
+      data: dates.map(date => {
+        const v = scoreMap[date]?.[clan];
+        return (v === 0 || v == null) ? null : v;
+      }),
       borderColor: clanColors[clan],
       borderWidth: 3,
       spanGaps: true,
