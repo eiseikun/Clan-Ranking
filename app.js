@@ -69,7 +69,7 @@ const clanColors = {
   "猫の旅": "#FF0000",
   "やまだ家": "#FFC000",
   "アチャ伝": "#FF66B2",
-  "天狼の戦弓団": "00E5FF",
+  "天狼の戦弓団": "#00E5FF",
 };
 const clans = Object.keys(clanColors);
 
