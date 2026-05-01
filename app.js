@@ -545,14 +545,13 @@ window.addRank = async function () {
   // ★優先：新規入力 → なければ選択
   const member = newMember || selected;
 
-  const rank = Number(document.getElementById("rank").value);
-  const scoreInput = Number(document.getElementById("score2").value);
-  const score = scoreInput;
-  const date = document.getElementById("date2").value;
+const rankInput = document.getElementById("rank").value;
+const scoreInput = document.getElementById("score2").value;
 
-  if (!member) return alert("メンバー名");
-  if (!date) return alert("日付");
-  if (!rank && !score) {
+const rank = rankInput ? Number(rankInput) : null;
+const score = scoreInput ? Number(scoreInput) : null;
+
+if (rank === null && score === null) {
   return alert("順位かスコアどちらか入力して");
 }
   const id = `${date}_${member}`;
