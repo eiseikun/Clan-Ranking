@@ -862,9 +862,13 @@ window.closeGraphModal1 = function () {
   document.getElementById("graphModal1").style.display = "none";
 };
 
+window.closeGraphModal1 = function () {
+  document.getElementById("graphModal1").style.display = "none";
+  document.body.style.overflow = "auto";
+};
+
 window.closeGraphModal3 = function () {
   document.getElementById("graphModal3").style.display = "none";
-};
   document.body.style.overflow = "auto";
 };
 // 2ページ目期間指定用
@@ -1165,7 +1169,8 @@ const scores = sorted.map(d => d.score);
   
   if (myChart) myChart.destroy();
 
-  document.getElementById("graphModal").style.display = "block";
+  document.getElementById("graphModal3").style.display = "block";
+  document.body.style.overflow = "hidden";
 
   myChart = new Chart(document.getElementById("modalChart3"), {
     type: "line",
