@@ -43,7 +43,7 @@ function formatScore(value) {
 }
 // ★ T固定表示（1ページ目用）
 function formatScoreT(value) {
-  if (value == null) return "-";
+  if (value == null || isNaN(value)) return "-";
   return (value / 1000).toFixed(2) + "T";
 }
 // ==============================
@@ -231,17 +231,20 @@ function renderTables() {
   const weekdayBest = {};
   const days = ["日","月","火","水","木","金","土"];
 
-  dataList.forEach(d => {
-    const day = new Date(d.date).getDay();
+dataList.forEach(d => {
+  const day = new Date(d.date).getDay();
 
-    if (!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
-    if (!weekdayBest[d.clan][day]) {
-      weekdayBest[d.clan][day] = d.score;
-    } else {
-      weekdayBest[d.clan][day] =
-        Math.max(weekdayBest[d.clan][day], d.score);
-    }
-  });
+  // 🔥 scoreが無いデータは完全スキップ
+  if (d.score == null) return;
+
+  if (!weekdayBest[d.clan]) weekdayBest[d.clan] = {};
+  if (!weekdayBest[d.clan][day]) {
+    weekdayBest[d.clan][day] = d.score;
+  } else {
+    weekdayBest[d.clan][day] =
+      Math.max(weekdayBest[d.clan][day], d.score);
+  }
+});
 
   let html = "<table><tr><th>クラン</th>";
   days.forEach(d => html += `<th>${d}</th>`);
@@ -262,7 +265,7 @@ function renderTables() {
   const table = {};
   dataList.forEach(d => {
     if (!table[d.date]) table[d.date] = {};
-    if (d.score != null) {
+    if (d.score != null && !isNaN(d.score)) {
       table[d.date][d.clan] = Math.max(
         table[d.date][d.clan] ?? d.score,
         d.score
