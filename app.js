@@ -464,7 +464,7 @@ window.drawChart = function () {
 
   if (chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("modalChart"), {
+  chart = new Chart(document.getElementById("modalChart1"), {
     type: "line",
     data: {
       labels: dates,
@@ -1162,7 +1162,7 @@ const scores = sorted.map(d => d.score);
 
   document.getElementById("graphModal").style.display = "block";
 
-  myChart = new Chart(document.getElementById("modalChart"), {
+  myChart = new Chart(document.getElementById("modalChart3"), {
     type: "line",
     data: {
       labels: dates,
