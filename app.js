@@ -262,10 +262,12 @@ function renderTables() {
   const table = {};
   dataList.forEach(d => {
     if (!table[d.date]) table[d.date] = {};
-    table[d.date][d.clan] = Math.max(
-      table[d.date][d.clan] ?? 0,
-      d.score
-    );
+    if (d.score != null) {
+      table[d.date][d.clan] = Math.max(
+        table[d.date][d.clan] ?? d.score,
+        d.score
+      );
+    }
   });
 
 const dates = Object.keys(table)
@@ -278,7 +280,8 @@ html2 += "</tr>";
   dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
     clans.forEach(c => {
-      html2 += `<td>${formatScoreT(table[date]?.[c])}</td>`;
+      const val = table[date]?.[c];
+      html2 += `<td>${val ? formatScoreT(val) : "-"}</td>`;
     });
     html2 += "</tr>";
   });
@@ -846,12 +849,15 @@ window.importCSV = async function () {
       }
     }
 
-    await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
+    const docData = {
       date: fixedDate,
       clan,
-      score: scoreB,
       time: Date.now()
-    });
+    };
+    if (scoreB != null) {
+      docData.score = scoreB;
+    }
+    await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), docData);
   }
 
   alert("CSV取込完了");
@@ -880,7 +886,7 @@ window.exportCSV = function () {
         d.date === date && d.clan === clan
       );
 
-      if (row && row.score != null) {
+      if (row && row.score != null && row.score !== 0) {
         // 🔥 B → T
         const scoreT = (row.score / 1000).toFixed(2);
         csv += `${row.date},${row.clan},${scoreT}\r\n`;
