@@ -578,6 +578,53 @@ window.addRank = async function () {
   document.getElementById("newMember").value = "";
 };
 // ==============================
+// ■ 画像保存
+// ==============================
+window.saveBestScoreImage = async function () {
+  const original = document.getElementById("bestScoreCapture");
+
+  if (!original) return alert("対象が見つかりません");
+
+  const clone = original.cloneNode(true);
+
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "-9999px";
+  clone.style.pointerEvents = "none";
+  clone.style.background = "#111";
+  clone.style.color = "white";
+  clone.style.padding = "10px";
+  clone.style.width = "fit-content";
+
+  document.body.appendChild(clone);
+
+  await new Promise(r => requestAnimationFrame(r));
+
+  const rect = clone.getBoundingClientRect();
+  const fullWidth = Math.ceil(rect.width + 10);
+
+  const canvas = await html2canvas(clone, {
+    scale: 3,
+    backgroundColor: "#111",
+    windowWidth: fullWidth
+  });
+
+  document.body.removeChild(clone);
+
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], "best_score.png", { type: "image/png" });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file] });
+    } else {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "best_score.png";
+      link.click();
+    }
+  });
+};
+// ==============================
 // ■ ランキングテーブル
 // ==============================
 function renderRankTable() {
