@@ -1186,9 +1186,13 @@ const scores = sorted.map(d => d.score);
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          labels: { color: "#fff" }
-        }
+  legend: {
+    position: "bottom", 
+    labels: {
+      color: "#fff"
+    }
+  }
+}
       },
       scales: {
         x: {
