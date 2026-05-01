@@ -679,46 +679,50 @@ window.calcAvgRank = function () {
 
   const OUT_RANK = 16;
 
-  const allDates = [...new Set(rankList.map(d => d.date))]
-    .filter(date => {
-      const t = toTime(date);
-      return t >= s && t <= e;
-    })
-    .sort((a, b) => toTime(a) - toTime(b));
+// 日付ごとの参加人数をカウント
+const dateCounts = {};
+rankList.forEach(d => {
+  if (d.rank != null) {
+    if (!dateCounts[d.date]) dateCounts[d.date] = 0;
+    dateCounts[d.date]++;
+  }
+});
 
-  
+// 有効日だけ抽出（1人以上記録あり）
+const allDates = Object.keys(dateCounts)
+  .filter(date => {
+    const t = toTime(date);
+    return t >= s && t <= e && dateCounts[date] > 0;
+  })
+  .sort((a, b) => toTime(a) - toTime(b));
 
-  const dynamicMembers = [...new Set(rankList.map(d => d.member))];
-  const members = [...new Set([...baseMembers, ...dynamicMembers])];
+const result = [];
 
-  const dateMap = {};
-  rankList.forEach(d => {
-    if (!dateMap[d.date]) dateMap[d.date] = {};
-    dateMap[d.date][d.member] = d.rank;
-  });
+members.forEach(member => {
 
-  const result = [];
+  let total = 0;
+  let count = 0;
 
-  members.forEach(member => {
+  allDates.forEach(date => {
 
-    let total = 0;
-    let count = 0;
+    const rank = dateMap[date]?.[member];
 
-    allDates.forEach(date => {
-      const rank = dateMap[date]?.[member];
-      if (rank != null) {
-        total += rank;
-        count++;
-      }
-    });
-
-    if (count > 0) {
-      result.push({
-        member,
-        avg: total / count
-      });
+    if (rank != null) {
+      total += rank;
+    } else {
+      total += OUT_RANK; // ← 個人未参加は16位
     }
+
+    count++;
   });
+
+  if (count > 0) {
+    result.push({
+      member,
+      avg: total / count
+    });
+  }
+});
 
   result.sort((a, b) => a.avg - b.avg);
 
