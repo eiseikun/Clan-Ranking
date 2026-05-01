@@ -824,16 +824,27 @@ window.applyAvgRank = function () {
 window.importCSV = async function () {
   const file = document.getElementById("csvFile").files[0];
   if (!file) return alert("ファイル選んで");
+
   const text = await file.text();
   const rows = text.split("\n").slice(1);
+
   for (let row of rows) {
     if (!row.trim()) continue;
+
     let [date, clan, score] = row.split(",");
-    if (!date || !clan || isNaN(Number(score))) continue;
+    if (!date || !clan) continue;
+
     const fixedDate = date.trim().replace(/\//g, "-");
-    // 🔥 CSVは必ずT
-    const scoreT = Number(score);
-    const scoreB = scoreT * 1000;
+
+    // 🔥ここが最重要
+    let scoreB = null;
+
+    if (score && score !== "-") {
+      const scoreT = Number(score);
+      if (!isNaN(scoreT)) {
+        scoreB = scoreT * 1000;
+      }
+    }
 
     await setDoc(doc(db, "scores", `${fixedDate}_${clan}`), {
       date: fixedDate,
@@ -842,6 +853,7 @@ window.importCSV = async function () {
       time: Date.now()
     });
   }
+
   alert("CSV取込完了");
 };
 
