@@ -542,25 +542,28 @@ window.addRank = async function () {
   const selected = document.getElementById("member").value;
   const newMember = document.getElementById("newMember").value.trim();
 
-  // ★優先：新規入力 → なければ選択
   const member = newMember || selected;
 
-const rankInput = document.getElementById("rank").value;
-const scoreInput = document.getElementById("score2").value;
+  const rankInput = document.getElementById("rank").value;
+  const scoreInput = document.getElementById("score2").value;
 
-const rank = rankInput ? Number(rankInput) : null;
-const score = scoreInput ? Number(scoreInput) : null;
+  const rank = rankInput ? Number(rankInput) : null;
+  const score = scoreInput ? Number(scoreInput) : null;
 
-if (rank === null && score === null) {
-  return alert("順位かスコアどちらか入力して");
-}
+  const date = document.getElementById("date2").value; // ←追加
+  if (!date) return alert("日付入れて");
+
+  if (rank === null && score === null) {
+    return alert("順位かスコアどちらか入力して");
+  }
+
   const id = `${date}_${member}`;
 
   await setDoc(doc(db, "ranks", id), {
     clan: "ねこ海賊団",
     member,
-    rank: rank || null,
-    score: score || null,
+    rank,
+    score,
     date,
     time: Date.now()
   });
