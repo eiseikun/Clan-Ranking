@@ -1195,8 +1195,14 @@ const scores = sorted.map(d => d.score);
           ticks: { color: "#fff" }
         },
         y: {
-          ticks: { color: "#fff" }
-        }
+  ticks: {
+    color: "#fff",
+    callback: (value) => {
+      if (value >= 1000) return (value / 1000) + "T";
+      return value;
+    }
+  }
+}
       }
     }
   });
