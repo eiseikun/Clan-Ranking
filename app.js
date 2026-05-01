@@ -711,8 +711,10 @@ window.calcAvgRank = function () {
 
     allDates.forEach(date => {
       const rank = dateMap[date]?.[member];
-      total += (rank != null) ? rank : OUT_RANK;
-      count++;
+      if (rank != null) {
+        total += rank;
+        count++;
+      }
     });
 
     if (count > 0) {
