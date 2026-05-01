@@ -1192,7 +1192,6 @@ const scores = sorted.map(d => d.score);
       color: "#fff"
     }
   }
-}
       },
       scales: {
         x: {
