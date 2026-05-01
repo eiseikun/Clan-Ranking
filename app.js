@@ -127,11 +127,6 @@ window.showPage = function (page) {
   document.getElementById("tab2").classList.toggle("active", page === 2);
   document.getElementById("tab3").classList.toggle("active", page === 3);
 
-  // ★これ追加
-  if (page === 3) {
-    loadMemo();
-  }
-};
 
 // ==============================
 // データ追加（安全化）
@@ -1199,37 +1194,4 @@ const scores = sorted.map(d => d.score);
   });
 };
 
-// 保存
-window.saveMemo = async function () {
-  try {
-    const cells = document.querySelectorAll("#memoTable td");
 
-    const data = {};
-
-    cells.forEach(td => {
-      const key = td.dataset.key;
-      data[key] = td.innerText.trim();
-    });
-
-    await setDoc(doc(db, "memo", "table1"), {
-      data,
-      time: Date.now()
-    });
-
-    alert("保存しました!!");
-
-  } catch (e) {
-    alert("保存失敗：" + e.message);
-  }
-};
-
-// 読み込み
-async function loadMemo() {
-  const snap = await getDoc(doc(db, "memo", "table1"));
-
-  if (snap.exists()) {
-    renderMemoTable(snap.data().data);
-  } else {
-    renderMemoTable({});
-  }
-}
