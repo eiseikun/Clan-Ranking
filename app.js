@@ -579,6 +579,7 @@ function renderRankTable() {
   const table = {};
 
   rankList.forEach(d => {
+    if (d.rank == null) return;
     if (!table[d.date]) table[d.date] = {};
     table[d.date][d.member] = d.rank;
   });
