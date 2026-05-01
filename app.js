@@ -459,7 +459,7 @@ window.drawChart = function () {
 // ==============================
 // ▼ グラフ描画（Chart.js）
 // ==============================
-  document.getElementById("graphModal").style.display = "block";
+  document.getElementById("graphModal1").style.display = "block";
   document.body.style.overflow = "hidden";
 
   if (chart) chart.destroy();
@@ -858,8 +858,13 @@ window.toggleGraphBox3 = function () {
   box.style.display = (box.style.display === "none") ? "block" : "none";
 };
 
-window.closeGraphModal = function () {
-  document.getElementById("graphModal").style.display = "none";
+window.closeGraphModal1 = function () {
+  document.getElementById("graphModal1").style.display = "none";
+};
+
+window.closeGraphModal3 = function () {
+  document.getElementById("graphModal3").style.display = "none";
+};
   document.body.style.overflow = "auto";
 };
 // 2ページ目期間指定用
