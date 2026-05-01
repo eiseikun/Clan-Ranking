@@ -874,13 +874,7 @@ window.exportCSV = function () {
   const dates = [...new Set(dataList.map(d => d.date))]
     .sort((a, b) => new Date(a) - new Date(b));
 
-  const firstDate = dates[0];
-
-  const firstDayData = dataList
-    .filter(d => d.date === firstDate)
-    .sort((a, b) => b.score - a.score);
-
-  const clanOrder = firstDayData.map(d => d.clan);
+  const clanOrder = clans;
 
   dates.forEach(date => {
     clanOrder.forEach(clan => {
