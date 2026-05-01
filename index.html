@@ -267,14 +267,24 @@
 </div>
 
 <!-- グラフモーダル -->
-<div id="graphModal" class="graph-modal">
+<div id="graphModal1" class="graph-modal">
   <div class="graph-modal-content">
     <div class="graph-header">
-      <h3>📊 グラフ表示</h3>
-      <button onclick="closeGraphModal()">閉じる</button>
+      <h3>📊 グラフ表示（全体）</h3>
+      <button onclick="closeGraphModal1()">閉じる</button>
     </div>
-    <canvas id="modalChart1"></canvas> <!-- 1ページ目 -->
-    <canvas id="modalChart3"></canvas> <!-- 3ページ目 -->
+    <canvas id="modalChart1"></canvas>
+  </div>
+</div>
+
+<!-- 3ページ目用 -->
+<div id="graphModal3" class="graph-modal">
+  <div class="graph-modal-content">
+    <div class="graph-header">
+      <h3>📊 グラフ表示（個人）</h3>
+      <button onclick="closeGraphModal3()">閉じる</button>
+    </div>
+    <canvas id="modalChart3"></canvas>
   </div>
 </div>
 
