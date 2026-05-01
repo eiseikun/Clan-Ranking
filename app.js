@@ -126,7 +126,7 @@ window.showPage = function (page) {
   document.getElementById("tab1").classList.toggle("active", page === 1);
   document.getElementById("tab2").classList.toggle("active", page === 2);
   document.getElementById("tab3").classList.toggle("active", page === 3);
-
+};
 
 // ==============================
 // データ追加（安全化）
