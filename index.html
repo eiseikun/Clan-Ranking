@@ -121,6 +121,9 @@
       <button onclick="importCSV2()">CSV取込</button>
       <button onclick="exportCSV2()">CSV出力</button>
     </div>
+    <div class="row">
+      <button onclick="saveBestScoreImage()">📸 画像保存</button>
+    </div>
   </div>
 
   <!-- 順位追加 -->
@@ -155,7 +158,7 @@
   </div>
   
   <!-- 個人別最高スコア -->
-  <div class="box">
+  <div class="box" id="bestScoreCapture">
     <h3>☠個人別最高スコア☠</h3>
     <div id="bestScoreBox"></div>
   </div>
