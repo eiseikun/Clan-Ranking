@@ -459,6 +459,7 @@ window.drawChart = function () {
 // ==============================
 // ▼ グラフ描画（Chart.js）
 // ==============================
+  document.getElementById("graphModal3").style.display = "none";
   document.getElementById("graphModal1").style.display = "block";
   document.body.style.overflow = "hidden";
 
@@ -860,10 +861,6 @@ window.toggleGraphBox3 = function () {
 
 window.closeGraphModal1 = function () {
   document.getElementById("graphModal1").style.display = "none";
-};
-
-window.closeGraphModal1 = function () {
-  document.getElementById("graphModal1").style.display = "none";
   document.body.style.overflow = "auto";
 };
 
@@ -1169,6 +1166,7 @@ const scores = sorted.map(d => d.score);
   
   if (myChart) myChart.destroy();
 
+  document.getElementById("graphModal1").style.display = "none";
   document.getElementById("graphModal3").style.display = "block";
   document.body.style.overflow = "hidden";
 
