@@ -551,15 +551,16 @@ window.addRank = async function () {
   const date = document.getElementById("date2").value;
 
   if (!member) return alert("メンバー名");
-  if (!rank) return alert("順位");
   if (!date) return alert("日付");
-
+  if (!rank && !score) {
+  return alert("順位かスコアどちらか入力して");
+}
   const id = `${date}_${member}`;
 
   await setDoc(doc(db, "ranks", id), {
     clan: "ねこ海賊団",
     member,
-    rank,
+    rank: rank || null,
     score: score || null,
     date,
     time: Date.now()
@@ -654,7 +655,7 @@ window.calcAvgRank = function () {
 
     allDates.forEach(date => {
       const rank = dateMap[date]?.[member];
-      total += (rank !== undefined) ? rank : OUT_RANK;
+      total += (rank != null) ? rank : OUT_RANK;
       count++;
     });
 
