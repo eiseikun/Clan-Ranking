@@ -439,7 +439,7 @@ window.drawChart = function () {
       borderColor: clanColors[clan],
       borderWidth: 3,
       spanGaps: true,
-      pointRadius: 4
+      pointRadius: 2
     }));
 
   } else {
@@ -453,7 +453,7 @@ window.drawChart = function () {
       borderColor: clanColors[clan],
       borderWidth: 3,
       spanGaps: true,
-      pointRadius: 4
+      pointRadius: 2
     }));
   }
 // ==============================
@@ -1171,7 +1171,7 @@ const scores = sorted.map(d => d.score);
         data: scores,
         borderColor: "#00E5FF",
         borderWidth: 3,
-        pointRadius: 4,
+        pointRadius: 2,
         spanGaps: true
       }]
     },
