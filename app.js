@@ -737,7 +737,7 @@ function renderBestScore() {
   const bestMap = {};
 
   rankList.forEach(d => {
-    if (!d.score) return;
+  if (d.score == null) return;
     if (!bestMap[d.member] || bestMap[d.member].score < d.score) {
       bestMap[d.member] = {
         score: d.score,
@@ -960,18 +960,25 @@ window.importCSV2 = async function () {
   const rows = text.split("\n").slice(1);
   for (let row of rows) {
     if (!row.trim()) continue;
-    let [date, member, rank, score] = row.split(",");
-    if (!date || !member || isNaN(Number(rank))) continue;
-    const scoreValue = Number(score);
-    const fixedDate = date.trim().replace(/\//g, "-");
-    await setDoc(doc(db, "ranks", `${fixedDate}_${member}`), {
-      clan: "ねこ海賊団",
-      member,
-      rank: Number(rank),
-      score: isNaN(scoreValue) ? null : scoreValue, // ★追加
-      date: fixedDate,
-      time: Date.now()
+let [date, member, rank, score] = row.split(",");
+
+if (!date || !member) continue;
+
+// 🔥 trimしてから数値変換
+const rankValue = rank ? Number(rank.trim()) : null;
+const scoreValue = score ? Number(score.trim()) : null;
+
+const fixedDate = date.trim().replace(/\//g, "-");
+
+await setDoc(doc(db, "ranks", `${fixedDate}_${member}`), {
+  clan: "ねこ海賊団",
+  member,
+  rank: isNaN(rankValue) ? null : rankValue,
+  score: isNaN(scoreValue) ? null : scoreValue,
+  date: fixedDate,
+  time: Date.now()
 });
+
   }
   alert("CSV取込完了");
 };
