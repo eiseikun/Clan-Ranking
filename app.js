@@ -396,25 +396,26 @@ window.drawChart = function () {
   const mode = document.getElementById("graphMode").value;
 
   const filtered = dataList.filter(d => {
-    const t = new Date(d.date).getTime();
-    const s = start ? new Date(start).getTime() : -Infinity;
-    const e = end ? new Date(end).getTime() : Infinity;
+  const t = new Date(d.date).getTime();
+  const s = start ? new Date(start).getTime() : -Infinity;
+  const e = end ? new Date(end).getTime() : Infinity;
 
-    return t >= s && t <= e && selectedClans.includes(d.clan);
-  });
+  return t >= s && t <= e && selectedClans.includes(d.clan);
+});
 
-  const dates = [...new Set(dataList.map(d => d.date))]
-    .sort((a, b) => new Date(a) - new Date(b));
+// 🔥ここ全部 filtered にする
+const dates = [...new Set(filtered.map(d => d.date))]
+  .sort((a, b) => new Date(a) - new Date(b));
 
-  const scoreMap = {};
+const scoreMap = {};
 
-  dataList.forEach(d => {
-    if (!scoreMap[d.date]) scoreMap[d.date] = {};
-    scoreMap[d.date][d.clan] = Math.max(
-      scoreMap[d.date][d.clan] ?? 0,
-      d.score
-    );
-  });
+filtered.forEach(d => {
+  if (!scoreMap[d.date]) scoreMap[d.date] = {};
+  scoreMap[d.date][d.clan] = Math.max(
+    scoreMap[d.date][d.clan] ?? 0,
+    d.score
+  );
+});
 
   let datasets = [];
 
