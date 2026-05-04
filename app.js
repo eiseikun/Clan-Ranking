@@ -429,9 +429,9 @@ filtered.forEach(d => {
     const rankMap = {};
 
     dates.forEach(date => {
-      const list = filtered
-        .filter(d => d.date === date)
-        .sort((a, b) => b.score - a.score);
+      const list = dataList
+  .filter(d => d.date === date)
+  .sort((a, b) => b.score - a.score);
 
       rankMap[date] = {};
       list.forEach((d, i) => {
