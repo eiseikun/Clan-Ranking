@@ -395,10 +395,15 @@ window.drawChart = function () {
   const end = document.getElementById("endDate").value;
   const mode = document.getElementById("graphMode").value;
 
-  const filtered = dataList.filter(d => {
-  const t = new Date(d.date).getTime();
-  const s = start ? new Date(start).getTime() : -Infinity;
-  const e = end ? new Date(end).getTime() : Infinity;
+function toLocalTime(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).getTime();
+}
+
+const filtered = dataList.filter(d => {
+  const t = toLocalTime(d.date);
+  const s = start ? toLocalTime(start) : -Infinity;
+  const e = end ? toLocalTime(end) : Infinity;
 
   return t >= s && t <= e && selectedClans.includes(d.clan);
 });
@@ -424,7 +429,7 @@ filtered.forEach(d => {
     const rankMap = {};
 
     dates.forEach(date => {
-      const list = dataList
+      const list = filtered
         .filter(d => d.date === date)
         .sort((a, b) => b.score - a.score);
 
