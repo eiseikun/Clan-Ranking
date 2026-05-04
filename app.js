@@ -1156,27 +1156,36 @@ window.drawChart3 = function () {
   const selectedDays = [...document.querySelectorAll("#graphBox3 input[type=checkbox]:checked")]
     .map(cb => Number(cb.value));
 
-  const filtered = myDataList.filter(d => {
-    const t = new Date(d.date).getTime();
-    const s = start ? new Date(start).getTime() : -Infinity;
-    const e = end ? new Date(end).getTime() : Infinity;
+  // 🔥 ローカル時間変換（これが超重要）
+  function toLocalTime(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
+  }
 
-    const day = new Date(d.date).getDay();
+  // 🔥 フィルタ（全部これに統一）
+  const filtered = myDataList.filter(d => {
+    const t = toLocalTime(d.date);
+    const s = start ? toLocalTime(start) : -Infinity;
+    const e = end ? toLocalTime(end) : Infinity;
+
+    const day = new Date(d.date).getDay(); // 曜日はこれでOK
 
     return t >= s && t <= e &&
       (selectedDays.length === 0 || selectedDays.includes(day));
   });
-  const sorted = [...filtered]
-  .sort((a, b) => new Date(a.date) - new Date(b.date));
-  
+
   if (!filtered.length) {
     alert("データなし");
     return;
   }
 
-const dates = sorted.map(d => d.date);
-const scores = sorted.map(d => d.score);
-  
+  // 🔥 ソートも統一（ここも重要）
+  const sorted = [...filtered]
+    .sort((a, b) => toLocalTime(a.date) - toLocalTime(b.date));
+
+  const dates = sorted.map(d => d.date);
+  const scores = sorted.map(d => d.score);
+
   if (myChart) myChart.destroy();
 
   document.getElementById("graphModal1").style.display = "none";
@@ -1199,25 +1208,25 @@ const scores = sorted.map(d => d.score);
     options: {
       responsive: true,
       plugins: {
-  legend: {
-    position: "bottom", 
-    labels: {
-      color: "#fff"
-    }
-  }
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#fff"
+          }
+        }
       },
       scales: {
         x: {
           ticks: { color: "#fff" }
         },
         y: {
-  ticks: {
-    color: "#fff",
-    callback: (value) => {
-  return (value / 1000) + "T";
-}
-  }
-}
+          ticks: {
+            color: "#fff",
+            callback: (value) => {
+              return (value / 1000) + "T";
+            }
+          }
+        }
       }
     }
   });
