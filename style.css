@@ -301,3 +301,6 @@ tr:nth-child(odd){
   text-shadow: 0 0 6px rgba(205,127,50,0.7);
 }
 
+#avgResult3{
+  margin-top:10px;
+}
