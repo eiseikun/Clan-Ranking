@@ -209,7 +209,31 @@
     <h3>🏆 曜日別最高スコア</h3>
     <div id="weekdayBest3"></div>
   </div>
+  
+  <!-- 平均スコア -->
+  <div class="box">
+    <h3 class="accordion-title" onclick="toggleAvgBox3()">
+      📊 平均スコア
+    </h3>
 
+    <div id="avgBox3" style="display:none;">
+
+      <div class="row">
+        <input type="date" id="avgStartDate3">
+        <input type="date" id="avgEndDate3">
+      </div>
+
+      <div class="row">
+        <button onclick="calcAvgScore3()">
+          平均計算
+        </button>
+      </div>
+
+      <div id="avgResult3"></div>
+
+    </div>
+  </div>
+  
   <!-- グラフ -->
   <div class="box">
     <h3 class="accordion-title" onclick="toggleGraphBox3()">📈 グラフ生成</h3>
