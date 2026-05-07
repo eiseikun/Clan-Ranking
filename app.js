@@ -815,7 +815,73 @@ window.clearAllClans = function () {
     .forEach(cb => cb.checked = false);
 };
 
+// ==============================
+// 3ページ目 平均スコア(5/7追加)
+// ==============================
 
+// 折りたたみ
+window.toggleAvgBox3 = function () {
+  const box = document.getElementById("avgBox3");
+
+  box.style.display =
+    (box.style.display === "none")
+      ? "block"
+      : "none";
+};
+
+// 平均計算
+window.calcAvgScore3 = function () {
+
+  const start = document.getElementById("avgStartDate3").value;
+  const end = document.getElementById("avgEndDate3").value;
+
+  function toLocalTime(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
+  }
+
+  const filtered = myDataList.filter(d => {
+
+    if (d.score == null) return false;
+
+    const t = toLocalTime(d.date);
+
+    const s = start
+      ? toLocalTime(start)
+      : -Infinity;
+
+    const e = end
+      ? toLocalTime(end)
+      : Infinity;
+
+    return t >= s && t <= e;
+  });
+
+  if (!filtered.length) {
+    document.getElementById("avgResult3").innerHTML =
+      "データなし";
+    return;
+  }
+
+  const total = filtered.reduce((sum, d) => {
+    return sum + d.score;
+  }, 0);
+
+  const avg = total / filtered.length;
+
+  document.getElementById("avgResult3").innerHTML = `
+    <table>
+      <tr>
+        <th>件数</th>
+        <th>平均スコア</th>
+      </tr>
+      <tr>
+        <td>${filtered.length}</td>
+        <td>${formatScore(avg)}</td>
+      </tr>
+    </table>
+  `;
+};
 
 
 // ==============================
