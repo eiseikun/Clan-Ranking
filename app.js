@@ -172,7 +172,7 @@ function updateMemberList() {
 const baseMembers = [
   "モジュ","えいせい","にゃんこ船長","大蒜マン","タケシEX",
   "AK1104","ねこ0618","すわろう","きゃりら","かずまる55","肉おじゃ","ゆうゆうゆゆ","アンロイ","マグノリア","なーさんdesu","norix9815","パルムぅ",
-  "righter","RIKKUN","Alutemaika","2yan子","ジャック99","あき3","UUUUUY",
+  "righter","RIKKUN","Alutemaika","2yan子","ジャック99","あき3","UUUUUY","KOUPEI",
   "もにゃか","tsuji8","トコブル","EV5009","なはやまか"
 ];
 // ==============================
