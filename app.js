@@ -1100,7 +1100,7 @@ window.importCSV3 = async function () {
     const s = score ? Number(score.trim()) : null;
     const s1 = score1 ? Number(score1.trim()) : null;
 
-    await setDoc(doc(db, "myScores", fixedDate + "_" + Date.now()), {
+    await setDoc(doc(db, "myScores", fixedDate), {
       date: fixedDate,
       score: s,
       score1: s1,
