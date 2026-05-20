@@ -140,20 +140,18 @@
     <div class="row"><input id="date2" type="date"></div>
     <div class="row"><button onclick="addRank()">追加</button></div>
   </div>
-
-  <!-- 期間 -->
+  
+  <!-- 平均順位 -->
   <div class="box">
-    <h3>📅 期間指定</h3>
+    <h3>📊 平均順位</h3>
     <div class="row">
       <input type="date" id="startDateRank">
       <input type="date" id="endDateRank">
     </div>
-    <div class="row"><button onclick="applyAvgRank()">反映</button></div>
-  </div>
-
-  <!-- 平均順位 -->
-  <div class="box">
-    <h3>📊 平均順位</h3>
+    <div class="row">
+      <button onclick="applyAvgRank()">反映</button>
+    </div>
+    
     <div id="avgRankBox"></div>
   </div>
   
