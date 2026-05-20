@@ -660,7 +660,7 @@ window.saveAvgRankImage = async function () {
         font-weight:bold;
         margin-bottom:10px;
       ">
-        📊 ${start} ～ ${end}
+        🏆 ${start} ～ ${end}
       </div>
     `;
     // inputが入ってるrowを取得
