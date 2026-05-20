@@ -797,29 +797,7 @@ window.calcAvgRank = function () {
 }
   });
   result.sort((a, b) => a.avg - b.avg);
-  // 表示
-  let periodText = "";
-  if (start && end) {
-    periodText = `${start} ~ ${end}`;
-  } else if (start) {
-    periodText = `${start} ~`;
-  } else if (end) {
-    periodText = `~ ${end}`;
-  } else {
-    periodText = "全期間";
-  }
-  let html = `
-  <div style="text-align:center; margin-bottom:10px;">
-  <div style="font-size:20px; font-weight:bold;">
-  📊 平均順位
-  </div>
-  <div style="font-size:14px; color:#cbd5e1;">
-  ${periodText}
-  </div>
-  </div>
-
-  <table>
-`;
+  let html = "<table>";
   result.forEach(d => {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
