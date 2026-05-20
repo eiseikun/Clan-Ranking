@@ -123,6 +123,7 @@
     </div>
     <div class="row">
       <button onclick="saveBestScoreImage()">📸 最高スコア</button>
+      <button onclick="saveAvgRankImage()">📸 平均順位</button>
     </div>
   </div>
 
@@ -142,18 +143,20 @@
   </div>
   
   <!-- 平均順位 -->
-  <div class="box">
-    <h3>📊 平均順位</h3>
-    <div class="row">
-      <input type="date" id="startDateRank">
-      <input type="date" id="endDateRank">
-    </div>
-    <div class="row">
-      <button onclick="applyAvgRank()">反映</button>
-    </div>
-    
-    <div id="avgRankBox"></div>
+<div class="box" id="avgRankCapture">
+  <h3>📊 平均順位</h3>
+
+  <div class="row">
+    <input type="date" id="startDateRank">
+    <input type="date" id="endDateRank">
   </div>
+
+  <div class="row">
+    <button onclick="applyAvgRank()">反映</button>
+  </div>
+
+  <div id="avgRankBox"></div>
+</div>
   
   <!-- 個人別最高スコア -->
   <div class="box" id="bestScoreCapture">
