@@ -628,7 +628,65 @@ window.saveBestScoreImage = async function () {
     }
   });
 };
+// ==============================
+// ■ 平均順位画像保存
+// ==============================
+window.saveAvgRankImage = async function () {
 
+  const original = document.getElementById("avgRankCapture");
+
+  if (!original) return alert("対象が見つかりません");
+
+  const clone = original.cloneNode(true);
+
+  clone.style.position = "fixed";
+  clone.style.top = "0";
+  clone.style.left = "-9999px";
+  clone.style.pointerEvents = "none";
+  clone.style.background = "#111";
+  clone.style.color = "white";
+  clone.style.padding = "10px";
+  clone.style.width = "fit-content";
+
+  document.body.appendChild(clone);
+
+  await new Promise(r => requestAnimationFrame(r));
+
+  const rect = clone.getBoundingClientRect();
+  const fullWidth = Math.ceil(rect.width + 10);
+
+  const canvas = await html2canvas(clone, {
+    scale: 3,
+    backgroundColor: "#111",
+    windowWidth: fullWidth
+  });
+
+  document.body.removeChild(clone);
+
+  canvas.toBlob(async (blob) => {
+
+    const file = new File(
+      [blob],
+      "avg_rank.png",
+      { type: "image/png" }
+    );
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+
+      await navigator.share({
+        files: [file]
+      });
+
+    } else {
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "avg_rank.png";
+      link.click();
+
+    }
+  });
+};
 
 // ==============================
 // ■ ランキングテーブル
@@ -740,7 +798,28 @@ window.calcAvgRank = function () {
   });
   result.sort((a, b) => a.avg - b.avg);
   // 表示
-  let html = "<table>";
+  let periodText = "";
+  if (start && end) {
+    periodText = `${start} ~ ${end}`;
+  } else if (start) {
+    periodText = `${start} ~`;
+  } else if (end) {
+    periodText = `~ ${end}`;
+  } else {
+    periodText = "全期間";
+  }
+  let html = `
+  <div style="text-align:center; margin-bottom:10px;">
+  <div style="font-size:20px; font-weight:bold;">
+  📊 平均順位
+  </div>
+  <div style="font-size:14px; color:#cbd5e1;">
+  ${periodText}
+  </div>
+  </div>
+
+  <table>
+`;
   result.forEach(d => {
     html += `<tr><td>${d.member}</td><td>${d.avg.toFixed(2)}</td></tr>`;
   });
