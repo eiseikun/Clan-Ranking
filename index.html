@@ -141,21 +141,49 @@
     <div class="row"><button onclick="addRank()">追加</button></div>
   </div>
 
-  <!-- 期間 -->
-  <div class="box">
-    <h3>📅 期間指定</h3>
-    <div class="row">
-      <input type="date" id="startDateRank">
-      <input type="date" id="endDateRank">
-    </div>
-    <div class="row"><button onclick="applyAvgRank()">反映</button></div>
+ <!-- 期間 -->
+<div class="box">
+  <h3>📅 平均順位分析</h3>
+
+  <div class="row">
+    <input type="date" id="startDateRank">
+    <input type="date" id="endDateRank">
   </div>
 
+  <!-- メンバー選択 -->
+  <div class="row">
+    <select id="avgMember">
+      <option value="">メンバー選択</option>
+    </select>
+  </div>
+
+  <!-- 表 or グラフ -->
+  <div class="row">
+    <select id="avgRankMode">
+      <option value="table">平均順位表</option>
+      <option value="graph">平均順位推移グラフ</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <button onclick="applyAvgRank()">表示</button>
+  </div>
+</div>
+  
   <!-- 平均順位 -->
   <div class="box">
     <h3>📊 平均順位</h3>
     <div id="avgRankBox"></div>
   </div>
+  
+  <!-- 平均順位グラフ -->
+<div class="box" id="avgRankGraphBox" style="display:none;">
+  <h3>📈 平均順位推移</h3>
+
+  <div class="graph-area">
+    <canvas id="avgRankChart"></canvas>
+  </div>
+</div>
   
   <!-- 個人別最高スコア -->
   <div class="box" id="bestScoreCapture">
