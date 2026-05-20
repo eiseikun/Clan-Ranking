@@ -639,6 +639,14 @@ window.saveAvgRankImage = async function () {
 
   const clone = original.cloneNode(true);
 
+  // ▼ 反映ボタンを消す
+  const buttons = clone.querySelectorAll("button");
+  buttons.forEach(btn => {
+    if (btn.textContent.includes("反映")) {
+      btn.style.display = "none";
+    }
+  });
+
   clone.style.position = "fixed";
   clone.style.top = "0";
   clone.style.left = "-9999px";
