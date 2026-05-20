@@ -122,8 +122,12 @@
       <button onclick="exportCSV2()">CSV出力</button>
     </div>
     <div class="row">
-      <button onclick="saveBestScoreImage()">📸 画像保存</button>
-    </div>
+      <button onclick="saveBestScoreImage()">📸 最高スコア</button>
+    </div>  
+    <div class="row">
+    <button onclick="saveAvgRankImage()">📸 平均順位</button>
+  </div>
+
   </div>
 
   <!-- 順位追加 -->
@@ -154,10 +158,6 @@
 <!-- 平均順位 -->
 <div class="box" id="avgRankCapture">
   <h3>📊 平均順位</h3>
-
-  <div class="row">
-    <button onclick="saveAvgRankImage()">📸 画像保存</button>
-  </div>
 
   <div id="avgRankBox"></div>
 </div>
