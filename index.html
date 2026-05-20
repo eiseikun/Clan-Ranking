@@ -151,11 +151,16 @@
     <div class="row"><button onclick="applyAvgRank()">反映</button></div>
   </div>
 
-  <!-- 平均順位 -->
-  <div class="box">
-    <h3>📊 平均順位</h3>
-    <div id="avgRankBox"></div>
+<!-- 平均順位 -->
+<div class="box" id="avgRankCapture">
+  <h3>📊 平均順位</h3>
+
+  <div class="row">
+    <button onclick="saveAvgRankImage()">📸 画像保存</button>
   </div>
+
+  <div id="avgRankBox"></div>
+</div>
   
   <!-- 個人別最高スコア -->
   <div class="box" id="bestScoreCapture">
