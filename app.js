@@ -23,7 +23,7 @@ let selectedClans = [];
 
 let myDataList = [];
 let myChart = null;
-let avgRankChart = null;
+
 // ==============================
 // ■ スコア変換（T / B）
 // ==============================
@@ -155,11 +155,8 @@ window.add = async function () {
 // メンバー候補
 // ==============================
 function updateMemberList() {
-
   const select = document.getElementById("member");
-  const avgSelect = document.getElementById("avgMember");
-
-  if (!select || !avgSelect) return;
+  if (!select) return;
 
   const dynamicMembers = [...new Set(rankList.map(d => d.member))];
 
@@ -168,21 +165,15 @@ function updateMemberList() {
     ...dynamicMembers.filter(m => !baseMembers.includes(m))
   ];
 
-  const options =
-    '<option value="">選択してください</option>' +
-    members.map(m =>
-      `<option value="${m}">${m}</option>`
-    ).join("");
-
-  select.innerHTML = options;
-  avgSelect.innerHTML = options;
+  select.innerHTML = '<option value="">選択してください</option>' +
+    members.map(m => `<option value="${m}">${m}</option>`).join("");
 }
 // 表示順の基準メンバー
 const baseMembers = [
   "モジュ","えいせい","にゃんこ船長","大蒜マン","タケシEX",
-  "AK1104","すわろう","きゃりら","なーさんdesu","ねこ0618","ゆうゆうゆゆ","かずまる55","肉おじゃ","アンロイ","ギンヤンマ","norix9815","パルムぅ",
-  "猫丸河内守","righter","RIKKUN","るてまいかぁ","2yan子","ジャック99","あき3","UUUUUY","KOUPEI",
-  "もにゃか","トコブル","マグノリア","EV5009","なはやまか"
+  "AK1104","ねこ0618","すわろう","きゃりら","かずまる55","肉おじゃ","ゆうゆうゆゆ","アンロイ","マグノリア","なーさんdesu","norix9815","パルムぅ",
+  "righter","RIKKUN","るてまいかぁ","2yan子","ジャック99","あき3","UUUUUY","KOUPEI","ギンヤンマ",
+  "もにゃか","トコブル","EV5009","新世界のザラ","なはやまか"
 ];
 // ==============================
 // リアルタイム取得
@@ -746,121 +737,6 @@ window.calcAvgRank = function () {
   document.getElementById("avgRankBox").innerHTML = html;
 };
 // ==============================
-// ■ 2ページ目グラフ
-// ==============================
-window.drawAvgRankChart = function () {
-
-  const member =
-    document.getElementById("avgMember").value;
-
-  if (!member) {
-    alert("メンバー選択して");
-    return;
-  }
-
-  const start =
-    document.getElementById("startDateRank").value;
-
-  const end =
-    document.getElementById("endDateRank").value;
-
-  function toLocalTime(dateStr) {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return new Date(y, m - 1, d).getTime();
-  }
-
-  const filtered = rankList.filter(d => {
-
-    if (d.member !== member) return false;
-
-    const t = toLocalTime(d.date);
-
-    const s = start
-      ? toLocalTime(start)
-      : -Infinity;
-
-    const e = end
-      ? toLocalTime(end)
-      : Infinity;
-
-    return t >= s && t <= e;
-  });
-
-  if (!filtered.length) {
-    alert("データなし");
-    return;
-  }
-
-  const sorted = [...filtered]
-    .sort((a, b) =>
-      toLocalTime(a.date) - toLocalTime(b.date)
-    );
-
-  const dates = sorted.map(d => d.date);
-  const ranks = sorted.map(d => d.rank);
-
-  document.getElementById("avgRankGraphBox").style.display = "block";
-
-  if (avgRankChart) {
-    avgRankChart.destroy();
-  }
-
-  avgRankChart = new Chart(
-    document.getElementById("avgRankChart"),
-    {
-      type: "line",
-      data: {
-        labels: dates,
-        datasets: [{
-          label: member,
-          data: ranks,
-          borderColor: "#00E5FF",
-          borderWidth: 3,
-          pointRadius: 3,
-          spanGaps: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-
-        plugins: {
-          legend: {
-            labels: {
-              color: "#fff"
-            }
-          }
-        },
-
-        scales: {
-
-          x: {
-            ticks: {
-              color: "#fff"
-            },
-            grid: {
-              color: "rgba(255,255,255,0.1)"
-            }
-          },
-
-          y: {
-            reverse: true,
-
-            ticks: {
-              stepSize: 1,
-              color: "#fff"
-            },
-
-            grid: {
-              color: "rgba(255,255,255,0.1)"
-            }
-          }
-        }
-      }
-    }
-  );
-};
-// ==============================
 // ■ 個人別最高スコア
 // ==============================
 function renderBestScore() {
@@ -1066,17 +942,9 @@ window.closeGraphModal3 = function () {
 };
 // 2ページ目期間指定用
 window.applyAvgRank = function () {
-
-  const mode =
-    document.getElementById("avgRankMode").value;
-
-  if (mode === "table") {
-    document.getElementById("avgRankGraphBox").style.display = "none";
-    calcAvgRank();
-  } else {
-    drawAvgRankChart();
-  }
+  calcAvgRank();
 };
+
 // ==============================
 // CSV
 // ==============================
@@ -1429,5 +1297,4 @@ window.drawChart3 = function () {
     }
   });
 };
-
 
