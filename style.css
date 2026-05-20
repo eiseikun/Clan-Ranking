@@ -234,11 +234,6 @@ tr:nth-child(odd){
   height:40vh !important;
 }
 
-.graph-area{
-  position: relative;
-  width: 100%;
-  height: 320px;
-}
 /* ==============================
 ■ アコーディオン
 ============================== */
@@ -304,8 +299,4 @@ tr:nth-child(odd){
 .rank3 {
   color: #CD7F32;
   text-shadow: 0 0 6px rgba(205,127,50,0.7);
-}
-
-#avgResult3{
-  margin-top:10px;
 }
