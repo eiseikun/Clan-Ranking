@@ -782,11 +782,19 @@ window.calcAvgRank = function () {
       count++;
     });
     if (count > 0) {
-      result.push({
-        member,
-        avg: total / count
-      });
-    }
+
+  const avg = total / count;
+
+  // ★ 平均16.0未満だけ表示
+  if (avg < 16) {
+
+    result.push({
+      member,
+      avg
+    });
+
+  }
+}
   });
   result.sort((a, b) => a.avg - b.avg);
   // 表示
