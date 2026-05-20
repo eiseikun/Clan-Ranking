@@ -632,13 +632,9 @@ window.saveBestScoreImage = async function () {
 // ■ 平均順位画像保存
 // ==============================
 window.saveAvgRankImage = async function () {
-
   const original = document.getElementById("avgRankCapture");
-
   if (!original) return alert("対象が見つかりません");
-
   const clone = original.cloneNode(true);
-
   // ▼ 反映ボタンを消す
   const buttons = clone.querySelectorAll("button");
   buttons.forEach(btn => {
@@ -646,7 +642,32 @@ window.saveAvgRankImage = async function () {
       btn.style.display = "none";
     }
   });
-
+  // ▼ 日付入力をラベル風に変換
+  const startInput = clone.querySelector("#startDateRank");
+  const endInput = clone.querySelector("#endDateRank");
+  if (startInput && endInput) {
+    const start = startInput.value || "開始";
+    const end = endInput.value || "終了";
+    const period = document.createElement("div");
+    period.innerHTML = `
+      <div style="
+        display:inline-block;
+        padding:8px 14px;
+        border-radius:12px;
+        background:#222;
+        border:1px solid #444;
+        color:white;
+        font-weight:bold;
+        margin-bottom:10px;
+      ">
+        📅 ${start} ～ ${end}
+      </div>
+    `;
+    // inputが入ってるrowを取得
+    const row = startInput.closest(".row");
+    // rowを期間表示に置換
+    row.parentNode.replaceChild(period, row);
+  }
   clone.style.position = "fixed";
   clone.style.top = "0";
   clone.style.left = "-9999px";
@@ -655,43 +676,31 @@ window.saveAvgRankImage = async function () {
   clone.style.color = "white";
   clone.style.padding = "10px";
   clone.style.width = "fit-content";
-
   document.body.appendChild(clone);
-
   await new Promise(r => requestAnimationFrame(r));
-
   const rect = clone.getBoundingClientRect();
   const fullWidth = Math.ceil(rect.width + 10);
-
   const canvas = await html2canvas(clone, {
     scale: 3,
     backgroundColor: "#111",
     windowWidth: fullWidth
   });
-
   document.body.removeChild(clone);
-
   canvas.toBlob(async (blob) => {
-
     const file = new File(
       [blob],
       "avg_rank.png",
       { type: "image/png" }
     );
-
     if (navigator.share && navigator.canShare({ files: [file] })) {
-
       await navigator.share({
         files: [file]
       });
-
     } else {
-
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = "avg_rank.png";
       link.click();
-
     }
   });
 };
