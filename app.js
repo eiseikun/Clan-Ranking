@@ -1015,9 +1015,19 @@ document.getElementById("graphModal2").style.display = "block";
 
       options: {
 
-        responsive: true,
+  responsive: true,
+  maintainAspectRatio: false,
 
-        plugins: {
+  layout: {
+    padding: {
+      left: 10,
+      right: 10,
+      top: 10,
+      bottom: 10
+    }
+  },
+
+  plugins: {
           legend: {
             position: "bottom",
             labels: {
