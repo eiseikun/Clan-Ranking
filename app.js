@@ -998,14 +998,13 @@ window.drawRankGraph = function () {
   });
 
   // モーダル表示
-  document.getElementById("graphModal1").style.display = "block";
-
+document.getElementById("graphModal2").style.display = "block";
   if (rankGraphChart) {
     rankGraphChart.destroy();
   }
 
   rankGraphChart = new Chart(
-    document.getElementById("modalChart1"),
+    document.getElementById("modalChart2"),
     {
       type: "line",
 
@@ -1240,6 +1239,11 @@ window.toggleGraphBox3 = function () {
 
 window.closeGraphModal1 = function () {
   document.getElementById("graphModal1").style.display = "none";
+  document.body.style.overflow = "auto";
+};
+
+window.closeGraphModal2 = function () {
+  document.getElementById("graphModal2").style.display = "none";
   document.body.style.overflow = "auto";
 };
 
