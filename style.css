@@ -224,14 +224,11 @@ tr:nth-child(odd){
   padding:10px 0;
 }
 
-#modalChart1{
-  width:100% !important;
-  height:60vh !important;
-}
-
+#modalChart1,
+#modalChart2,
 #modalChart3{
   width:100% !important;
-  height:40vh !important;
+  height:45vh !important;
 }
 
 /* ==============================
