@@ -20,6 +20,8 @@ let dataList = [];
 let rankList = [];
 let chart = null;
 let selectedClans = [];
+let selectedMembers = [];
+let rankGraphChart = null;
 
 let myDataList = [];
 let myChart = null;
@@ -73,6 +75,20 @@ const clanColors = {
 };
 const clans = Object.keys(clanColors);
 
+// 2ページ目グラフ色
+const rankColors = {
+  1: "#FFD700", // 金
+  2: "#C0C0C0", // 銀
+  3: "#CD7F32", // 銅
+  4: "#4BC0C0",
+  5: "#36A2EB",
+  6: "#9966FF",
+  7: "#FF6384",
+  8: "#FF9F40",
+  9: "#8BC34A",
+  10:"#E91E63"
+};
+const defaultRankColor = "#888888";
 // ==============================
 // ■ 初期UI
 // ==============================
@@ -112,7 +128,29 @@ window.addEventListener("DOMContentLoaded", () => {
         }
       });
   });
+  // 2ページ目メンバー
+const memberModalWrap =
+  document.getElementById("memberModalCheckboxes");
 
+const allMembers = [
+  ...baseMembers,
+  ...[...new Set(rankList.map(d => d.member))]
+];
+
+allMembers.forEach(m => {
+
+  const label = document.createElement("label");
+
+  const cb = document.createElement("input");
+
+  cb.type = "checkbox";
+  cb.value = m;
+
+  label.appendChild(cb);
+  label.appendChild(document.createTextNode(m));
+
+  memberModalWrap.appendChild(label);
+});
 });
 
 // ==============================
@@ -871,6 +909,146 @@ html += `<tr>
   document.getElementById("bestScoreBox").innerHTML = html;
 }
 // ==============================
+// グラフ
+// ==============================
+window.drawRankGraph = function () {
+
+  if (!selectedMembers.length) {
+    return alert("メンバー選択して");
+  }
+
+  const start =
+    document.getElementById("rankGraphStart").value;
+
+  const end =
+    document.getElementById("rankGraphEnd").value;
+
+  function toLocalTime(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
+  }
+
+  const filtered = rankList.filter(d => {
+
+    if (d.rank == null) return false;
+
+    const t = toLocalTime(d.date);
+
+    const s = start
+      ? toLocalTime(start)
+      : -Infinity;
+
+    const e = end
+      ? toLocalTime(end)
+      : Infinity;
+
+    return (
+      t >= s &&
+      t <= e &&
+      selectedMembers.includes(d.member)
+    );
+  });
+
+  if (!filtered.length) {
+    return alert("データなし");
+  }
+
+  // 日付一覧
+  const dates = [...new Set(filtered.map(d => d.date))]
+    .sort((a, b) => toLocalTime(a) - toLocalTime(b));
+
+  // メンバー別データ
+  const memberMap = {};
+
+  filtered.forEach(d => {
+
+    if (!memberMap[d.member]) {
+      memberMap[d.member] = {};
+    }
+
+    memberMap[d.member][d.date] = d.rank;
+  });
+
+  // 最初の日の順位で色決定
+  const firstDate = dates[0];
+
+  const datasets = selectedMembers.map(member => {
+
+    const firstRank =
+      memberMap[member]?.[firstDate];
+
+    const color =
+      rankColors[firstRank] ??
+      defaultRankColor;
+
+    return {
+      label: member,
+
+      data: dates.map(date => {
+        return memberMap[member]?.[date] ?? null;
+      }),
+
+      borderColor: color,
+      backgroundColor: color,
+
+      borderWidth: 3,
+      pointRadius: 2,
+      spanGaps: true
+    };
+  });
+
+  // モーダル表示
+  document.getElementById("graphModal1").style.display = "block";
+
+  if (rankGraphChart) {
+    rankGraphChart.destroy();
+  }
+
+  rankGraphChart = new Chart(
+    document.getElementById("modalChart1"),
+    {
+      type: "line",
+
+      data: {
+        labels: dates,
+        datasets
+      },
+
+      options: {
+
+        responsive: true,
+
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              color: "#fff"
+            }
+          }
+        },
+
+        scales: {
+
+          x: {
+            ticks: {
+              color: "#fff"
+            }
+          },
+
+          y: {
+            reverse: true,
+
+            ticks: {
+              stepSize: 1,
+              color: "#fff"
+            }
+          }
+        }
+      }
+    }
+  );
+};
+// ==============================
 // ▼ モーダル・UI
 // ==============================
 window.openModal = () => {
@@ -901,6 +1079,49 @@ window.clearAllClans = function () {
     .forEach(cb => cb.checked = false);
 };
 
+
+window.openMemberModal = function () {
+  document.getElementById("memberModal").style.display = "flex";
+};
+
+window.closeMemberModal = function () {
+  document.getElementById("memberModal").style.display = "none";
+};
+
+window.selectAllMembers = function () {
+  document.querySelectorAll("#memberModalCheckboxes input")
+    .forEach(cb => cb.checked = true);
+};
+
+window.clearAllMembers = function () {
+  document.querySelectorAll("#memberModalCheckboxes input")
+    .forEach(cb => cb.checked = false);
+};
+
+window.applyMemberSelection = function () {
+
+  selectedMembers =
+    [...document.querySelectorAll("#memberModalCheckboxes input:checked")]
+      .map(cb => cb.value);
+
+  document.getElementById("selectedMembersText").textContent =
+    selectedMembers.length
+      ? selectedMembers.join(", ")
+      : "未選択";
+
+  closeMemberModal();
+};
+
+window.toggleRankGraphBox = function () {
+
+  const box =
+    document.getElementById("rankGraphBox");
+
+  box.style.display =
+    box.style.display === "none"
+      ? "block"
+      : "none";
+};
 // ==============================
 // 3ページ目 平均スコア(5/7追加)
 // ==============================
