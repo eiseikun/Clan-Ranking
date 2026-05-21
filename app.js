@@ -991,7 +991,7 @@ window.drawRankGraph = function () {
       borderColor: color,
       backgroundColor: color,
 
-      borderWidth: 3,
+      borderWidth: 4,
       pointRadius: 2,
       spanGaps: true
     };
