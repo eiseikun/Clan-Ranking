@@ -157,6 +157,32 @@
 
   <div id="avgRankBox"></div>
 </div>
+
+<!-- 順位推移グラフ -->
+<div class="box">
+  <h3 class="accordion-title" onclick="toggleRankGraphBox()">
+    📈 順位推移グラフ
+  </h3>
+  <div id="rankGraphBox" style="display:none;">
+    <div class="row">
+      <input type="date" id="rankGraphStart">
+      <input type="date" id="rankGraphEnd">
+    </div>
+    <div class="row">
+      <button onclick="openMemberModal()">
+        メンバー選択
+      </button>
+      <span id="selectedMembersText">
+        未選択
+      </span>
+    </div>
+    <div class="row">
+      <button onclick="drawRankGraph()">
+        グラフ生成
+      </button>
+    </div>
+  </div>
+</div>
   
   <!-- 個人別最高スコア -->
   <div class="box" id="bestScoreCapture">
@@ -277,7 +303,31 @@
     <canvas id="modalChart1"></canvas>
   </div>
 </div>
-
+  
+<!-- メンバー選択モーダル -->
+<div id="memberModal" class="modal">
+  <div class="modal-content">
+    <h3>メンバー選択</h3>
+    <div id="memberModalCheckboxes"></div>
+    <div class="row">
+      <button onclick="selectAllMembers()">
+        全選択
+      </button>
+      <button onclick="clearAllMembers()">
+        全解除
+      </button>
+    </div>
+    <div class="row">
+      <button onclick="applyMemberSelection()">
+        決定
+      </button>
+      <button onclick="closeMemberModal()">
+        閉じる
+      </button>
+    </div>
+  </div>
+</div>
+  
 <!-- 3ページ目用 -->
 <div id="graphModal3" class="graph-modal">
   <div class="graph-modal-content">
