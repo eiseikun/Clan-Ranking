@@ -75,21 +75,6 @@ const clanColors = {
   "さよならねこ": "#92D050",
 };
 const clans = Object.keys(clanColors);
-
-// 2ページ目グラフ色
-const rankColors = {
-  1: "#4472C4",
-  2: "#00B050",
-  3: "#92D050",
-  4: "#FFCCFF",
-  5: "#E97132",
-  6: "#A02B93",
-  7: "#00AEF0",
-  8: "#FF0000",
-  9: "#FFC000",
-  10:"#FF66B2"
-};
-const defaultRankColor = "#888888";
 // ==============================
 // ■ 初期UI
 // ==============================
@@ -970,33 +955,40 @@ window.drawRankGraph = function () {
     memberMap[d.member][d.date] = d.rank;
   });
 
-  // 最初の日の順位で色決定
-  const firstDate = dates[0];
+  // グラフメンバー色
+const graphColors = [
+  "#4472C4",
+  "#00B050",
+  "#92D050",
+  "#FFCCFF",
+  "#E97132",
+  "#A02B93",
+  "#00AEF0",
+  "#FF0000",
+  "#FFC000",
+  "#FF66B2"
+];
 
-  const datasets = selectedMembers.map(member => {
+const datasets = selectedMembers.map((member, index) => {
 
-    const firstRank =
-      memberMap[member]?.[firstDate];
+  const color =
+    graphColors[index % graphColors.length];
 
-    const color =
-      rankColors[firstRank] ??
-      defaultRankColor;
+  return {
+    label: member,
 
-    return {
-      label: member,
+    data: dates.map(date => {
+      return memberMap[member]?.[date] ?? null;
+    }),
 
-      data: dates.map(date => {
-        return memberMap[member]?.[date] ?? null;
-      }),
+    borderColor: color,
+    backgroundColor: color,
 
-      borderColor: color,
-      backgroundColor: color,
-
-      borderWidth: 4,
-      pointRadius: 2,
-      spanGaps: true
-    };
-  });
+    borderWidth: 4,
+    pointRadius: 2,
+    spanGaps: true
+  };
+});
 
   // モーダル表示
 document.getElementById("graphModal2").style.display = "block";
