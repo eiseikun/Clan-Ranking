@@ -957,23 +957,21 @@ window.drawRankGraph = function () {
 
   // グラフメンバー色
 const graphColors = [
-  "#4866FA",
-  "#00B050",
-  "#92D050",
-  "#FFCCFF",
-  "#E97132",
-  "#A02B93",
-  "#00AEF0",
-  "#BDECFF",
-  "#FFC000",
-  "#FF66B2",
-    "#7030A0", // 濃紫
-  "#70AD47", // 黄緑2
-  "#5B9BD5", // 空青
-  "#C00000", // ワイン赤
-  "#FFD966", // 薄黄
-  "#ED7D31", // 濃オレンジ
-
+  "#4FC3F7", // 水色
+  "#00E676", // 黄緑
+  "#FF5252", // 赤
+  "#FFD740", // 黄
+  "#E040FB", // 紫
+  "#FF9100", // オレンジ
+  "#69F0AE", // ミント
+  "#FF4081", // ピンク
+  "#7C4DFF", // 青紫
+  "#40C4FF", // 空色
+  "#B2FF59", // ライム
+  "#FF6E40", // 朱色
+  "#18FFFF", // シアン
+  "#EEFF41", // レモン
+  "#FFFFFF"  // 白
 ];
 
 const datasets = selectedMembers.map((member, index) => {
