@@ -957,14 +957,14 @@ window.drawRankGraph = function () {
 
   // グラフメンバー色
 const graphColors = [
-  "#4472C4",
+  "#4866FA",
   "#00B050",
   "#92D050",
   "#FFCCFF",
   "#E97132",
   "#A02B93",
   "#00AEF0",
-  "#FF0000",
+  "#BDECFF",
   "#FFC000",
   "#FF66B2",
     "#7030A0", // 濃紫
@@ -973,10 +973,7 @@ const graphColors = [
   "#C00000", // ワイン赤
   "#FFD966", // 薄黄
   "#ED7D31", // 濃オレンジ
-  "#264478", // 紺
-  "#997300", // からし
-  "#7F6000", // 茶
-  "#999999"  // グレー
+
 ];
 
 const datasets = selectedMembers.map((member, index) => {
