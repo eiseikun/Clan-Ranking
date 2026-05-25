@@ -59,22 +59,68 @@ function getWeekday(dateStr) {
 // ==============================
 // ■ クラン設定
 // ==============================
-const clanColors = {
-  "魔導特務隊": "#4472C4",
-  "最狂会": "#00B050",
-  "IgnisFloris": "#FFCCFF",
-  "ポケポケ会": "#E97132",
-  "PopoWarren": "#A02B93",
-  "たまねぎ班": "#8FAADC",
-  "ねこ海賊団": "#00AEF0",
-  "猫の旅": "#FF0000",
-  "やまだ家": "#FFC000",
-  "のの教": "#795548",
-  "アチャ伝": "#FF66B2",
-  "天狼の戦弓団": "#00E5FF",
-  "さよならねこ": "#92D050",
+const clanSettings = {
+  "魔導特務隊": {
+    color:"#4472C4",
+    active:true
+  },
+ "最狂会": {
+    color:"#00B050",
+    active:true
+  },
+  "IgnisFloris": {
+    color:"#FFCCFF",
+    active:true
+  },
+ "ポケポケ会": {
+    color:"#E97132",
+    active:true
+  },
+  "PopoWarren": {
+    color:"#A02B93",
+    active:true
+  },
+  "たまねぎ班": {
+    color:"#8FAADC",
+    active:true
+  },
+  "ねこ海賊団": {
+    color:"#00AEF0",
+    active:true
+  },
+  "猫の旅": {
+    color:"#FF0000",
+    active:true
+  },
+  "やまだ家": {
+    color:"#FFC000",
+    active:true
+  },
+  "のの教": {
+    color:"#795548",
+    active:true
+  },
+  "アチャ伝": {
+    color:"#FF66B2",
+    active:true
+  },
+  "天狼の戦弓団": {
+    color:"#00E5FF",
+    active:true
+  },
+  "さよならねこ": {
+    color:"#92D050",
+    active:false
+  },
 };
-const clans = Object.keys(clanColors);
+const allClans = Object.keys(clanSettings);
+
+const activeClans =
+  allClans.filter(
+    c => clanSettings[c].active
+  );
+
+
 // ==============================
 // ■ 初期UI
 // ==============================
@@ -82,7 +128,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // クラン選択
   const clanSelect = document.getElementById("clan");
-  clans.forEach(c => {
+  activeClans.forEach(c => {
     const opt = document.createElement("option");
     opt.value = c;
     opt.textContent = c;
@@ -94,7 +140,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // モーダル（クラン選択）
   const modalWrap = document.getElementById("modalCheckboxes");
-  clans.forEach(c => {
+  activeClans.forEach(c => {
     const label = document.createElement("label");
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -269,7 +315,7 @@ dataList.forEach(d => {
   days.forEach(d => html += `<th>${d}</th>`);
   html += "</tr>";
 
-  clans.forEach(clan => {
+  activeClans.forEach(clan => {
     html += `<tr><td>${clan}</td>`;
     for (let i = 0; i < 7; i++) {
       html += `<td>${formatScoreT(weekdayBest[clan]?.[i])}</td>`;
@@ -296,12 +342,12 @@ const dates = Object.keys(table)
   .sort((a, b) => new Date(b) - new Date(a));
 
 let html2 = "<table class='rank-table'><tr><th>日付</th>";
-clans.forEach(c => html2 += `<th class="clan-col">${c}</th>`);
+activeClans.forEach(c => html2 += `<th class="clan-col">${c}</th>`);
 html2 += "</tr>";
 
   dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
-    clans.forEach(c => {
+    activeClans.forEach(c => {
       const val = table[date]?.[c];
       html2 += `<td>${val ? formatScoreT(val) : "-"}</td>`;
     });
@@ -468,7 +514,7 @@ filtered.forEach(d => {
     datasets = selectedClans.map(clan => ({
       label: clan,
       data: dates.map(date => rankMap[date]?.[clan] ?? null),
-      borderColor: clanColors[clan],
+      borderColor: clanSettings[clan].color,
       borderWidth: 3,
       spanGaps: true,
       pointRadius: 2
@@ -482,7 +528,7 @@ filtered.forEach(d => {
         const v = scoreMap[date]?.[clan];
         return (v === 0 || v == null) ? null : v;
       }),
-      borderColor: clanColors[clan],
+      borderColor: clanSettings[clan].color,
       borderWidth: 3,
       spanGaps: true,
       pointRadius: 2
