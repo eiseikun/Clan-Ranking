@@ -342,12 +342,12 @@ const dates = Object.keys(table)
   .sort((a, b) => new Date(b) - new Date(a));
 
 let html2 = "<table class='rank-table'><tr><th>日付</th>";
-activeClans.forEach(c => html2 += `<th class="clan-col">${c}</th>`);
+allClans.forEach(c => html2 += `<th class="clan-col">${c}</th>`);
 html2 += "</tr>";
 
   dates.forEach(date => {
     html2 += `<tr><td>${date}</td>`;
-    activeClans.forEach(c => {
+    allClans.forEach(c => {
       const val = table[date]?.[c];
       html2 += `<td>${val ? formatScoreT(val) : "-"}</td>`;
     });
