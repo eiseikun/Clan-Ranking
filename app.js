@@ -80,36 +80,36 @@ const clanSettings = {
     color:"#A02B93",
     active:true
   },
-  "たまねぎ班": {
-    color:"#8FAADC",
+  "やまだ家": {
+    color:"#FFC000",
     active:true
   },
   "ねこ海賊団": {
     color:"#00AEF0",
     active:true
   },
+  "たまねぎ班": {
+    color:"#8FAADC",
+    active:true
+  },
   "猫の旅": {
     color:"#FF0000",
-    active:true
-  },
-  "やまだ家": {
-    color:"#FFC000",
-    active:true
-  },
-  "のの教": {
-    color:"#795548",
-    active:true
-  },
-  "アチャ伝": {
-    color:"#FF66B2",
     active:true
   },
   "天狼の戦弓団": {
     color:"#00E5FF",
     active:true
   },
+  "アチャ伝": {
+    color:"#FF66B2",
+    active:true
+  },
   "さよならねこ": {
     color:"#92D050",
+    active:false
+  },
+  "新たなクラン": {
+    color:"#795548",
     active:false
   },
 };
@@ -242,7 +242,7 @@ function updateMemberList() {
 const baseMembers = [
   "モジュ","えいせい","にゃんこ船長","大蒜マン","タケシEX","ーたかてんー","GoogleSafari",
   "なーさんdesu","すわろう","きゃりら","AK1104","ねこ0618","かずまる55","肉おじゃ","ゆうゆうゆゆ","アンロイ","マグノリア","norix9815","パルムぅ",
-  "RIKKUN","るてまいかぁ","2yan子","ジャック99","あき3","ギンヤンマ","ふしそう",
+  "RIKKUN","るてまいかぁ","2yan子","ジャック99","あき3","ふしそう",
   "もにゃか","トコブル","EV5009","なはやまか"
 ];
 // ==============================
