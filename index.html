@@ -197,20 +197,31 @@
   function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
   // ---------- default data ----------
-  function defaultTiers(){
+  // 鋭利の矢・アローレインは同じ品質体系（エンチャント）: レジェンドで+15%、ミシックで+30%。
+  // それ未満の品質はボーナスなし（0%）として下位品質も一覧に含めておく。
+  function defaultEnchantTiers(){
     return [
       {id:uid(), name:'ノーマル', pct:0},
       {id:uid(), name:'レア', pct:0},
       {id:uid(), name:'エピック', pct:0},
-      {id:uid(), name:'レジェンド', pct:0},
-      {id:uid(), name:'ミシック', pct:0},
+      {id:uid(), name:'レジェンド', pct:15},
+      {id:uid(), name:'ミシック', pct:30},
     ];
+  }
+  // 虚無の刃（聖物）: 無凸+12%、1凸+18%、2凸+24%、以降10凸まで+6%ずつ。
+  function defaultRelicTiers(){
+    const tiers = [];
+    for(let i=0;i<=10;i++){
+      const pct = 12 + i*6;
+      tiers.push({id:uid(), name: i===0?'無凸':(i+'凸'), pct});
+    }
+    return tiers;
   }
   const DEFAULT_SETTINGS = {
     items:{
-      sharp:{label:'鋭利の矢（エンチャント）', tiers: defaultTiers()},
-      rain:{label:'アローレイン（エンチャント）', tiers: defaultTiers()},
-      voidblade:{label:'虚無の刃（聖物）', tiers: defaultTiers()},
+      sharp:{label:'鋭利の矢（エンチャント）', tiers: defaultEnchantTiers()},
+      rain:{label:'アローレイン（エンチャント）', tiers: defaultEnchantTiers()},
+      voidblade:{label:'虚無の刃（聖物）', tiers: defaultRelicTiers()},
     }
   };
   const DEFAULT_BUILD = {
@@ -550,9 +561,9 @@
     if(action==='resetSettings'){
       if(confirm('品質設定をすべて初期状態に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-        settings.items.sharp.tiers = defaultTiers();
-        settings.items.rain.tiers = defaultTiers();
-        settings.items.voidblade.tiers = defaultTiers();
+        settings.items.sharp.tiers = defaultEnchantTiers();
+        settings.items.rain.tiers = defaultEnchantTiers();
+        settings.items.voidblade.tiers = defaultRelicTiers();
         saveSettings();
         showToast('設定をリセットしました');
       }
