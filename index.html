@@ -113,6 +113,18 @@
   .at-checkrow.on .at-switch{border-color:var(--cyan);background:rgba(69,196,176,.25);}
   .at-checkrow.on .at-switch::after{left:18px;background:var(--cyan);}
 
+  .at-stepper{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+  .at-stepper-btn{
+    width:28px;height:28px;border-radius:8px;background:var(--bg-panel3);border:1px solid var(--border);
+    color:var(--text-dim);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
+    cursor:pointer;user-select:none;
+  }
+  .at-stepper-btn:hover{border-color:var(--gold);color:var(--gold-soft);}
+  .at-stepper-val{
+    min-width:30px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;
+    color:var(--text);
+  }
+
   .at-statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;}
   .at-statbox{background:var(--bg-panel2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;}
   .at-statbox-label{font-size:10.5px;color:var(--text-faint);letter-spacing:.02em;margin-bottom:6px;}
@@ -197,38 +209,38 @@
   function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
   // ---------- default data ----------
-  // 鋭利の矢・アローレインは同じ品質体系（エンチャント）: レジェンドで+15%、ミシックで+30%。
-  // それ未満の品質はボーナスなし（0%）として下位品質も一覧に含めておく。
-  function defaultEnchantTiers(){
-    return [
-      {id:uid(), name:'ノーマル', pct:0},
-      {id:uid(), name:'レア', pct:0},
-      {id:uid(), name:'エピック', pct:0},
-      {id:uid(), name:'レジェンド', pct:15},
-      {id:uid(), name:'ミシック', pct:30},
-    ];
-  }
-  // 虚無の刃（聖物）: 無凸+12%、1凸+18%、2凸+24%、以降10凸まで+6%ずつ。
-  function defaultRelicTiers(){
+  // 鋭利の矢・アローレイン: なし/レジェンド(+15%)/ミシック(+30%)。値は固定（設定画面での変更対象外）。
+  const SHARP_RAIN_TIERS = [
+    {id:'none', name:'なし', pct:0},
+    {id:'legend', name:'レジェンド', pct:15},
+    {id:'mythic', name:'ミシック', pct:30},
+  ];
+  // 虚無の刃（聖物）: 無凸+12%、1凸+18%、2凸+24%、以降10凸まで+6%ずつ。値は固定。
+  const VOID_TIERS = (function(){
     const tiers = [];
     for(let i=0;i<=10;i++){
-      const pct = 12 + i*6;
-      tiers.push({id:uid(), name: i===0?'無凸':(i+'凸'), pct});
+      tiers.push({id:'v'+i, name: i===0?'無凸':(i+'凸'), pct: 12 + i*6});
     }
     return tiers;
-  }
+  })();
+
+  // 攻撃力アップ系スキル：スキルごとの倍率(%)は設定画面で編集する。
+  const ATK_SKILLS = [
+    {key:'great', label:'グレート品質 攻撃力アップ'},
+    {key:'epic', label:'エピック品質 攻撃力アップ'},
+    {key:'giant', label:'巨大化'},
+    {key:'legend', label:'レジェンド品質 攻撃力アップ'},
+  ];
+
   const DEFAULT_SETTINGS = {
-    items:{
-      sharp:{label:'鋭利の矢（エンチャント）', tiers: defaultEnchantTiers()},
-      rain:{label:'アローレイン（エンチャント）', tiers: defaultEnchantTiers()},
-      voidblade:{label:'虚無の刃（聖物）', tiers: defaultRelicTiers()},
-    }
+    atkSkills:{ great:0, epic:0, giant:0, legend:0 }
   };
   const DEFAULT_BUILD = {
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
-    diagonal:false, front:false, rear:false, tracking:false,
-    sharpTierId:'', rainTierId:'', voidTierId:'',
+    diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
+    sharpTierId:'none', rainTierId:'none', voidTierId:'v0',
+    greatAtkCount:0, epicAtkCount:0, giantCount:0, legendAtkCount:0,
     compareAtkPct:10, compareArrowCount:1
   };
 
@@ -237,17 +249,18 @@
     {id:'fishing', label:'釣り', icon:'🎣', comingSoon:true},
   ];
 
-  let settings = loadJSON('at2_settings_v1', DEFAULT_SETTINGS);
-  let build = loadJSON('at2_build_v1', DEFAULT_BUILD);
+  let settings = loadJSON('at2_settings_v2', DEFAULT_SETTINGS);
+  let build = loadJSON('at2_build_v2', DEFAULT_BUILD);
   let state = {
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
     settingsOpen:false,
   };
   let toastMsg = null, toastTimer = null;
 
-  function saveSettings(){ saveJSON('at2_settings_v1', settings); }
-  function saveBuild(){ saveJSON('at2_build_v1', build); }
+  function saveSettings(){ saveJSON('at2_settings_v2', settings); }
+  function saveBuild(){ saveJSON('at2_build_v2', build); }
   function setTab(id){ state.tab = id; localStorage.setItem('at2_tab_v1', id); render(); }
+
 
   function showToast(msg){
     toastMsg = msg;
@@ -271,32 +284,34 @@
       other:'その他の鎧・未装備',
     }[armor] || 'その他の鎧・未装備';
   }
-  function findTierPct(itemKey, tierId){
-    const tiers = (settings.items[itemKey] && settings.items[itemKey].tiers) || [];
-    const t = tiers.find(t=>t.id===tierId);
-    return t ? (Number(t.pct)||0) : 0;
+  function findTier(itemKey, tierId){
+    const tiers = itemKey==='sharp' || itemKey==='rain' ? SHARP_RAIN_TIERS : VOID_TIERS;
+    return tiers.find(t=>t.id===tierId);
   }
-  function findTierName(itemKey, tierId){
-    const tiers = (settings.items[itemKey] && settings.items[itemKey].tiers) || [];
-    const t = tiers.find(t=>t.id===tierId);
-    return t ? t.name : 'なし';
+  function findTierPct(itemKey, tierId){
+    const t = findTier(itemKey, tierId);
+    return t ? (Number(t.pct)||0) : 0;
   }
   function calcArrows(b){
     let n = 1;
     if(b.symphony) n += 2;
     n += armorBonus(b.armor);
-    if(b.diagonal) n += 2;
-    if(b.front) n += 1;
-    if(b.rear) n += 1;
+    n += (Number(b.diagonalCount)||0) * 2;
+    n += (Number(b.frontCount)||0) * 1;
+    n += (Number(b.rearCount)||0) * 1;
     return n;
   }
   function calcMultiplier(b){
     let m = 100;
-    if(b.front) m -= 10;
+    m -= (Number(b.frontCount)||0) * 10;
     if(b.tracking) m -= 15;
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
+    m += (Number(b.greatAtkCount)||0) * (Number(settings.atkSkills.great)||0);
+    m += (Number(b.epicAtkCount)||0) * (Number(settings.atkSkills.epic)||0);
+    m += (Number(b.giantCount)||0) * (Number(settings.atkSkills.giant)||0);
+    m += (Number(b.legendAtkCount)||0) * (Number(settings.atkSkills.legend)||0);
     return m;
   }
   function calcPower(b){
@@ -353,10 +368,25 @@
     </div>`;
   }
 
+  function stepperRow(key, label, sub, count){
+    count = Number(count)||0;
+    return `
+    <div class="at-checkrow ${count>0?'on':''}" style="cursor:default;">
+      <div class="at-checkrow-main">
+        <div class="at-checkrow-label">${label}</div>
+        ${sub?`<div class="at-checkrow-sub">${sub}</div>`:''}
+      </div>
+      <div class="at-stepper">
+        <div class="at-stepper-btn" data-action="decCount" data-val="${key}">−</div>
+        <div class="at-stepper-val">${count}</div>
+        <div class="at-stepper-btn" data-action="incCount" data-val="${key}">＋</div>
+      </div>
+    </div>`;
+  }
+
   function tierSelect(itemKey, bindKey, currentId){
-    const item = settings.items[itemKey];
-    const opts = [`<option value="">なし（未所持）</option>`]
-      .concat(item.tiers.map(t=>`<option value="${t.id}" ${t.id===currentId?'selected':''}>${escapeHtml(t.name)}（${t.pct>0?'+':''}${t.pct}%）</option>`));
+    const tiers = itemKey==='sharp' || itemKey==='rain' ? SHARP_RAIN_TIERS : VOID_TIERS;
+    const opts = tiers.map(t=>`<option value="${t.id}" ${t.id===currentId?'selected':''}>${escapeHtml(t.name)}（${t.pct>0?'+':''}${t.pct}%）</option>`);
     return `<select class="at-select" data-bind="${bindKey}">${opts.join('')}</select>`;
   }
 
@@ -371,7 +401,7 @@
     return `
     <div class="at-panel">
       <div class="at-panel-title">🏹 現在のビルド</div>
-      <div class="at-panel-desc">所持している装備・習得スキルを選んでください。矢の本数と主武器倍率は自動計算されます。</div>
+      <div class="at-panel-desc">所持している装備・エンチャント・聖物を選んでください。矢の本数と主武器倍率は自動計算されます。</div>
 
       ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
 
@@ -387,18 +417,7 @@
         <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
       </div>
 
-      <div style="margin-top:12px;">
-        ${checkRow('diagonal', 'ダイアゴナルアロー', '斜め2発を追加', build.diagonal, build.diagonal?'+2本':'')}
-        ${checkRow('front', 'フロントアロー', '前方+1本／主武器倍率-10%', build.front, build.front?'+1本':'')}
-        ${checkRow('rear', 'リアアロー', '後方+1本', build.rear, build.rear?'+1本':'')}
-        ${checkRow('tracking', '追跡の目', '本数は変わらず主武器倍率-15%', build.tracking, build.tracking?'-15%':'')}
-      </div>
-    </div>
-
-    <div class="at-panel">
-      <div class="at-panel-title">⚙️ 倍率アイテム</div>
-      <div class="at-panel-desc">品質ごとの効果%は右上の設定アイコンから編集できます。</div>
-      <div class="at-field">
+      <div class="at-field" style="margin-top:12px;">
         <label class="at-label">鋭利の矢（エンチャント）</label>
         ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
       </div>
@@ -410,6 +429,21 @@
         <label class="at-label">虚無の刃（聖物）</label>
         ${tierSelect('voidblade','voidTierId', build.voidTierId)}
       </div>
+    </div>
+
+    <div class="at-panel">
+      <div class="at-panel-title">📖 取得スキル</div>
+      <div class="at-panel-desc">＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
+
+      ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
+      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器倍率-10%', build.frontCount)}
+      ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
+      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器倍率-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
+      ${stepperRow('greatAtkCount', 'グレート品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.great}%`, build.greatAtkCount)}
+      ${stepperRow('epicAtkCount', 'エピック品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.epic}%`, build.epicAtkCount)}
+      ${stepperRow('giantCount', '巨大化', `1回につき主武器倍率+${settings.atkSkills.giant}%`, build.giantCount)}
+      ${stepperRow('legendAtkCount', 'レジェンド品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.legend}%`, build.legendAtkCount)}
+      <div class="at-hint" style="margin-top:6px;">攻撃力アップ系スキルの倍率(%)は右上の⚙️設定から編集できます。</div>
     </div>
 
     <div class="at-panel">
@@ -481,7 +515,6 @@
 
   function settingsModal(){
     if(!state.settingsOpen) return '';
-    const itemKeys = [['sharp','鋭利の矢'],['rain','アローレイン'],['voidblade','虚無の刃']];
     return `
     <div class="at-modal-backdrop" data-action="closeSettings">
       <div class="at-modal" onclick="event.stopPropagation()">
@@ -489,23 +522,19 @@
           <div class="at-modal-title">⚙️ 基本設定</div>
           <div class="at-modal-close" data-action="closeSettings">✕</div>
         </div>
-        <div class="at-panel-desc">品質ごとの主武器倍率への効果（%）を編集できます。品質名・数値は自由に変更・追加・削除できます。</div>
+        <div class="at-panel-desc">攻撃力アップ系スキル、1回取得あたりの主武器倍率への効果（%）を編集できます。</div>
 
-        ${itemKeys.map(([key,label])=>`
+        ${ATK_SKILLS.map(s=>`
           <div class="at-field">
-            <label class="at-label">${label}</label>
-            ${settings.items[key].tiers.map(t=>`
-              <div class="at-tierrow">
-                <input class="at-input" type="text" value="${escapeHtml(t.name)}" data-tier-name="${key}:${t.id}">
-                <input class="at-input" type="number" step="1" value="${t.pct}" data-tier-pct="${key}:${t.id}">
-                <div class="at-tier-del" data-action="delTier" data-val="${key}:${t.id}">✕</div>
-              </div>
-            `).join('')}
-            <div class="at-btn at-btn-ghost at-btn-sm" data-action="addTier" data-val="${key}">＋ 品質を追加</div>
+            <label class="at-label">${s.label}</label>
+            <div class="at-tierrow" style="grid-template-columns:1fr 30px;">
+              <input class="at-input" type="number" step="1" value="${settings.atkSkills[s.key]}" data-atk-pct="${s.key}">
+              <div></div>
+            </div>
           </div>
-          <div class="at-divider"></div>
         `).join('')}
 
+        <div class="at-divider"></div>
         <div class="at-btn at-btn-danger at-btn-full" data-action="resetSettings">初期状態にリセット</div>
       </div>
     </div>`;
@@ -544,26 +573,23 @@
       render();
       return;
     }
+    if(action==='incCount'){
+      build[val] = (Number(build[val])||0) + 1;
+      saveBuild();
+      render();
+      return;
+    }
+    if(action==='decCount'){
+      build[val] = Math.max(0, (Number(build[val])||0) - 1);
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='openSettings'){ state.settingsOpen = true; render(); return; }
     if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
-    if(action==='addTier'){
-      settings.items[val].tiers.push({id:uid(), name:'新しい品質', pct:0});
-      saveSettings(); render(); return;
-    }
-    if(action==='delTier'){
-      const [key,id] = val.split(':');
-      settings.items[key].tiers = settings.items[key].tiers.filter(t=>t.id!==id);
-      if(build.sharpTierId===id) build.sharpTierId='';
-      if(build.rainTierId===id) build.rainTierId='';
-      if(build.voidTierId===id) build.voidTierId='';
-      saveSettings(); saveBuild(); render(); return;
-    }
     if(action==='resetSettings'){
-      if(confirm('品質設定をすべて初期状態に戻します。よろしいですか？')){
+      if(confirm('攻撃力アップ系スキルの倍率設定をすべて初期状態（0%）に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-        settings.items.sharp.tiers = defaultEnchantTiers();
-        settings.items.rain.tiers = defaultEnchantTiers();
-        settings.items.voidblade.tiers = defaultRelicTiers();
         saveSettings();
         showToast('設定をリセットしました');
       }
@@ -581,18 +607,11 @@
       render();
       return;
     }
-    const tierName = e.target.getAttribute('data-tier-name');
-    if(tierName){
-      const [key,id] = tierName.split(':');
-      const t = settings.items[key].tiers.find(t=>t.id===id);
-      if(t){ t.name = e.target.value; saveSettings(); render(); }
-      return;
-    }
-    const tierPct = e.target.getAttribute('data-tier-pct');
-    if(tierPct){
-      const [key,id] = tierPct.split(':');
-      const t = settings.items[key].tiers.find(t=>t.id===id);
-      if(t){ t.pct = Number(e.target.value)||0; saveSettings(); render(); }
+    const atkPct = e.target.getAttribute('data-atk-pct');
+    if(atkPct){
+      settings.atkSkills[atkPct] = Number(e.target.value)||0;
+      saveSettings();
+      render();
       return;
     }
   });
