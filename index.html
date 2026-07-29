@@ -2,360 +2,605 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>ランキング管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アチャ伝2 攻略ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;800&family=Cinzel:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0c12;
+    --bg-panel:#12151f;
+    --bg-panel2:#181c29;
+    --bg-panel3:#1f2432;
+    --border:#262c3d;
+    --border-soft:#1b2030;
+    --gold:#d4af37;
+    --gold-soft:#e8cf7a;
+    --gold-dark:#a07800;
+    --banner-bright:#2f8fd4;
+    --banner-mid:#1f6fae;
+    --banner-dark:#123a5e;
+    --cyan:#45c4b0;
+    --text:#e9e7e0;
+    --text-dim:#8b92a6;
+    --text-faint:#5a6178;
+    --up:#4fbf6a;
+    --down:#e0555a;
+  }
+  *{box-sizing:border-box;}
+  #at-root{
+    background:
+      radial-gradient(ellipse 120% 60% at 50% -10%, rgba(47,143,212,0.16), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans JP', sans-serif;
+    min-height:100vh;
+    padding:0 0 60px 0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .at-wrap{max-width:640px;margin:0 auto;padding:0 16px;}
+
+  .at-header{position:relative;padding:26px 0 16px;text-align:center;}
+  .at-eyebrow{
+    font-family:'Cinzel',serif;font-size:11px;letter-spacing:.28em;
+    color:var(--gold-soft);text-transform:uppercase;opacity:.85;margin-bottom:6px;
+  }
+  .at-banner{position:relative;display:inline-block;padding:10px 34px;margin-top:2px;}
+  .at-banner::before{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg, var(--banner-bright), var(--banner-mid) 70%, var(--banner-dark));
+    clip-path:polygon(3% 0%, 97% 0%, 100% 30%, 96% 50%, 100% 70%, 97% 100%, 3% 100%, 0% 68%, 4% 50%, 0% 32%);
+    box-shadow:0 8px 24px -8px rgba(47,143,212,.6);
+  }
+  .at-title{
+    position:relative;font-family:'Shippori Mincho',serif;font-weight:800;
+    font-size:24px;letter-spacing:.06em;color:#fdf6e3;
+    text-shadow:0 2px 6px rgba(0,0,0,.5);
+    white-space:nowrap;
+  }
+  .at-sub{margin-top:10px;font-size:11px;color:var(--text-faint);letter-spacing:.14em;font-family:'Cinzel',serif;}
+
+  .at-gear{
+    position:fixed;top:14px;right:14px;z-index:200;
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,10,15,.85);border:1px solid var(--border);cursor:pointer;font-size:17px;
+    backdrop-filter:blur(8px);
+  }
+  .at-gear:hover{border-color:var(--gold-dark);box-shadow:0 0 12px rgba(212,175,55,.25);}
+
+  .at-tabs{display:flex;gap:6px;margin:18px 0 16px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:5px;}
+  .at-tab{
+    flex:1;text-align:center;padding:11px 4px;border-radius:8px;font-size:13px;font-weight:700;
+    color:var(--text-dim);cursor:pointer;user-select:none;letter-spacing:.02em;transition:all .15s;
+  }
+  .at-tab.active{background:linear-gradient(180deg,#2a2033,var(--bg-panel3));color:var(--gold-soft);box-shadow:inset 0 0 0 1px rgba(212,175,55,.35);}
+  .at-tab .soon{display:block;font-size:9.5px;color:var(--text-faint);margin-top:2px;font-weight:600;letter-spacing:.04em;}
+
+  .at-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
+  .at-panel-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:15px;color:var(--gold-soft);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+  .at-panel-desc{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-bottom:14px;}
+
+  .at-field{margin-bottom:12px;}
+  .at-label{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;letter-spacing:.03em;}
+  .at-hint{font-size:10.5px;color:var(--text-faint);margin-top:4px;line-height:1.5;}
+  .at-input, .at-select{
+    width:100%;background:var(--bg-panel2);border:1px solid var(--border);color:var(--text);
+    padding:10px 12px;border-radius:8px;font-size:13.5px;font-family:'Noto Sans JP',sans-serif;
+  }
+  .at-input:focus, .at-select:focus{outline:none;border-color:var(--gold);}
+  .at-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .at-checkrow{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-panel2);
+    margin-bottom:8px;cursor:pointer;
+  }
+  .at-checkrow:last-child{margin-bottom:0;}
+  .at-checkrow.on{border-color:var(--cyan);background:rgba(69,196,176,.08);}
+  .at-checkrow-main{flex:1;}
+  .at-checkrow-label{font-size:13px;font-weight:600;color:var(--text);}
+  .at-checkrow-sub{font-size:10.5px;color:var(--text-faint);margin-top:2px;}
+  .at-checkrow-badge{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan);white-space:nowrap;}
+  .at-switch{
+    position:relative;flex:0 0 auto;width:38px;height:22px;border-radius:999px;background:var(--bg-panel3);
+    border:1px solid var(--border);
+  }
+  .at-switch::after{
+    content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:var(--text-faint);transition:.15s;
+  }
+  .at-checkrow.on .at-switch{border-color:var(--cyan);background:rgba(69,196,176,.25);}
+  .at-checkrow.on .at-switch::after{left:18px;background:var(--cyan);}
+
+  .at-statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;}
+  .at-statbox{background:var(--bg-panel2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;}
+  .at-statbox-label{font-size:10.5px;color:var(--text-faint);letter-spacing:.02em;margin-bottom:6px;}
+  .at-statbox-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:var(--gold-soft);}
+  .at-statbox-val.cyan{color:var(--cyan);}
+
+  .at-btn{
+    background:linear-gradient(180deg,#2a3244,var(--bg-panel3));border:1px solid var(--border);color:var(--text);
+    padding:10px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em;
+  }
+  .at-btn:hover{border-color:var(--gold);}
+  .at-btn-gold{background:linear-gradient(180deg,var(--gold-soft),var(--gold));color:#241d05;border:none;}
+  .at-btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+  .at-btn-danger{background:transparent;border:1px solid #7a3030;color:#e08a8a;}
+  .at-btn-sm{padding:6px 10px;font-size:11.5px;border-radius:7px;}
+  .at-btn-full{width:100%;}
+
+  .at-compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+  .at-compare-card{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg-panel2);text-align:center;}
+  .at-compare-card.win{border-color:var(--gold);background:rgba(212,175,55,.1);box-shadow:0 0 0 1px rgba(212,175,55,.25) inset;}
+  .at-compare-name{font-size:12px;color:var(--text-dim);font-weight:700;margin-bottom:6px;}
+  .at-compare-gain{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:19px;color:var(--text);}
+  .at-compare-gain.win{color:var(--gold-soft);}
+  .at-compare-sub{font-size:10.5px;color:var(--text-faint);margin-top:6px;line-height:1.5;}
+  .at-crown{font-size:11px;color:var(--gold-soft);margin-top:6px;font-weight:700;letter-spacing:.03em;}
+
+  .at-note{font-size:11px;color:var(--text-faint);line-height:1.8;margin-top:10px;padding:10px 12px;background:var(--bg-panel2);border-radius:8px;border:1px solid var(--border-soft);}
+
+  .at-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:50px 12px;line-height:2;}
+  .at-empty-icon{font-size:30px;margin-bottom:10px;opacity:.7;}
+
+  .at-modal-backdrop{position:fixed;inset:0;background:rgba(5,6,10,.72);z-index:300;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+  .at-modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:86vh;overflow-y:auto;padding:18px;}
+  @media (min-width:560px){
+    .at-modal-backdrop{align-items:center;padding:20px;}
+    .at-modal{border-radius:16px;max-height:82vh;}
+  }
+  .at-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .at-modal-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:16px;color:var(--gold-soft);}
+  .at-modal-close{cursor:pointer;color:var(--text-faint);font-size:20px;line-height:1;padding:4px;}
+
+  .at-tierrow{display:grid;grid-template-columns:1fr 84px 30px;gap:6px;align-items:center;margin-bottom:6px;}
+  .at-tierrow input{padding:8px 9px;font-size:12.5px;}
+  .at-tierrow .at-input{width:100%;}
+  .at-tier-del{cursor:pointer;color:var(--text-faint);text-align:center;font-size:16px;}
+  .at-tier-del:hover{color:var(--down);}
+  .at-percent-suffix{position:relative;}
+
+  .at-toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--bg-panel3);
+    border:1px solid var(--gold);color:var(--gold-soft);padding:10px 18px;border-radius:999px;font-size:12.5px;
+    font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:400;white-space:nowrap;
+  }
+
+  .at-divider{height:1px;background:var(--border-soft);margin:16px 0;}
+  .at-footer-note{font-size:10.5px;color:var(--text-faint);line-height:1.9;text-align:center;margin-top:6px;}
+
+  @media (max-width:400px){
+    .at-title{font-size:19px;}
+    .at-statgrid{grid-template-columns:1fr 1fr 1fr;gap:6px;}
+    .at-statbox-val{font-size:15px;}
+    .at-compare{grid-template-columns:1fr;}
+  }
+</style>
 </head>
-
 <body>
-<div class="container">
 
-<!-- =============================
-  ■ 全体ヘッダー
-============================= -->
-<div class="header-bar">
-  <h1>🏆ランキング管理</h1>
-</div>
+<div id="at-root"><div class="at-wrap" id="at-app"></div></div>
 
-<!-- =============================
-  ■ タブ
-============================= -->
-<div class="tabs">
-  <button id="tab1" class="active" onclick="showPage(1)">全体記録</button>
-  <button id="tab2" onclick="showPage(2)">ねこ海賊団</button>
-  <button id="tab3" onclick="showPage(3)">個人用</button>
-</div>
+<script>
+(function(){
+  // ---------- storage helpers ----------
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+  function loadJSON(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      if(!raw) return JSON.parse(JSON.stringify(fallback));
+      const parsed = JSON.parse(raw);
+      return Object.assign(JSON.parse(JSON.stringify(fallback)), parsed);
+    }catch(e){ return JSON.parse(JSON.stringify(fallback)); }
+  }
+  function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
-<!-- =============================
-  ▼ ページ1：全体記録
-============================= -->
-<div id="page1">
+  // ---------- default data ----------
+  function defaultTiers(){
+    return [
+      {id:uid(), name:'ノーマル', pct:0},
+      {id:uid(), name:'レア', pct:0},
+      {id:uid(), name:'エピック', pct:0},
+      {id:uid(), name:'レジェンド', pct:0},
+      {id:uid(), name:'ミシック', pct:0},
+    ];
+  }
+  const DEFAULT_SETTINGS = {
+    items:{
+      sharp:{label:'鋭利の矢（エンチャント）', tiers: defaultTiers()},
+      rain:{label:'アローレイン（エンチャント）', tiers: defaultTiers()},
+      voidblade:{label:'虚無の刃（聖物）', tiers: defaultTiers()},
+    }
+  };
+  const DEFAULT_BUILD = {
+    symphony:false,
+    armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
+    diagonal:false, front:false, rear:false, tracking:false,
+    sharpTierId:'', rainTierId:'', voidTierId:'',
+    compareAtkPct:10, compareArrowCount:1
+  };
 
-  <!-- ヘッダー -->
-  <div class="header-bar">
-    <h1>📊全体記録</h1>
-    <button onclick="toggleManage()" id="manageBtn">⚙️</button>
-  </div>
+  const TOOLS = [
+    {id:'arrows', label:'矢の本数', icon:'🏹'},
+    {id:'fishing', label:'釣り', icon:'🎣', comingSoon:true},
+  ];
 
-  <!-- CSV管理 -->
- <div id="manageArea" class="box" style="display:none;">
-  <input type="file" id="csvFile">
-  <div class="row">
-    <button onclick="importCSV()">CSV取込</button>
-    <button onclick="exportCSV()">CSV出力</button>
-  </div>
-  <!-- 画像 -->
-  <div class="row">
-    <button onclick="saveWeekdayBestImage()">📸 曜日別画像保存</button>
-  </div>
-</div>
-  
-  
-  <!-- データ追加 -->
-  <div class="box">
-    <h3>➕ データ追加</h3>
-    <div class="row"><select id="clan"></select></div>
-    <div class="row"><input id="score" type="number" placeholder="スコア"></div>
-    <div class="row"><input id="date" type="date"></div>
-    <div class="row"><button onclick="add()">追加</button></div>
-  </div>
-  
-  <div class="box" id="weekdayCapture">
-    <h3>🏆 曜日別最高スコア</h3>
-    <div id="weekdayBest"></div>
-  </div>
+  let settings = loadJSON('at2_settings_v1', DEFAULT_SETTINGS);
+  let build = loadJSON('at2_build_v1', DEFAULT_BUILD);
+  let state = {
+    tab: localStorage.getItem('at2_tab_v1') || 'arrows',
+    settingsOpen:false,
+  };
+  let toastMsg = null, toastTimer = null;
 
-  <!-- グラフ -->
-  <div class="box">
-    <h3 class="accordion-title" onclick="toggleGraphBox()">📈 グラフ生成</h3>
+  function saveSettings(){ saveJSON('at2_settings_v1', settings); }
+  function saveBuild(){ saveJSON('at2_build_v1', build); }
+  function setTab(id){ state.tab = id; localStorage.setItem('at2_tab_v1', id); render(); }
 
-    <div id="graphBox" style="display:none;">
-      <div class="row">
-        <input type="date" id="startDate">
-        <input type="date" id="endDate">
+  function showToast(msg){
+    toastMsg = msg;
+    render();
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{ toastMsg=null; render(); }, 1800);
+  }
+
+  // ---------- arrow-count calculation ----------
+  function armorBonus(armor){
+    if(armor==='oracle_myth') return 4;
+    if(armor==='oracle_low') return 2;
+    return 0; // dragoon / griffon / other
+  }
+  function armorLabel(armor){
+    return {
+      oracle_myth:'神託の鎧（ミシック以上）',
+      oracle_low:'神託の鎧（ミシック未満）',
+      dragoon:'ドラグーンの鎧',
+      griffon:'グリフォンの鎧',
+      other:'その他の鎧・未装備',
+    }[armor] || 'その他の鎧・未装備';
+  }
+  function findTierPct(itemKey, tierId){
+    const tiers = (settings.items[itemKey] && settings.items[itemKey].tiers) || [];
+    const t = tiers.find(t=>t.id===tierId);
+    return t ? (Number(t.pct)||0) : 0;
+  }
+  function findTierName(itemKey, tierId){
+    const tiers = (settings.items[itemKey] && settings.items[itemKey].tiers) || [];
+    const t = tiers.find(t=>t.id===tierId);
+    return t ? t.name : 'なし';
+  }
+  function calcArrows(b){
+    let n = 1;
+    if(b.symphony) n += 2;
+    n += armorBonus(b.armor);
+    if(b.diagonal) n += 2;
+    if(b.front) n += 1;
+    if(b.rear) n += 1;
+    return n;
+  }
+  function calcMultiplier(b){
+    let m = 100;
+    if(b.front) m -= 10;
+    if(b.tracking) m -= 15;
+    m += findTierPct('sharp', b.sharpTierId);
+    m += findTierPct('rain', b.rainTierId);
+    m += findTierPct('voidblade', b.voidTierId);
+    return m;
+  }
+  function calcPower(b){
+    const arrows = calcArrows(b);
+    const mult = calcMultiplier(b);
+    const power = arrows * mult / 100;
+    return {arrows, mult, power};
+  }
+  function compareChoice(b){
+    const cur = calcPower(b);
+    const atkPct = Number(b.compareAtkPct)||0;
+    const arrowCnt = Number(b.compareArrowCount)||0;
+    const atkPower = cur.arrows * (cur.mult + atkPct) / 100;
+    const arrowPower = (cur.arrows + arrowCnt) * cur.mult / 100;
+    const atkGain = cur.power>0 ? (atkPower-cur.power)/cur.power*100 : 0;
+    const arrowGain = cur.power>0 ? (arrowPower-cur.power)/cur.power*100 : 0;
+    let winner = 'even';
+    if(Math.abs(atkGain-arrowGain) > 0.001){ winner = atkGain>arrowGain ? 'atk' : 'arrow'; }
+    return {cur, atkPower, arrowPower, atkGain, arrowGain, winner};
+  }
+  function fmtNum(n, digits){
+    digits = digits==null?1:digits;
+    return Number(n).toFixed(digits).replace(/\.0+$/,'').replace(/(\.\d*[1-9])0+$/,'$1');
+  }
+
+  // ---------- render helpers ----------
+  const app = document.getElementById('at-app');
+
+  function header(){
+    return `
+    <div class="at-header">
+      <div class="at-eyebrow">Archero 2 — Companion Notes</div>
+      <div class="at-banner"><div class="at-title">アチャ伝2 攻略ノート</div></div>
+      <div class="at-sub">FAN-MADE UNOFFICIAL TOOLKIT</div>
+    </div>`;
+  }
+
+  function tabsBar(){
+    return `<div class="at-tabs">${TOOLS.map(t=>`
+      <div class="at-tab ${state.tab===t.id?'active':''}" data-action="setTab" data-val="${t.id}">
+        ${t.icon} ${t.label}${t.comingSoon?'<span class="soon">近日公開</span>':''}
+      </div>`).join('')}</div>`;
+  }
+
+  function checkRow(key, label, sub, on, badge){
+    return `
+    <div class="at-checkrow ${on?'on':''}" data-action="toggleBuild" data-val="${key}">
+      <div class="at-checkrow-main">
+        <div class="at-checkrow-label">${label}</div>
+        ${sub?`<div class="at-checkrow-sub">${sub}</div>`:''}
       </div>
+      ${badge?`<div class="at-checkrow-badge">${badge}</div>`:''}
+      <div class="at-switch"></div>
+    </div>`;
+  }
 
-      <div class="row">
-        <button onclick="openModal()">クラン選択</button>
-        <span id="selectedClansText">未選択</span>
-      </div>
+  function tierSelect(itemKey, bindKey, currentId){
+    const item = settings.items[itemKey];
+    const opts = [`<option value="">なし（未所持）</option>`]
+      .concat(item.tiers.map(t=>`<option value="${t.id}" ${t.id===currentId?'selected':''}>${escapeHtml(t.name)}（${t.pct>0?'+':''}${t.pct}%）</option>`));
+    return `<select class="at-select" data-bind="${bindKey}">${opts.join('')}</select>`;
+  }
 
-      <div class="row">
-        <select id="graphMode">
-          <option value="score">スコア推移</option>
-          <option value="rank">順位推移</option>
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function arrowsTool(){
+    const res = calcPower(build);
+    const cmp = compareChoice(build);
+
+    return `
+    <div class="at-panel">
+      <div class="at-panel-title">🏹 現在のビルド</div>
+      <div class="at-panel-desc">所持している装備・習得スキルを選んでください。矢の本数と主武器倍率は自動計算されます。</div>
+
+      ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
+
+      <div class="at-field" style="margin-top:12px;">
+        <label class="at-label">装備中の鎧</label>
+        <select class="at-select" data-bind="armor">
+          <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
+          <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
+          <option value="dragoon" ${build.armor==='dragoon'?'selected':''}>ドラグーンの鎧（+0本）</option>
+          <option value="griffon" ${build.armor==='griffon'?'selected':''}>グリフォンの鎧（+0本）</option>
+          <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
         </select>
+        <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
       </div>
 
-      <div class="row">
-        <button onclick="drawChart()">グラフ生成</button>
+      <div style="margin-top:12px;">
+        ${checkRow('diagonal', 'ダイアゴナルアロー', '斜め2発を追加', build.diagonal, build.diagonal?'+2本':'')}
+        ${checkRow('front', 'フロントアロー', '前方+1本／主武器倍率-10%', build.front, build.front?'+1本':'')}
+        ${checkRow('rear', 'リアアロー', '後方+1本', build.rear, build.rear?'+1本':'')}
+        ${checkRow('tracking', '追跡の目', '本数は変わらず主武器倍率-15%', build.tracking, build.tracking?'-15%':'')}
       </div>
     </div>
-  </div>
 
-  <!-- 一覧 -->
-  <div class="box">
-    <h3>📊 一覧</h3>
-    <div id="tableWrap"></div>
-  </div>
-
-</div>
-
-<!-- =============================
-  ▼ ページ2：ねこ海賊団
-============================= -->
-<div id="page2" style="display:none">
-
-  <div class="header-bar">
-    <h1>📊ねこ海賊団</h1>
-    <button onclick="toggleManage2()" id="manageBtn2">⚙️</button>
-  </div>
-
-  <!-- CSV -->
-  <div id="manageArea2" class="box" style="display:none;">
-    <input type="file" id="csvFile2">
-    <div class="row">
-      <button onclick="importCSV2()">CSV取込</button>
-      <button onclick="exportCSV2()">CSV出力</button>
-    </div>
-    <div class="row">
-      <button onclick="saveBestScoreImage()">📸 最高スコア</button>
-      <button onclick="saveAvgRankImage()">📸 平均順位</button>
-    </div>
-  </div>
-
-  <!-- 順位追加 -->
-  <div class="box">
-    <h3>➕ 順位データ追加</h3>
-    <div class="row">
-      <select id="member"></select>
-      <input id="newMember" placeholder="新規メンバー（いなければ）">
-    </div>
-    <div class="row"><input id="rank" type="number" placeholder="順位"></div>
-    <div class="row">
-      <input id="score2" type="number" placeholder="スコア(任意)">
-    </div>
-    <div class="row"><input id="date2" type="date"></div>
-    <div class="row"><button onclick="addRank()">追加</button></div>
-  </div>
-  
-  <!-- 平均順位 -->
-<div class="box" id="avgRankCapture">
-  <h3>📊 平均順位</h3>
-
-  <div class="row">
-    <input type="date" id="startDateRank">
-    <input type="date" id="endDateRank">
-  </div>
-
-  <div class="row">
-    <button onclick="applyAvgRank()">反映</button>
-  </div>
-
-  <div id="avgRankBox"></div>
-</div>
-
-<!-- 順位推移グラフ -->
-<div class="box">
-  <h3 class="accordion-title" onclick="toggleRankGraphBox()">
-    📈 順位推移グラフ
-  </h3>
-  <div id="rankGraphBox" style="display:none;">
-    <div class="row">
-      <input type="date" id="rankGraphStart">
-      <input type="date" id="rankGraphEnd">
-    </div>
-    <div class="row">
-      <button onclick="openMemberModal()">
-        メンバー選択
-      </button>
-      <span id="selectedMembersText">
-        未選択
-      </span>
-    </div>
-    <div class="row">
-      <button onclick="drawRankGraph()">
-        グラフ生成
-      </button>
-    </div>
-  </div>
-</div>
-  
-  <!-- 個人別最高スコア -->
-  <div class="box" id="bestScoreCapture">
-    <h3>☠個人別最高スコア☠</h3>
-    <div id="bestScoreBox"></div>
-  </div>
-  
-  <!-- 一覧 -->
-  <div class="box">
-    <h3>📋 順位一覧</h3>
-    <div id="tableWrap2"></div>
-  </div>
-
-</div>
-
-<!-- =============================
-  ▼ ページ3：個人用
-============================= -->
-<div id="page3" style="display:none">
-
-  <div class="header-bar">
-    <h1>👤個人記録</h1>
-    <button onclick="toggleManage3()" id="manageBtn3">⚙️</button>
-  </div>
-
-  <!-- CSV -->
-  <div id="manageArea3" class="box" style="display:none;">
-    <input type="file" id="csvFile3">
-    <div class="row">
-      <button onclick="importCSV3()">CSV取込</button>
-      <button onclick="exportCSV3()">CSV出力</button>
-    </div>
-    <div class="row">
-      <button onclick="saveWeekdayBestImage3()">📸 画像保存</button>
-    </div>
-  </div>
-
-  <!-- データ追加 -->
-  <div class="box">
-    <h3>➕ データ追加</h3>
-    <div class="row">
-      <input id="score3" type="number" placeholder="2回合計スコア">
-      <input id="score3_1" type="number" placeholder="1回スコア（任意）">
-    </div>
-    <div class="row"><input id="date3" type="date"></div>
-    <div class="row"><button onclick="add3()">追加</button></div>
-  </div>
-
-  <!-- 曜日別 -->
-  <div class="box" id="weekdayCapture3">
-    <h3>🏆 曜日別最高スコア</h3>
-    <div id="weekdayBest3"></div>
-  </div>
-
-  <!-- グラフ -->
-  <div class="box">
-    <h3 class="accordion-title" onclick="toggleGraphBox3()">📈 グラフ生成</h3>
-
-    <div id="graphBox3" style="display:none;">
-      <div class="row">
-        <input type="date" id="startDate3">
-        <input type="date" id="endDate3">
+    <div class="at-panel">
+      <div class="at-panel-title">⚙️ 倍率アイテム</div>
+      <div class="at-panel-desc">品質ごとの効果%は右上の設定アイコンから編集できます。</div>
+      <div class="at-field">
+        <label class="at-label">鋭利の矢（エンチャント）</label>
+        ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
       </div>
-
-      <div class="row">
-        <label><input type="checkbox" value="0">日</label>
-        <label><input type="checkbox" value="1">月</label>
-        <label><input type="checkbox" value="2">火</label>
-        <label><input type="checkbox" value="3">水</label>
-        <label><input type="checkbox" value="4">木</label>
-        <label><input type="checkbox" value="5">金</label>
-        <label><input type="checkbox" value="6">土</label>
-        <label><input type="checkbox" id="allDays">全選択</label>
+      <div class="at-field">
+        <label class="at-label">アローレイン（エンチャント）</label>
+        ${tierSelect('rain','rainTierId', build.rainTierId)}
       </div>
-
-      <div class="row">
-        <button onclick="drawChart3()">グラフ生成</button>
+      <div class="at-field" style="margin-bottom:0;">
+        <label class="at-label">虚無の刃（聖物）</label>
+        ${tierSelect('voidblade','voidTierId', build.voidTierId)}
       </div>
     </div>
-  </div>
 
-  <!-- 一覧 -->
-  <div class="box">
-    <h3>📊 一覧</h3>
-    <div id="tableWrap3"></div>
-  </div>
-
-</div>
-
-
-<!-- =============================
-  ■ モーダル
-============================= -->
-<div id="modal" class="modal">
-  <div class="modal-content">
-    <h3>クラン選択</h3>
-    <div id="modalCheckboxes"></div>
-
-    <div class="row">
-      <button onclick="selectAllClans()">全選択</button>
-      <button onclick="clearAllClans()">全解除</button>
+    <div class="at-panel">
+      <div class="at-panel-title">📊 計算結果</div>
+      <div class="at-statgrid">
+        <div class="at-statbox">
+          <div class="at-statbox-label">矢の本数</div>
+          <div class="at-statbox-val">${res.arrows}本</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">主武器倍率</div>
+          <div class="at-statbox-val">${fmtNum(res.mult,1)}%</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">総合火力指数</div>
+          <div class="at-statbox-val cyan">${fmtNum(res.power,2)}</div>
+        </div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;">総合火力指数 ＝ 矢の本数 × 主武器倍率 ÷ 100（単純な相対比較用の目安値です）</div>
     </div>
 
-    <div class="row">
-      <button onclick="applySelection()">決定</button>
-      <button onclick="closeModal()">閉じる</button>
-    </div>
-  </div>
-</div>
+    <div class="at-panel">
+      <div class="at-panel-title">🤔 攻撃力アップ vs 矢の本数アップ</div>
+      <div class="at-panel-desc">今、出現しているスキル選択肢の数値を入れると、現在のビルドに対してどちらが効率的か判定します。</div>
 
-<!-- グラフモーダル -->
-<div id="graphModal1" class="graph-modal">
-  <div class="graph-modal-content">
-    <div class="graph-header">
-      <h3>📊 グラフ表示（全体）</h3>
-      <button onclick="closeGraphModal1()">閉じる</button>
-    </div>
-    <canvas id="modalChart1"></canvas>
-  </div>
-</div>
-  
-<!-- メンバー選択モーダル -->
-<div id="memberModal" class="modal">
-  <div class="modal-content">
-    <h3>メンバー選択</h3>
-    <div id="memberModalCheckboxes"></div>
-    <div class="row">
-      <button onclick="selectAllMembers()">
-        全選択
-      </button>
-      <button onclick="clearAllMembers()">
-        全解除
-      </button>
-    </div>
-    <div class="row">
-      <button onclick="applyMemberSelection()">
-        決定
-      </button>
-      <button onclick="closeMemberModal()">
-        閉じる
-      </button>
-    </div>
-  </div>
-</div>
-  
-<!-- 2ページ目用 -->
-<div id="graphModal2" class="graph-modal">
-  <div class="graph-modal-content">
+      <div class="at-row2">
+        <div class="at-field">
+          <label class="at-label">攻撃力アップの上昇量（%）</label>
+          <input class="at-input" type="number" step="1" data-bind="compareAtkPct" value="${build.compareAtkPct}">
+        </div>
+        <div class="at-field">
+          <label class="at-label">矢の本数アップの本数</label>
+          <input class="at-input" type="number" step="1" data-bind="compareArrowCount" value="${build.compareArrowCount}">
+        </div>
+      </div>
 
-    <div class="graph-header">
-      <h3>📊 グラフ表示（順位推移）</h3>
+      <div class="at-compare">
+        <div class="at-compare-card ${cmp.winner==='atk'?'win':''}">
+          <div class="at-compare-name">攻撃力アップ</div>
+          <div class="at-compare-gain ${cmp.winner==='atk'?'win':''}">${cmp.atkGain>=0?'+':''}${fmtNum(cmp.atkGain,1)}%</div>
+          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.atkPower,2)}</div>
+          ${cmp.winner==='atk'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
+        </div>
+        <div class="at-compare-card ${cmp.winner==='arrow'?'win':''}">
+          <div class="at-compare-name">矢の本数アップ</div>
+          <div class="at-compare-gain ${cmp.winner==='arrow'?'win':''}">${cmp.arrowGain>=0?'+':''}${fmtNum(cmp.arrowGain,1)}%</div>
+          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.arrowPower,2)}</div>
+          ${cmp.winner==='arrow'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
+        </div>
+      </div>
+      ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジー（跳弾・追跡の目など）で選んでもOK</div>':''}
 
-      <button onclick="closeGraphModal2()">
-        閉じる
-      </button>
+      <div class="at-note">
+        矢の本数が少ないうちは「矢の本数アップ」の相対効果が大きく、主武器倍率がすでに高い（または低い）状況では「攻撃力アップ」側の効果が変わります。総合火力指数＝矢の本数×主武器倍率という単純化モデルなので、実際のダメージ計算（クリティカル・属性・貫通など）は含まれていません。目安としてご利用ください。
+      </div>
     </div>
+    `;
+  }
 
-    <canvas id="modalChart2"></canvas>
+  function fishingTool(){
+    return `
+    <div class="at-panel">
+      <div class="at-empty">
+        <div class="at-empty-icon">🎣</div>
+        「釣り」ツールは準備中です。<br>内容が決まり次第、追加されます。
+      </div>
+    </div>`;
+  }
 
-  </div>
-</div>
-  
-<!-- 3ページ目用 -->
-<div id="graphModal3" class="graph-modal">
-  <div class="graph-modal-content">
-    <div class="graph-header">
-      <h3>📊 グラフ表示（個人）</h3>
-      <button onclick="closeGraphModal3()">閉じる</button>
-    </div>
-    <canvas id="modalChart3"></canvas>
-  </div>
-</div>
+  function settingsModal(){
+    if(!state.settingsOpen) return '';
+    const itemKeys = [['sharp','鋭利の矢'],['rain','アローレイン'],['voidblade','虚無の刃']];
+    return `
+    <div class="at-modal-backdrop" data-action="closeSettings">
+      <div class="at-modal" onclick="event.stopPropagation()">
+        <div class="at-modal-head">
+          <div class="at-modal-title">⚙️ 基本設定</div>
+          <div class="at-modal-close" data-action="closeSettings">✕</div>
+        </div>
+        <div class="at-panel-desc">品質ごとの主武器倍率への効果（%）を編集できます。品質名・数値は自由に変更・追加・削除できます。</div>
 
-<script type="module" src="app.js"></script>
+        ${itemKeys.map(([key,label])=>`
+          <div class="at-field">
+            <label class="at-label">${label}</label>
+            ${settings.items[key].tiers.map(t=>`
+              <div class="at-tierrow">
+                <input class="at-input" type="text" value="${escapeHtml(t.name)}" data-tier-name="${key}:${t.id}">
+                <input class="at-input" type="number" step="1" value="${t.pct}" data-tier-pct="${key}:${t.id}">
+                <div class="at-tier-del" data-action="delTier" data-val="${key}:${t.id}">✕</div>
+              </div>
+            `).join('')}
+            <div class="at-btn at-btn-ghost at-btn-sm" data-action="addTier" data-val="${key}">＋ 品質を追加</div>
+          </div>
+          <div class="at-divider"></div>
+        `).join('')}
+
+        <div class="at-btn at-btn-danger at-btn-full" data-action="resetSettings">初期状態にリセット</div>
+      </div>
+    </div>`;
+  }
+
+  function render(){
+    let body = tabsBar();
+    if(state.tab==='arrows') body += arrowsTool();
+    else body += fishingTool();
+
+    app.innerHTML = `
+      ${header()}
+      ${body}
+      <div class="at-footer-note">非公式ファン制作ツールです。数値は自己申告のルール・設定に基づく目安であり、公式仕様を保証するものではありません。</div>
+    ` + settingsModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
+  }
+
+  // ---------- events ----------
+  document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="設定">⚙️</div>`);
+
+  document.addEventListener('click', function(e){
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const action = el.getAttribute('data-action');
+    const val = el.getAttribute('data-val');
+
+    if(action==='setTab'){
+      const tool = TOOLS.find(t=>t.id===val);
+      if(tool && tool.comingSoon){ setTab(val); return; }
+      setTab(val);
+      return;
+    }
+    if(action==='toggleBuild'){
+      build[val] = !build[val];
+      saveBuild();
+      render();
+      return;
+    }
+    if(action==='openSettings'){ state.settingsOpen = true; render(); return; }
+    if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
+    if(action==='addTier'){
+      settings.items[val].tiers.push({id:uid(), name:'新しい品質', pct:0});
+      saveSettings(); render(); return;
+    }
+    if(action==='delTier'){
+      const [key,id] = val.split(':');
+      settings.items[key].tiers = settings.items[key].tiers.filter(t=>t.id!==id);
+      if(build.sharpTierId===id) build.sharpTierId='';
+      if(build.rainTierId===id) build.rainTierId='';
+      if(build.voidTierId===id) build.voidTierId='';
+      saveSettings(); saveBuild(); render(); return;
+    }
+    if(action==='resetSettings'){
+      if(confirm('品質設定をすべて初期状態に戻します。よろしいですか？')){
+        settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+        settings.items.sharp.tiers = defaultTiers();
+        settings.items.rain.tiers = defaultTiers();
+        settings.items.voidblade.tiers = defaultTiers();
+        saveSettings();
+        showToast('設定をリセットしました');
+      }
+      return;
+    }
+  });
+
+  document.addEventListener('change', function(e){
+    const bind = e.target.getAttribute('data-bind');
+    if(bind){
+      let v = e.target.value;
+      if(e.target.type==='number') v = v===''? '' : Number(v);
+      build[bind] = v;
+      saveBuild();
+      render();
+      return;
+    }
+    const tierName = e.target.getAttribute('data-tier-name');
+    if(tierName){
+      const [key,id] = tierName.split(':');
+      const t = settings.items[key].tiers.find(t=>t.id===id);
+      if(t){ t.name = e.target.value; saveSettings(); render(); }
+      return;
+    }
+    const tierPct = e.target.getAttribute('data-tier-pct');
+    if(tierPct){
+      const [key,id] = tierPct.split(':');
+      const t = settings.items[key].tiers.find(t=>t.id===id);
+      if(t){ t.pct = Number(e.target.value)||0; saveSettings(); render(); }
+      return;
+    }
+  });
+
+  document.addEventListener('input', function(e){
+    // live-update number inputs bound via data-bind while typing
+    const bind = e.target.getAttribute('data-bind');
+    if(bind && e.target.type==='number'){
+      let v = e.target.value===''? '' : Number(e.target.value);
+      build[bind] = v;
+      saveBuild();
+      // re-render but keep focus: only update computed sections lightly by full render
+      // (simple approach: skip re-render on every keystroke for number fields to avoid focus loss)
+    }
+  });
+
+  render();
+})();
+</script>
+
 </body>
 </html>
