@@ -238,11 +238,13 @@
     atkSkills: defaultAtkSkills()
   };
   const DEFAULT_BUILD = {
-    atkBase:0, atkBonusPct:0,
+    atkBase:0, atkBonusPct:0, finalDmgBonusPct:0,
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
     diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
+    sharpRuneQuality:'none', // none | epic | legend
+    painRing:false, ero:false,
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
     atkSkillCounts:{},
     compareCandA:'diagonal', compareCandB:'front'
@@ -324,16 +326,34 @@
     });
     return bonus;
   }
-  // 主武器攻撃力アップ(%)：エンチャント(鋭利の矢・アローレイン)・虚無の刃・ダイアゴナル/フロント/リアアロー・追跡の目
-  // → 総攻撃力に掛け合わせる倍率（基準100%）
-  function calcMainWeaponUpMult(b){
+  // 鋭利の矢ルーン品質：エピックで+10%、レジェンドで+20%
+  function sharpRuneBonus(quality){
+    if(quality==='epic') return 10;
+    if(quality==='legend') return 20;
+    return 0;
+  }
+  // 主武器ダメup(%)：エンチャント(鋭利の矢・アローレイン)・鋭利の矢ルーン品質・虚無の刃・
+  // ダイアゴナル/フロント/リアアロー・追跡の目 → 総攻撃力に掛け合わせる倍率（基準100%）
+  function calcMainDmgUpMult(b){
     let m = 100;
     m -= (Number(b.frontCount)||0) * 10;
     if(b.tracking) m -= 15;
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
+    m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
+  }
+  // 被ダメup(%)：苦痛の輪(+20%)・エロ(+35%) → 総攻撃力に掛け合わせる倍率（基準100%）
+  function calcDmgTakenUpMult(b){
+    let m = 100;
+    if(b.painRing) m += 20;
+    if(b.ero) m += 35;
+    return m;
+  }
+  // 最終ダメボーナス(%)：手入力の追加ボーナス → 基準100%の倍率
+  function calcFinalDmgBonusMult(b){
+    return 100 + (Number(b.finalDmgBonusPct)||0);
   }
   // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × (攻撃力ボーナス＋攻撃力アップ) ÷ 100 }
   function calcTotalAtk(b){
@@ -344,13 +364,15 @@
     const totalAtk = atkBase + atkBase * (totalBonusPct/100);
     return {atkBase, atkBonusPct, atkUpBonus, totalBonusPct, totalAtk};
   }
-  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 主武器攻撃力アップ(%)
+  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%)
   function calcPower(b){
     const arrows = calcArrows(b);
     const atkInfo = calcTotalAtk(b);
-    const mainUp = calcMainWeaponUpMult(b);
-    const damage = atkInfo.totalAtk * arrows * (mainUp/100);
-    return Object.assign({arrows, mainUp, damage}, atkInfo);
+    const mainUp = calcMainDmgUpMult(b);
+    const dmgTakenUp = calcDmgTakenUpMult(b);
+    const finalBonus = calcFinalDmgBonusMult(b);
+    const damage = atkInfo.totalAtk * arrows * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100);
+    return Object.assign({arrows, mainUp, dmgTakenUp, finalBonus, damage}, atkInfo);
   }
   // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" 形式。
   function getCount(key){
@@ -502,7 +524,13 @@
           <input class="at-input" type="number" step="1" value="${build.atkBonusPct}" data-bind="atkBonusPct">
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 ×（攻撃力ボーナス＋攻撃力アップ）÷ 100｝</div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 ×（攻撃力ボーナス＋攻撃力アップ）÷ 100｝</div>
+
+      <div class="at-field" style="margin-bottom:0;">
+        <label class="at-label">最終ダメボーナス(%)</label>
+        <input class="at-input" type="number" step="1" value="${build.finalDmgBonusPct}" data-bind="finalDmgBonusPct">
+        <div class="at-hint">他のパネルに当てはまらない最終ダメージへの追加ボーナスがあれば入力してください（無ければ0のままでOK）。</div>
+      </div>
     </div>
 
     <div class="at-panel">
@@ -539,12 +567,20 @@
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">🗡️ 主武器攻撃力アップ</div>
-      <div class="at-panel-desc">エンチャント・聖物・矢スキルなど、主武器攻撃力に影響する項目です。＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
+      <div class="at-panel-title">🗡️ 主武器ダメup</div>
+      <div class="at-panel-desc">エンチャント・聖物・矢スキルなど、主武器ダメージに影響する項目です。＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
 
       <div class="at-field">
         <label class="at-label">鋭利の矢（エンチャント）</label>
         ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
+      </div>
+      <div class="at-field">
+        <label class="at-label">鋭利の矢ルーン品質</label>
+        <select class="at-select" data-bind="sharpRuneQuality">
+          <option value="none" ${build.sharpRuneQuality==='none'?'selected':''}>なし（+0%）</option>
+          <option value="epic" ${build.sharpRuneQuality==='epic'?'selected':''}>エピック（+10%）</option>
+          <option value="legend" ${build.sharpRuneQuality==='legend'?'selected':''}>レジェンド（+20%）</option>
+        </select>
       </div>
       <div class="at-field">
         <label class="at-label">アローレイン（エンチャント）</label>
@@ -556,9 +592,17 @@
       </div>
 
       ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
-      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器攻撃力-10%', build.frontCount)}
+      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-10%', build.frontCount)}
       ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
-      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器攻撃力-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
+      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
+    </div>
+
+    <div class="at-panel">
+      <div class="at-panel-title">💥 被ダメup</div>
+      <div class="at-panel-desc">敵に付与する被ダメージ増加系のデバフです。</div>
+
+      ${checkRow('painRing', '苦痛の輪', '被ダメup+20%', build.painRing, build.painRing?'+20%':'')}
+      ${checkRow('ero', 'エロ', '被ダメup+35%', build.ero, build.ero?'+35%':'')}
     </div>
 
     <div class="at-panel">
@@ -580,15 +624,25 @@
           <div class="at-hint" style="margin-top:4px;">（内 攻撃力アップ ${fmtNum(res.atkUpBonus,1)}%）</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">主武器攻撃力アップ</div>
+          <div class="at-statbox-label">主武器ダメup</div>
           <div class="at-statbox-val">${fmtNum(res.mainUp,1)}%</div>
+        </div>
+      </div>
+      <div class="at-row2" style="margin-bottom:8px;">
+        <div class="at-statbox">
+          <div class="at-statbox-label">被ダメup</div>
+          <div class="at-statbox-val">${fmtNum(res.dmgTakenUp,1)}%</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">最終ダメボーナス</div>
+          <div class="at-statbox-val">${fmtNum(res.finalBonus,1)}%</div>
         </div>
       </div>
       <div class="at-statbox">
         <div class="at-statbox-label">最終ダメージ量</div>
         <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 主武器攻撃力アップ(%) ÷ 100</div>
+      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）</div>
     </div>
 
     <div class="at-panel">
@@ -627,7 +681,7 @@
       ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジーで選んでもOK</div>':''}
 
       <div class="at-note">
-        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×主武器攻撃力アップ）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
+        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×主武器ダメup×被ダメup×最終ダメボーナス）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
       </div>
     </div>
     `;
