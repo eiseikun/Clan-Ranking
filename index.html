@@ -578,15 +578,8 @@
     </div>`;
   }
 
-  function settingsModal(){
-    if(!state.settingsOpen) return '';
+  function arrowsSettingsBody(){
     return `
-    <div class="at-modal-backdrop" data-action="closeSettings">
-      <div class="at-modal" onclick="event.stopPropagation()">
-        <div class="at-modal-head">
-          <div class="at-modal-title">⚙️ 基本設定</div>
-          <div class="at-modal-close" data-action="closeSettings">✕</div>
-        </div>
         <div class="at-panel-desc">攻撃力アップ系スキルの名称と、1回取得あたりの主武器倍率への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
 
         <div class="at-field">
@@ -603,6 +596,34 @@
 
         <div class="at-divider"></div>
         <div class="at-btn at-btn-danger at-btn-full" data-action="resetSettings">初期状態にリセット</div>
+    `;
+  }
+
+  function fishingSettingsBody(){
+    return `
+        <div class="at-empty" style="padding:30px 12px;">
+          <div class="at-empty-icon">🎣</div>
+          「釣り」ツールは準備中のため、設定項目はまだありません。<br>内容が決まり次第、ここに追加されます。
+        </div>
+    `;
+  }
+
+  const SETTINGS_BY_TAB = {
+    arrows: { title:'⚙️ 矢の本数 設定', body: arrowsSettingsBody },
+    fishing: { title:'⚙️ 釣り 設定', body: fishingSettingsBody },
+  };
+
+  function settingsModal(){
+    if(!state.settingsOpen) return '';
+    const cfg = SETTINGS_BY_TAB[state.tab] || SETTINGS_BY_TAB.arrows;
+    return `
+    <div class="at-modal-backdrop" data-action="closeSettings">
+      <div class="at-modal" onclick="event.stopPropagation()">
+        <div class="at-modal-head">
+          <div class="at-modal-title">${cfg.title}</div>
+          <div class="at-modal-close" data-action="closeSettings">✕</div>
+        </div>
+        ${cfg.body()}
       </div>
     </div>`;
   }
