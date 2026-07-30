@@ -224,13 +224,13 @@
     return tiers;
   })();
 
-  // 攻撃力アップ系スキル：スキル名・倍率(%)は設定画面で自由に編集・追加・削除できる。
+  // 攻撃力up系スキル：スキル名・倍率(%)は設定画面で自由に編集・追加・削除できる。
   function defaultAtkSkills(){
     return [
-      {id:uid(), name:'グレート品質 攻撃力アップ', pct:0},
-      {id:uid(), name:'エピック品質 攻撃力アップ', pct:0},
+      {id:uid(), name:'グレート品質 攻撃力up', pct:0},
+      {id:uid(), name:'エピック品質 攻撃力up', pct:0},
       {id:uid(), name:'巨大化', pct:0},
-      {id:uid(), name:'レジェンド品質 攻撃力アップ', pct:0},
+      {id:uid(), name:'レジェンド品質 攻撃力up', pct:0},
     ];
   }
 
@@ -285,8 +285,6 @@
     return {
       oracle_myth:'神託の鎧（ミシック以上）',
       oracle_low:'神託の鎧（ミシック未満）',
-      dragoon:'ドラグーンの鎧',
-      griffon:'グリフォンの鎧',
       other:'その他の鎧・未装備',
     }[armor] || 'その他の鎧・未装備';
   }
@@ -314,7 +312,7 @@
     if(cnt===2) return 40;
     return 0;
   }
-  // 攻撃力アップ(%)：精霊シナジー・精霊本数・グレード/エピック/レジェンド品質攻撃力アップ・巨大化など
+  // 攻撃力up(%)：精霊シナジー・精霊本数・グレード/エピック/レジェンド品質攻撃力up・巨大化など
   // → 攻撃力ボーナス(%)に加算される「加算ボーナス」として扱う（基準0%）
   function calcAtkUpBonus(b){
     let bonus = 0;
@@ -355,7 +353,7 @@
   function calcFinalDmgBonusMult(b){
     return 100 + (Number(b.finalDmgBonusPct)||0);
   }
-  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × (攻撃力ボーナス＋攻撃力アップ) ÷ 100 }
+  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × (攻撃力ボーナス＋攻撃力up) ÷ 100 }
   function calcTotalAtk(b){
     const atkBase = Number(b.atkBase)||0;
     const atkBonusPct = Number(b.atkBonusPct)||0;
@@ -513,7 +511,7 @@
     return `
     <div class="at-panel">
       <div class="at-panel-title">⚔️ 攻撃力</div>
-      <div class="at-panel-desc">ステータス画面の「攻撃力」実数値と「攻撃力ボーナス」(%)を入力してください。下の「攻撃力アップ」パネルで計算されるスキル分は自動で加算されるため、ここには含めないでください。</div>
+      <div class="at-panel-desc">ステータス画面の「攻撃力」実数値と「攻撃力ボーナス」(%)を入力してください。下の「攻撃力up」パネルで計算されるスキル分は自動で加算されるため、ここには含めないでください。</div>
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
           <label class="at-label">攻撃力</label>
@@ -524,7 +522,7 @@
           <input class="at-input" type="number" step="1" value="${build.atkBonusPct}" data-bind="atkBonusPct">
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 ×（攻撃力ボーナス＋攻撃力アップ）÷ 100｝</div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 ×（攻撃力ボーナス＋攻撃力up）÷ 100｝</div>
 
       <div class="at-field" style="margin-bottom:0;">
         <label class="at-label">最終ダメボーナス(%)</label>
@@ -544,8 +542,6 @@
         <select class="at-select" data-bind="armor">
           <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
           <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
-          <option value="dragoon" ${build.armor==='dragoon'?'selected':''}>ドラグーンの鎧（+0本）</option>
-          <option value="griffon" ${build.armor==='griffon'?'selected':''}>グリフォンの鎧（+0本）</option>
           <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
         </select>
         <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
@@ -553,8 +549,8 @@
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">💪 攻撃力アップ</div>
-      <div class="at-panel-desc">精霊、および品質攻撃力アップ・巨大化などのスキルです。ここで計算された%は「攻撃力」パネルの攻撃力ボーナスに自動で加算されます。「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
+      <div class="at-panel-title">💪 攻撃力up</div>
+      <div class="at-panel-desc">精霊、および品質攻撃力up・巨大化などのスキルです。ここで計算された%は「攻撃力」パネルの攻撃力ボーナスに自動で加算されます。「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
 
       ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
       ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
@@ -563,7 +559,7 @@
 
       ${stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%', build.spiritCount)}
       ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき攻撃力+${s.pct}%`, getCount('atk:'+s.id))).join('')}
-      <div class="at-hint" style="margin-top:6px;">品質攻撃力アップ系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
+      <div class="at-hint" style="margin-top:6px;">品質攻撃力up系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
     </div>
 
     <div class="at-panel">
@@ -621,7 +617,7 @@
         <div class="at-statbox">
           <div class="at-statbox-label">攻撃力ボーナス合計</div>
           <div class="at-statbox-val">${fmtNum(res.totalBonusPct,1)}%</div>
-          <div class="at-hint" style="margin-top:4px;">（内 攻撃力アップ ${fmtNum(res.atkUpBonus,1)}%）</div>
+          <div class="at-hint" style="margin-top:4px;">（内 攻撃力up ${fmtNum(res.atkUpBonus,1)}%）</div>
         </div>
         <div class="at-statbox">
           <div class="at-statbox-label">主武器ダメup</div>
@@ -699,10 +695,10 @@
 
   function arrowsSettingsBody(){
     return `
-        <div class="at-panel-desc">攻撃力アップ系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
+        <div class="at-panel-desc">攻撃力up系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
 
         <div class="at-field">
-          <label class="at-label">攻撃力アップ系スキル</label>
+          <label class="at-label">攻撃力up系スキル</label>
           ${settings.atkSkills.map(s=>`
             <div class="at-tierrow">
               <input class="at-input" type="text" value="${escapeHtml(s.name)}" data-atk-name="${s.id}">
@@ -810,7 +806,7 @@
       return;
     }
     if(action==='resetSettings'){
-      if(confirm('攻撃力アップ系スキルの設定をすべて初期状態に戻します。よろしいですか？')){
+      if(confirm('攻撃力up系スキルの設定をすべて初期状態に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         saveSettings();
         showToast('設定をリセットしました');
