@@ -80,6 +80,8 @@
   .at-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
   .at-panel-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:15px;color:var(--gold-soft);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
   .at-panel-desc{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-bottom:14px;}
+  .at-subbox{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;}
+  .at-subbox-title{font-size:12.5px;font-weight:700;color:var(--gold-soft);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 
   .at-field{margin-bottom:12px;}
   .at-label{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;letter-spacing:.03em;}
@@ -552,12 +554,15 @@
       <div class="at-panel-title">💪 攻撃力up</div>
       <div class="at-panel-desc">精霊、および品質攻撃力up・巨大化などのスキルです。ここで計算された%は「攻撃力」パネルの攻撃力ボーナスに自動で加算されます。「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
 
-      ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
-      ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
-      ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
-      <div class="at-hint" style="margin-top:2px;margin-bottom:10px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+      <div class="at-subbox">
+        <div class="at-subbox-title">🧚 精霊</div>
+        ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
+        ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
+        ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
+        <div class="at-hint" style="margin-top:2px;margin-bottom:10px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+        ${stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%', build.spiritCount)}
+      </div>
 
-      ${stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%', build.spiritCount)}
       ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき攻撃力+${s.pct}%`, getCount('atk:'+s.id))).join('')}
       <div class="at-hint" style="margin-top:6px;">品質攻撃力up系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
     </div>
