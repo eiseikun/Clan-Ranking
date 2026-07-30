@@ -239,8 +239,21 @@
   const DEFAULT_SETTINGS = {
     atkSkills: defaultAtkSkills()
   };
+  const OTHER_DMG_CATS = [
+    {key:'otherAir', label:'空中の敵'},
+    {key:'otherGround', label:'地上の敵'},
+    {key:'otherTrash', label:'ザコ敵'},
+    {key:'otherElite', label:'エリート'},
+    {key:'otherBoss', label:'ボス'},
+  ];
+
   const DEFAULT_BUILD = {
     atkBase:0, atkBonusPct:0, finalDmgBonusPct:0,
+    otherAirOn:false, otherAirPct:0,
+    otherGroundOn:false, otherGroundPct:0,
+    otherTrashOn:false, otherTrashPct:0,
+    otherEliteOn:false, otherElitePct:0,
+    otherBossOn:false, otherBossPct:0,
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
     diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
@@ -314,17 +327,19 @@
     if(cnt===2) return 40;
     return 0;
   }
-  // 攻撃力up(%)：精霊シナジー・精霊本数・グレード/エピック/レジェンド品質攻撃力up・巨大化など
-  // → 攻撃力ボーナス(%)に加算される「加算ボーナス」として扱う（基準0%）
-  function calcAtkUpBonus(b){
-    let bonus = 0;
-    bonus += spiritSynergyBonus(b);
-    bonus += (Number(b.spiritCount)||0) * 10;
+  // 攻撃力up(%)：精霊シナジー・精霊本数(威圧所持時のみ)・グレード/エピック/レジェンド品質攻撃力up・巨大化など
+  // → 総攻撃力に掛け合わせる独立した倍率（基準100%）
+  function calcAtkUpMult(b){
+    let m = 100;
+    m += spiritSynergyBonus(b);
+    if(b.spiritIntimidation){
+      m += (Number(b.spiritCount)||0) * 10;
+    }
     const counts = b.atkSkillCounts || {};
     settings.atkSkills.forEach(function(s){
-      bonus += (Number(counts[s.id])||0) * (Number(s.pct)||0);
+      m += (Number(counts[s.id])||0) * (Number(s.pct)||0);
     });
-    return bonus;
+    return m;
   }
   // 鋭利の矢ルーン品質：エピックで+10%、レジェンドで+20%
   function sharpRuneBonus(quality){
@@ -344,7 +359,7 @@
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
   }
-  // 被ダメup(%)：苦痛の輪(+20%)・エロ(+35%) → 総攻撃力に掛け合わせる倍率（基準100%）
+  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(+35%) → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcDmgTakenUpMult(b){
     let m = 100;
     if(b.painRing) m += 20;
@@ -355,24 +370,32 @@
   function calcFinalDmgBonusMult(b){
     return 100 + (Number(b.finalDmgBonusPct)||0);
   }
-  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × (攻撃力ボーナス＋攻撃力up) ÷ 100 }
+  // その他ダメup(%)：空中の敵・地上の敵・ザコ敵・エリート・ボスなど、ONにしたカテゴリの%を合算 → 基準100%の倍率
+  function calcOtherDmgUpMult(b){
+    let m = 100;
+    OTHER_DMG_CATS.forEach(function(c){
+      if(b[c.key+'On']) m += Number(b[c.key+'Pct'])||0;
+    });
+    return m;
+  }
+  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × 攻撃力ボーナス ÷ 100 }
   function calcTotalAtk(b){
     const atkBase = Number(b.atkBase)||0;
     const atkBonusPct = Number(b.atkBonusPct)||0;
-    const atkUpBonus = calcAtkUpBonus(b);
-    const totalBonusPct = atkBonusPct + atkUpBonus;
-    const totalAtk = atkBase + atkBase * (totalBonusPct/100);
-    return {atkBase, atkBonusPct, atkUpBonus, totalBonusPct, totalAtk};
+    const totalAtk = atkBase + atkBase * (atkBonusPct/100);
+    return {atkBase, atkBonusPct, totalAtk};
   }
-  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%)
+  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × その他ダメup(%)
   function calcPower(b){
     const arrows = calcArrows(b);
     const atkInfo = calcTotalAtk(b);
+    const atkUp = calcAtkUpMult(b);
     const mainUp = calcMainDmgUpMult(b);
     const dmgTakenUp = calcDmgTakenUpMult(b);
     const finalBonus = calcFinalDmgBonusMult(b);
-    const damage = atkInfo.totalAtk * arrows * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100);
-    return Object.assign({arrows, mainUp, dmgTakenUp, finalBonus, damage}, atkInfo);
+    const otherUp = calcOtherDmgUpMult(b);
+    const damage = atkInfo.totalAtk * arrows * (atkUp/100) * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100) * (otherUp/100);
+    return Object.assign({arrows, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, damage}, atkInfo);
   }
   // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" 形式。
   function getCount(key){
@@ -395,11 +418,14 @@
   function getCandidateOptions(){
     const opts = [
       {id:'diagonal', label:'ダイアゴナルアロー（矢+2本）', key:'diagonalCount', mode:'count'},
-      {id:'front', label:'フロントアロー（矢+1本／主武器攻撃力-10%）', key:'frontCount', mode:'count'},
+      {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-10%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
-      {id:'tracking', label:'追跡の目（主武器攻撃力-15%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'spirit', label:'精霊（攻撃力+10%）', key:'spiritCount', mode:'count'},
+      {id:'tracking', label:'追跡の目（主武器ダメup-15%・重複不可）', key:'tracking', mode:'toggle'},
+      {id:'ero', label:'エロージョンフィールド（被ダメup+35%・重複不可）', key:'ero', mode:'toggle'},
     ];
+    if(build.spiritIntimidation){
+      opts.push({id:'spirit', label:'精霊（攻撃力+10%・威圧所持時のみ）', key:'spiritCount', mode:'count'});
+    }
     settings.atkSkills.forEach(function(s){
       opts.push({id:'atk:'+s.id, label:s.name+`（攻撃力+${s.pct}%）`, skillId:s.id, mode:'atk'});
     });
@@ -479,6 +505,19 @@
     </div>`;
   }
 
+  // ON/OFFの切り替えと、それぞれ独立したダメ%の手入力を両立させる行
+  function checkPctRow(key, label, on, pct){
+    return `
+    <div class="at-checkrow ${on?'on':''}" data-action="toggleBuild" data-val="${key}On">
+      <div class="at-checkrow-main">
+        <div class="at-checkrow-label">${label}</div>
+      </div>
+      <input class="at-input" type="number" step="1" style="width:56px;text-align:center;margin-right:8px;" value="${pct}" data-bind="${key}Pct" onclick="event.stopPropagation()">
+      <span style="font-size:12px;color:var(--text-faint);margin-right:8px;">%</span>
+      <div class="at-switch"></div>
+    </div>`;
+  }
+
   function stepperRow(key, label, sub, count){
     count = Number(count)||0;
     return `
@@ -513,7 +552,7 @@
     return `
     <div class="at-panel">
       <div class="at-panel-title">⚔️ 攻撃力</div>
-      <div class="at-panel-desc">ステータス画面の「攻撃力」実数値と「攻撃力ボーナス」(%)を入力してください。下の「攻撃力up」パネルで計算されるスキル分は自動で加算されるため、ここには含めないでください。</div>
+      <div class="at-panel-desc">ステータス画面の「攻撃力」実数値と「攻撃力ボーナス」(%)を入力してください。攻撃力up・主武器ダメup・被ダメupは別枠で自動計算され、最終ダメージ量の計算時にそれぞれ独立した倍率として掛け合わされます。</div>
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
           <label class="at-label">攻撃力</label>
@@ -524,86 +563,104 @@
           <input class="at-input" type="number" step="1" value="${build.atkBonusPct}" data-bind="atkBonusPct">
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 ×（攻撃力ボーナス＋攻撃力up）÷ 100｝</div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 × 攻撃力ボーナス ÷ 100｝</div>
 
-      <div class="at-field" style="margin-bottom:0;">
-        <label class="at-label">最終ダメボーナス(%)</label>
-        <input class="at-input" type="number" step="1" value="${build.finalDmgBonusPct}" data-bind="finalDmgBonusPct">
-        <div class="at-hint">他のパネルに当てはまらない最終ダメージへの追加ボーナスがあれば入力してください（無ければ0のままでOK）。</div>
+      <div class="at-row2">
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">最終ダメボーナス(%)</label>
+          <input class="at-input" type="number" step="1" value="${build.finalDmgBonusPct}" data-bind="finalDmgBonusPct">
+        </div>
       </div>
+      <div class="at-hint" style="margin-top:8px;">他のパネルに当てはまらない最終ダメージへの追加ボーナスがあれば入力してください（無ければ0のままでOK）。</div>
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">🏹 矢の本数</div>
-      <div class="at-panel-desc">矢の本数を増やす装備・スキルです。</div>
-
-      ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
-
-      <div class="at-field" style="margin-top:12px;margin-bottom:0;">
-        <label class="at-label">装備中の鎧</label>
-        <select class="at-select" data-bind="armor">
-          <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
-          <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
-          <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
-        </select>
-        <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
-      </div>
+      <div class="at-panel-title">🎯 その他ダメup</div>
+      <div class="at-panel-desc">敵の種類ごとのダメージ増加効果です。該当する項目をONにして、それぞれのダメ%を入力してください。ONになっている項目の%がすべて合算されます。</div>
+      ${OTHER_DMG_CATS.map(c=>checkPctRow(c.key, c.label, build[c.key+'On'], build[c.key+'Pct'])).join('')}
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">💪 攻撃力up</div>
-      <div class="at-panel-desc">精霊、および品質攻撃力up・巨大化などのスキルです。ここで計算された%は「攻撃力」パネルの攻撃力ボーナスに自動で加算されます。「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
+      <div class="at-panel-title">🎒 現在のビルド</div>
+      <div class="at-panel-desc">装備・エンチャント・ルーン・聖物・精霊など、レベルアップ中ではなく事前に整えておく項目です。</div>
 
       <div class="at-subbox">
-        <div class="at-subbox-title">🧚 精霊</div>
-        ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
+        <div class="at-subbox-title">🏹 矢の本数</div>
+        ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
+        <div class="at-field" style="margin-top:12px;margin-bottom:0;">
+          <label class="at-label">装備中の鎧</label>
+          <select class="at-select" data-bind="armor">
+            <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
+            <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
+            <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
+          </select>
+          <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
+        </div>
+      </div>
+
+      <div class="at-subbox">
+        <div class="at-subbox-title">💪 攻撃力up</div>
+        ${checkRow('spiritIntimidation', '銘刻ルーン「精霊の威圧」', 'シナジーボーナスの発生条件／取得スキルの精霊stackの解禁条件', build.spiritIntimidation)}
         ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
         ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
-        <div class="at-hint" style="margin-top:2px;margin-bottom:10px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
-        ${stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%', build.spiritCount)}
+        <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
       </div>
 
-      ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき攻撃力+${s.pct}%`, getCount('atk:'+s.id))).join('')}
-      <div class="at-hint" style="margin-top:6px;">品質攻撃力up系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
+      <div class="at-subbox">
+        <div class="at-subbox-title">🗡️ 主武器ダメup</div>
+        <div class="at-field">
+          <label class="at-label">鋭利の矢（エンチャント）</label>
+          ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
+        </div>
+        <div class="at-field">
+          <label class="at-label">鋭利の矢ルーン品質</label>
+          <select class="at-select" data-bind="sharpRuneQuality">
+            <option value="none" ${build.sharpRuneQuality==='none'?'selected':''}>なし（+0%）</option>
+            <option value="epic" ${build.sharpRuneQuality==='epic'?'selected':''}>エピック（+10%）</option>
+            <option value="legend" ${build.sharpRuneQuality==='legend'?'selected':''}>レジェンド（+20%）</option>
+          </select>
+        </div>
+        <div class="at-field">
+          <label class="at-label">アローレイン（エンチャント）</label>
+          ${tierSelect('rain','rainTierId', build.rainTierId)}
+        </div>
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">虚無の刃（聖物）</label>
+          ${tierSelect('voidblade','voidTierId', build.voidTierId)}
+        </div>
+      </div>
+
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-subbox-title">💥 被ダメup</div>
+        ${checkRow('painRing', '苦痛の輪', '被ダメup+20%', build.painRing, build.painRing?'+20%':'')}
+      </div>
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">🗡️ 主武器ダメup</div>
-      <div class="at-panel-desc">エンチャント・聖物・矢スキルなど、主武器ダメージに影響する項目です。＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
+      <div class="at-panel-title">📖 取得スキル</div>
+      <div class="at-panel-desc">レベルアップ時などに選んで取得していくスキルです。＋／−で取得回数を設定してください（追跡の目のみ重複取得不可）。</div>
 
-      <div class="at-field">
-        <label class="at-label">鋭利の矢（エンチャント）</label>
-        ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
-      </div>
-      <div class="at-field">
-        <label class="at-label">鋭利の矢ルーン品質</label>
-        <select class="at-select" data-bind="sharpRuneQuality">
-          <option value="none" ${build.sharpRuneQuality==='none'?'selected':''}>なし（+0%）</option>
-          <option value="epic" ${build.sharpRuneQuality==='epic'?'selected':''}>エピック（+10%）</option>
-          <option value="legend" ${build.sharpRuneQuality==='legend'?'selected':''}>レジェンド（+20%）</option>
-        </select>
-      </div>
-      <div class="at-field">
-        <label class="at-label">アローレイン（エンチャント）</label>
-        ${tierSelect('rain','rainTierId', build.rainTierId)}
-      </div>
-      <div class="at-field">
-        <label class="at-label">虚無の刃（聖物）</label>
-        ${tierSelect('voidblade','voidTierId', build.voidTierId)}
+      <div class="at-subbox">
+        <div class="at-subbox-title">💪 攻撃力up</div>
+        ${build.spiritIntimidation
+          ? stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%（威圧所持時のみ加算）', build.spiritCount)
+          : `<div class="at-hint" style="margin-bottom:10px;">「現在のビルド」で銘刻ルーン「精霊の威圧」を所持すると、精霊の取得数を設定できます。</div>`}
+        ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき攻撃力+${s.pct}%`, getCount('atk:'+s.id))).join('')}
+        <div class="at-hint" style="margin-top:6px;">品質攻撃力up系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
       </div>
 
-      ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
-      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-10%', build.frontCount)}
-      ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
-      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
-    </div>
+      <div class="at-subbox">
+        <div class="at-subbox-title">🗡️ 主武器ダメup</div>
+        ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
+        ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-10%', build.frontCount)}
+        ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
+        ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
+      </div>
 
-    <div class="at-panel">
-      <div class="at-panel-title">💥 被ダメup</div>
-      <div class="at-panel-desc">敵に付与する被ダメージ増加系のデバフです。</div>
-
-      ${checkRow('painRing', '苦痛の輪', '被ダメup+20%', build.painRing, build.painRing?'+20%':'')}
-      ${checkRow('ero', 'エロ', '被ダメup+35%', build.ero, build.ero?'+35%':'')}
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-subbox-title">💥 被ダメup</div>
+        ${checkRow('ero', 'エロージョンフィールド', '被ダメup+35%', build.ero, build.ero?'+35%':'')}
+      </div>
     </div>
 
     <div class="at-panel">
@@ -620,30 +677,39 @@
       </div>
       <div class="at-row2" style="margin-bottom:8px;">
         <div class="at-statbox">
-          <div class="at-statbox-label">攻撃力ボーナス合計</div>
-          <div class="at-statbox-val">${fmtNum(res.totalBonusPct,1)}%</div>
-          <div class="at-hint" style="margin-top:4px;">（内 攻撃力up ${fmtNum(res.atkUpBonus,1)}%）</div>
+          <div class="at-statbox-label">攻撃力ボーナス</div>
+          <div class="at-statbox-val">${fmtNum(res.atkBonusPct,1)}%</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">主武器ダメup</div>
-          <div class="at-statbox-val">${fmtNum(res.mainUp,1)}%</div>
+          <div class="at-statbox-label">攻撃力up</div>
+          <div class="at-statbox-val">${fmtNum(res.atkUp,1)}%</div>
         </div>
       </div>
       <div class="at-row2" style="margin-bottom:8px;">
         <div class="at-statbox">
+          <div class="at-statbox-label">主武器ダメup</div>
+          <div class="at-statbox-val">${fmtNum(res.mainUp,1)}%</div>
+        </div>
+        <div class="at-statbox">
           <div class="at-statbox-label">被ダメup</div>
           <div class="at-statbox-val">${fmtNum(res.dmgTakenUp,1)}%</div>
         </div>
+      </div>
+      <div class="at-row2" style="margin-bottom:8px;">
         <div class="at-statbox">
           <div class="at-statbox-label">最終ダメボーナス</div>
           <div class="at-statbox-val">${fmtNum(res.finalBonus,1)}%</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">その他ダメup</div>
+          <div class="at-statbox-val">${fmtNum(res.otherUp,1)}%</div>
         </div>
       </div>
       <div class="at-statbox">
         <div class="at-statbox-label">最終ダメージ量</div>
         <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）</div>
+      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）×（その他ダメup÷100）</div>
     </div>
 
     <div class="at-panel">
@@ -682,7 +748,7 @@
       ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジーで選んでもOK</div>':''}
 
       <div class="at-note">
-        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×主武器ダメup×被ダメup×最終ダメボーナス）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
+        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×攻撃力up×主武器ダメup×被ダメup×最終ダメボーナス×その他ダメup）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
       </div>
     </div>
     `;
