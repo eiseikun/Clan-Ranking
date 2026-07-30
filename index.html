@@ -215,33 +215,36 @@
     {id:'legend', name:'レジェンド', pct:15},
     {id:'mythic', name:'ミシック', pct:30},
   ];
-  // 虚無の刃（聖物）: 無凸+12%、1凸+18%、2凸+24%、以降10凸まで+6%ずつ。値は固定。
+  // 虚無の刃（聖物）: なし(未所持)+0%、無凸+12%、1凸+18%、2凸+24%、以降10凸まで+6%ずつ。値は固定。
   const VOID_TIERS = (function(){
-    const tiers = [];
+    const tiers = [{id:'none', name:'なし', pct:0}];
     for(let i=0;i<=10;i++){
       tiers.push({id:'v'+i, name: i===0?'無凸':(i+'凸'), pct: 12 + i*6});
     }
     return tiers;
   })();
 
-  // 攻撃力アップ系スキル：スキルごとの倍率(%)は設定画面で編集する。
-  const ATK_SKILLS = [
-    {key:'great', label:'グレート品質 攻撃力アップ'},
-    {key:'epic', label:'エピック品質 攻撃力アップ'},
-    {key:'giant', label:'巨大化'},
-    {key:'legend', label:'レジェンド品質 攻撃力アップ'},
-  ];
+  // 攻撃力アップ系スキル：スキル名・倍率(%)は設定画面で自由に編集・追加・削除できる。
+  function defaultAtkSkills(){
+    return [
+      {id:uid(), name:'グレート品質 攻撃力アップ', pct:0},
+      {id:uid(), name:'エピック品質 攻撃力アップ', pct:0},
+      {id:uid(), name:'巨大化', pct:0},
+      {id:uid(), name:'レジェンド品質 攻撃力アップ', pct:0},
+    ];
+  }
 
   const DEFAULT_SETTINGS = {
-    atkSkills:{ great:0, epic:0, giant:0, legend:0 }
+    atkSkills: defaultAtkSkills()
   };
   const DEFAULT_BUILD = {
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
     diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
-    sharpTierId:'none', rainTierId:'none', voidTierId:'v0',
-    greatAtkCount:0, epicAtkCount:0, giantCount:0, legendAtkCount:0,
-    compareAtkPct:10, compareArrowCount:1
+    sharpTierId:'none', rainTierId:'none', voidTierId:'none',
+    spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
+    atkSkillCounts:{},
+    compareCandA:'diagonal', compareCandB:'front'
   };
 
   const TOOLS = [
@@ -249,16 +252,16 @@
     {id:'fishing', label:'釣り', icon:'🎣', comingSoon:true},
   ];
 
-  let settings = loadJSON('at2_settings_v2', DEFAULT_SETTINGS);
-  let build = loadJSON('at2_build_v2', DEFAULT_BUILD);
+  let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
+  let build = loadJSON('at2_build_v3', DEFAULT_BUILD);
   let state = {
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
     settingsOpen:false,
   };
   let toastMsg = null, toastTimer = null;
 
-  function saveSettings(){ saveJSON('at2_settings_v2', settings); }
-  function saveBuild(){ saveJSON('at2_build_v2', build); }
+  function saveSettings(){ saveJSON('at2_settings_v3', settings); }
+  function saveBuild(){ saveJSON('at2_build_v3', build); }
   function setTab(id){ state.tab = id; localStorage.setItem('at2_tab_v1', id); render(); }
 
 
@@ -301,6 +304,13 @@
     n += (Number(b.rearCount)||0) * 1;
     return n;
   }
+  function spiritSynergyBonus(b){
+    if(!b.spiritIntimidation) return 0;
+    const cnt = (b.spiritRecovery?1:0) + (b.spiritMelee?1:0);
+    if(cnt===1) return 20;
+    if(cnt===2) return 40;
+    return 0;
+  }
   function calcMultiplier(b){
     let m = 100;
     m -= (Number(b.frontCount)||0) * 10;
@@ -308,10 +318,12 @@
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
-    m += (Number(b.greatAtkCount)||0) * (Number(settings.atkSkills.great)||0);
-    m += (Number(b.epicAtkCount)||0) * (Number(settings.atkSkills.epic)||0);
-    m += (Number(b.giantCount)||0) * (Number(settings.atkSkills.giant)||0);
-    m += (Number(b.legendAtkCount)||0) * (Number(settings.atkSkills.legend)||0);
+    m += spiritSynergyBonus(b);
+    m += (Number(b.spiritCount)||0) * 10;
+    const counts = b.atkSkillCounts || {};
+    settings.atkSkills.forEach(function(s){
+      m += (Number(counts[s.id])||0) * (Number(s.pct)||0);
+    });
     return m;
   }
   function calcPower(b){
@@ -320,17 +332,57 @@
     const power = arrows * mult / 100;
     return {arrows, mult, power};
   }
+  // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" 形式。
+  function getCount(key){
+    if(key.indexOf('atk:')===0){
+      const id = key.slice(4);
+      return Number((build.atkSkillCounts||{})[id]) || 0;
+    }
+    return Number(build[key]) || 0;
+  }
+  function setCount(key, newVal){
+    if(key.indexOf('atk:')===0){
+      const id = key.slice(4);
+      if(!build.atkSkillCounts) build.atkSkillCounts = {};
+      build.atkSkillCounts[id] = newVal;
+    } else {
+      build[key] = newVal;
+    }
+  }
+  // ---------- candidate skill comparison ----------
+  function getCandidateOptions(){
+    const opts = [
+      {id:'diagonal', label:'ダイアゴナルアロー（矢+2本）', key:'diagonalCount', mode:'count'},
+      {id:'front', label:'フロントアロー（矢+1本／倍率-10%）', key:'frontCount', mode:'count'},
+      {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
+      {id:'tracking', label:'追跡の目（倍率-15%・重複不可）', key:'tracking', mode:'toggle'},
+      {id:'spirit', label:'精霊（倍率+10%）', key:'spiritCount', mode:'count'},
+    ];
+    settings.atkSkills.forEach(function(s){
+      opts.push({id:'atk:'+s.id, label:s.name+`（倍率+${s.pct}%）`, skillId:s.id, mode:'atk'});
+    });
+    return opts;
+  }
+  function applyCandidate(b, cand){
+    const nb = Object.assign({}, b, {atkSkillCounts: Object.assign({}, b.atkSkillCounts||{})});
+    if(!cand) return nb;
+    if(cand.mode==='count'){ nb[cand.key] = (Number(nb[cand.key])||0) + 1; }
+    else if(cand.mode==='toggle'){ nb[cand.key] = true; }
+    else if(cand.mode==='atk'){ nb.atkSkillCounts[cand.skillId] = (Number(nb.atkSkillCounts[cand.skillId])||0) + 1; }
+    return nb;
+  }
   function compareChoice(b){
+    const opts = getCandidateOptions();
+    const candA = opts.find(o=>o.id===b.compareCandA) || opts[0];
+    const candB = opts.find(o=>o.id===b.compareCandB) || opts[1] || opts[0];
     const cur = calcPower(b);
-    const atkPct = Number(b.compareAtkPct)||0;
-    const arrowCnt = Number(b.compareArrowCount)||0;
-    const atkPower = cur.arrows * (cur.mult + atkPct) / 100;
-    const arrowPower = (cur.arrows + arrowCnt) * cur.mult / 100;
-    const atkGain = cur.power>0 ? (atkPower-cur.power)/cur.power*100 : 0;
-    const arrowGain = cur.power>0 ? (arrowPower-cur.power)/cur.power*100 : 0;
+    const powerA = calcPower(applyCandidate(b, candA));
+    const powerB = calcPower(applyCandidate(b, candB));
+    const gainA = cur.power>0 ? (powerA.power-cur.power)/cur.power*100 : 0;
+    const gainB = cur.power>0 ? (powerB.power-cur.power)/cur.power*100 : 0;
     let winner = 'even';
-    if(Math.abs(atkGain-arrowGain) > 0.001){ winner = atkGain>arrowGain ? 'atk' : 'arrow'; }
-    return {cur, atkPower, arrowPower, atkGain, arrowGain, winner};
+    if(Math.abs(gainA-gainB) > 0.001){ winner = gainA>gainB ? 'a' : 'b'; }
+    return {cur, candA, candB, powerA, powerB, gainA, gainB, winner};
   }
   function fmtNum(n, digits){
     digits = digits==null?1:digits;
@@ -397,6 +449,7 @@
   function arrowsTool(){
     const res = calcPower(build);
     const cmp = compareChoice(build);
+    const candOpts = getCandidateOptions();
 
     return `
     <div class="at-panel">
@@ -432,6 +485,16 @@
     </div>
 
     <div class="at-panel">
+      <div class="at-panel-title">🧚 精霊</div>
+      <div class="at-panel-desc">「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
+
+      ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
+      ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
+      ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
+      <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+    </div>
+
+    <div class="at-panel">
       <div class="at-panel-title">📖 取得スキル</div>
       <div class="at-panel-desc">＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
 
@@ -439,11 +502,9 @@
       ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器倍率-10%', build.frontCount)}
       ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
       ${checkRow('tracking', '追跡の目', '本数は変わらず主武器倍率-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
-      ${stepperRow('greatAtkCount', 'グレート品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.great}%`, build.greatAtkCount)}
-      ${stepperRow('epicAtkCount', 'エピック品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.epic}%`, build.epicAtkCount)}
-      ${stepperRow('giantCount', '巨大化', `1回につき主武器倍率+${settings.atkSkills.giant}%`, build.giantCount)}
-      ${stepperRow('legendAtkCount', 'レジェンド品質 攻撃力アップ', `1回につき主武器倍率+${settings.atkSkills.legend}%`, build.legendAtkCount)}
-      <div class="at-hint" style="margin-top:6px;">攻撃力アップ系スキルの倍率(%)は右上の⚙️設定から編集できます。</div>
+      ${stepperRow('spiritCount', '精霊', '1体につき主武器倍率+10%', build.spiritCount)}
+      ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき主武器倍率+${s.pct}%`, getCount('atk:'+s.id))).join('')}
+      <div class="at-hint" style="margin-top:6px;">攻撃力アップ系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
     </div>
 
     <div class="at-panel">
@@ -466,38 +527,42 @@
     </div>
 
     <div class="at-panel">
-      <div class="at-panel-title">🤔 攻撃力アップ vs 矢の本数アップ</div>
-      <div class="at-panel-desc">今、出現しているスキル選択肢の数値を入れると、現在のビルドに対してどちらが効率的か判定します。</div>
+      <div class="at-panel-title">🤔 候補スキル比較</div>
+      <div class="at-panel-desc">今、選択できるスキル候補A・Bを選ぶと、現在のビルドにそれぞれを1回追加した場合の火力の伸び率を比較します。</div>
 
       <div class="at-row2">
         <div class="at-field">
-          <label class="at-label">攻撃力アップの上昇量（%）</label>
-          <input class="at-input" type="number" step="1" data-bind="compareAtkPct" value="${build.compareAtkPct}">
+          <label class="at-label">候補スキルA</label>
+          <select class="at-select" data-bind="compareCandA">
+            ${candOpts.map(o=>`<option value="${o.id}" ${o.id===build.compareCandA?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}
+          </select>
         </div>
         <div class="at-field">
-          <label class="at-label">矢の本数アップの本数</label>
-          <input class="at-input" type="number" step="1" data-bind="compareArrowCount" value="${build.compareArrowCount}">
+          <label class="at-label">候補スキルB</label>
+          <select class="at-select" data-bind="compareCandB">
+            ${candOpts.map(o=>`<option value="${o.id}" ${o.id===build.compareCandB?'selected':''}>${escapeHtml(o.label)}</option>`).join('')}
+          </select>
         </div>
       </div>
 
       <div class="at-compare">
-        <div class="at-compare-card ${cmp.winner==='atk'?'win':''}">
-          <div class="at-compare-name">攻撃力アップ</div>
-          <div class="at-compare-gain ${cmp.winner==='atk'?'win':''}">${cmp.atkGain>=0?'+':''}${fmtNum(cmp.atkGain,1)}%</div>
-          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.atkPower,2)}</div>
-          ${cmp.winner==='atk'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
+        <div class="at-compare-card ${cmp.winner==='a'?'win':''}">
+          <div class="at-compare-name">候補A：${escapeHtml(cmp.candA?cmp.candA.label:'')}</div>
+          <div class="at-compare-gain ${cmp.winner==='a'?'win':''}">${cmp.gainA>=0?'+':''}${fmtNum(cmp.gainA,1)}%</div>
+          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.powerA.power,2)}</div>
+          ${cmp.winner==='a'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
         </div>
-        <div class="at-compare-card ${cmp.winner==='arrow'?'win':''}">
-          <div class="at-compare-name">矢の本数アップ</div>
-          <div class="at-compare-gain ${cmp.winner==='arrow'?'win':''}">${cmp.arrowGain>=0?'+':''}${fmtNum(cmp.arrowGain,1)}%</div>
-          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.arrowPower,2)}</div>
-          ${cmp.winner==='arrow'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
+        <div class="at-compare-card ${cmp.winner==='b'?'win':''}">
+          <div class="at-compare-name">候補B：${escapeHtml(cmp.candB?cmp.candB.label:'')}</div>
+          <div class="at-compare-gain ${cmp.winner==='b'?'win':''}">${cmp.gainB>=0?'+':''}${fmtNum(cmp.gainB,1)}%</div>
+          <div class="at-compare-sub">火力指数 ${fmtNum(cmp.cur.power,2)} → ${fmtNum(cmp.powerB.power,2)}</div>
+          ${cmp.winner==='b'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
         </div>
       </div>
-      ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジー（跳弾・追跡の目など）で選んでもOK</div>':''}
+      ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジーで選んでもOK</div>':''}
 
       <div class="at-note">
-        矢の本数が少ないうちは「矢の本数アップ」の相対効果が大きく、主武器倍率がすでに高い（または低い）状況では「攻撃力アップ」側の効果が変わります。総合火力指数＝矢の本数×主武器倍率という単純化モデルなので、実際のダメージ計算（クリティカル・属性・貫通など）は含まれていません。目安としてご利用ください。
+        現在のビルドに候補スキルを1回分だけ追加した場合の総合火力指数（矢の本数×主武器倍率）の伸び率で比較しています。実際のダメージ計算（クリティカル・属性・貫通など）は含まれていない簡易的な目安です。
       </div>
     </div>
     `;
@@ -522,23 +587,26 @@
           <div class="at-modal-title">⚙️ 基本設定</div>
           <div class="at-modal-close" data-action="closeSettings">✕</div>
         </div>
-        <div class="at-panel-desc">攻撃力アップ系スキル、1回取得あたりの主武器倍率への効果（%）を編集できます。</div>
+        <div class="at-panel-desc">攻撃力アップ系スキルの名称と、1回取得あたりの主武器倍率への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
 
-        ${ATK_SKILLS.map(s=>`
-          <div class="at-field">
-            <label class="at-label">${s.label}</label>
-            <div class="at-tierrow" style="grid-template-columns:1fr 30px;">
-              <input class="at-input" type="number" step="1" value="${settings.atkSkills[s.key]}" data-atk-pct="${s.key}">
-              <div></div>
+        <div class="at-field">
+          <label class="at-label">攻撃力アップ系スキル</label>
+          ${settings.atkSkills.map(s=>`
+            <div class="at-tierrow">
+              <input class="at-input" type="text" value="${escapeHtml(s.name)}" data-atk-name="${s.id}">
+              <input class="at-input" type="number" step="1" value="${s.pct}" data-atk-pct="${s.id}">
+              <div class="at-tier-del" data-action="delAtkSkill" data-val="${s.id}">✕</div>
             </div>
-          </div>
-        `).join('')}
+          `).join('')}
+          <div class="at-btn at-btn-ghost at-btn-sm" data-action="addAtkSkill">＋ スキルを追加</div>
+        </div>
 
         <div class="at-divider"></div>
         <div class="at-btn at-btn-danger at-btn-full" data-action="resetSettings">初期状態にリセット</div>
       </div>
     </div>`;
   }
+
 
   function render(){
     let body = tabsBar();
@@ -574,21 +642,35 @@
       return;
     }
     if(action==='incCount'){
-      build[val] = (Number(build[val])||0) + 1;
+      setCount(val, getCount(val) + 1);
       saveBuild();
       render();
       return;
     }
     if(action==='decCount'){
-      build[val] = Math.max(0, (Number(build[val])||0) - 1);
+      setCount(val, Math.max(0, getCount(val) - 1));
       saveBuild();
       render();
       return;
     }
     if(action==='openSettings'){ state.settingsOpen = true; render(); return; }
     if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
+    if(action==='addAtkSkill'){
+      settings.atkSkills.push({id:uid(), name:'新しいスキル', pct:0});
+      saveSettings();
+      render();
+      return;
+    }
+    if(action==='delAtkSkill'){
+      settings.atkSkills = settings.atkSkills.filter(s=>s.id!==val);
+      if(build.atkSkillCounts) delete build.atkSkillCounts[val];
+      saveSettings();
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='resetSettings'){
-      if(confirm('攻撃力アップ系スキルの倍率設定をすべて初期状態（0%）に戻します。よろしいですか？')){
+      if(confirm('攻撃力アップ系スキルの設定をすべて初期状態に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         saveSettings();
         showToast('設定をリセットしました');
@@ -609,9 +691,14 @@
     }
     const atkPct = e.target.getAttribute('data-atk-pct');
     if(atkPct){
-      settings.atkSkills[atkPct] = Number(e.target.value)||0;
-      saveSettings();
-      render();
+      const skill = settings.atkSkills.find(s=>s.id===atkPct);
+      if(skill){ skill.pct = Number(e.target.value)||0; saveSettings(); render(); }
+      return;
+    }
+    const atkName = e.target.getAttribute('data-atk-name');
+    if(atkName){
+      const skill = settings.atkSkills.find(s=>s.id===atkName);
+      if(skill){ skill.name = e.target.value; saveSettings(); render(); }
       return;
     }
   });
