@@ -311,13 +311,9 @@
     if(cnt===2) return 40;
     return 0;
   }
-  function calcMultiplier(b){
+  // 攻撃力アップ(%)：精霊シナジー・精霊本数・グレード/エピック/レジェンド品質攻撃力アップ・巨大化など
+  function calcAtkUpMult(b){
     let m = 100;
-    m -= (Number(b.frontCount)||0) * 10;
-    if(b.tracking) m -= 15;
-    m += findTierPct('sharp', b.sharpTierId);
-    m += findTierPct('rain', b.rainTierId);
-    m += findTierPct('voidblade', b.voidTierId);
     m += spiritSynergyBonus(b);
     m += (Number(b.spiritCount)||0) * 10;
     const counts = b.atkSkillCounts || {};
@@ -326,11 +322,22 @@
     });
     return m;
   }
+  // 主武器攻撃力アップ(%)：エンチャント(鋭利の矢・アローレイン)・虚無の刃・ダイアゴナル/フロント/リアアロー・追跡の目
+  function calcMainWeaponUpMult(b){
+    let m = 100;
+    m -= (Number(b.frontCount)||0) * 10;
+    if(b.tracking) m -= 15;
+    m += findTierPct('sharp', b.sharpTierId);
+    m += findTierPct('rain', b.rainTierId);
+    m += findTierPct('voidblade', b.voidTierId);
+    return m;
+  }
   function calcPower(b){
     const arrows = calcArrows(b);
-    const mult = calcMultiplier(b);
-    const power = arrows * mult / 100;
-    return {arrows, mult, power};
+    const atkUp = calcAtkUpMult(b);
+    const mainUp = calcMainWeaponUpMult(b);
+    const power = arrows * (atkUp/100) * (mainUp/100);
+    return {arrows, atkUp, mainUp, power};
   }
   // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" 形式。
   function getCount(key){
@@ -353,13 +360,13 @@
   function getCandidateOptions(){
     const opts = [
       {id:'diagonal', label:'ダイアゴナルアロー（矢+2本）', key:'diagonalCount', mode:'count'},
-      {id:'front', label:'フロントアロー（矢+1本／倍率-10%）', key:'frontCount', mode:'count'},
+      {id:'front', label:'フロントアロー（矢+1本／主武器攻撃力-10%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
-      {id:'tracking', label:'追跡の目（倍率-15%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'spirit', label:'精霊（倍率+10%）', key:'spiritCount', mode:'count'},
+      {id:'tracking', label:'追跡の目（主武器攻撃力-15%・重複不可）', key:'tracking', mode:'toggle'},
+      {id:'spirit', label:'精霊（攻撃力+10%）', key:'spiritCount', mode:'count'},
     ];
     settings.atkSkills.forEach(function(s){
-      opts.push({id:'atk:'+s.id, label:s.name+`（倍率+${s.pct}%）`, skillId:s.id, mode:'atk'});
+      opts.push({id:'atk:'+s.id, label:s.name+`（攻撃力+${s.pct}%）`, skillId:s.id, mode:'atk'});
     });
     return opts;
   }
@@ -453,12 +460,12 @@
 
     return `
     <div class="at-panel">
-      <div class="at-panel-title">🏹 現在のビルド</div>
-      <div class="at-panel-desc">所持している装備・エンチャント・聖物を選んでください。矢の本数と主武器倍率は自動計算されます。</div>
+      <div class="at-panel-title">🏹 矢の本数</div>
+      <div class="at-panel-desc">矢の本数を増やす装備・スキルです。</div>
 
       ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
 
-      <div class="at-field" style="margin-top:12px;">
+      <div class="at-field" style="margin-top:12px;margin-bottom:0;">
         <label class="at-label">装備中の鎧</label>
         <select class="at-select" data-bind="armor">
           <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
@@ -469,8 +476,27 @@
         </select>
         <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
       </div>
+    </div>
 
-      <div class="at-field" style="margin-top:12px;">
+    <div class="at-panel">
+      <div class="at-panel-title">💪 攻撃力アップ</div>
+      <div class="at-panel-desc">精霊、および品質攻撃力アップ・巨大化などのスキルです。「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
+
+      ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
+      ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
+      ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
+      <div class="at-hint" style="margin-top:2px;margin-bottom:10px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+
+      ${stepperRow('spiritCount', '精霊', '1体につき攻撃力+10%', build.spiritCount)}
+      ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき攻撃力+${s.pct}%`, getCount('atk:'+s.id))).join('')}
+      <div class="at-hint" style="margin-top:6px;">品質攻撃力アップ系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
+    </div>
+
+    <div class="at-panel">
+      <div class="at-panel-title">🗡️ 主武器攻撃力アップ</div>
+      <div class="at-panel-desc">エンチャント・聖物・矢スキルなど、主武器攻撃力に影響する項目です。＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
+
+      <div class="at-field">
         <label class="at-label">鋭利の矢（エンチャント）</label>
         ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
       </div>
@@ -478,33 +504,15 @@
         <label class="at-label">アローレイン（エンチャント）</label>
         ${tierSelect('rain','rainTierId', build.rainTierId)}
       </div>
-      <div class="at-field" style="margin-bottom:0;">
+      <div class="at-field">
         <label class="at-label">虚無の刃（聖物）</label>
         ${tierSelect('voidblade','voidTierId', build.voidTierId)}
       </div>
-    </div>
-
-    <div class="at-panel">
-      <div class="at-panel-title">🧚 精霊</div>
-      <div class="at-panel-desc">「威圧」所持時、回復精霊・近接精霊のどちらか一方で+20%、両方で+40%のシナジーボーナスが発生します。</div>
-
-      ${checkRow('spiritIntimidation', '銘刻ルーン精霊「威圧」', 'シナジーボーナスの発生条件', build.spiritIntimidation)}
-      ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
-      ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
-      <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
-    </div>
-
-    <div class="at-panel">
-      <div class="at-panel-title">📖 取得スキル</div>
-      <div class="at-panel-desc">＋／−で取得回数を設定してください。追跡の目以外は複数回重ねて取得できます。</div>
 
       ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
-      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器倍率-10%', build.frontCount)}
+      ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器攻撃力-10%', build.frontCount)}
       ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
-      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器倍率-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
-      ${stepperRow('spiritCount', '精霊', '1体につき主武器倍率+10%', build.spiritCount)}
-      ${settings.atkSkills.map(s=>stepperRow('atk:'+s.id, s.name, `1回につき主武器倍率+${s.pct}%`, getCount('atk:'+s.id))).join('')}
-      <div class="at-hint" style="margin-top:6px;">攻撃力アップ系スキルの名称・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
+      ${checkRow('tracking', '追跡の目', '本数は変わらず主武器攻撃力-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
     </div>
 
     <div class="at-panel">
@@ -515,15 +523,19 @@
           <div class="at-statbox-val">${res.arrows}本</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">主武器倍率</div>
-          <div class="at-statbox-val">${fmtNum(res.mult,1)}%</div>
+          <div class="at-statbox-label">攻撃力アップ</div>
+          <div class="at-statbox-val">${fmtNum(res.atkUp,1)}%</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">総合火力指数</div>
-          <div class="at-statbox-val cyan">${fmtNum(res.power,2)}</div>
+          <div class="at-statbox-label">主武器攻撃力アップ</div>
+          <div class="at-statbox-val">${fmtNum(res.mainUp,1)}%</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">総合火力指数 ＝ 矢の本数 × 主武器倍率 ÷ 100（単純な相対比較用の目安値です）</div>
+      <div class="at-statbox" style="margin-top:8px;">
+        <div class="at-statbox-label">総合火力指数</div>
+        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtNum(res.power,2)}</div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;">総合火力指数 ＝ 矢の本数 × 攻撃力アップ(%) × 主武器攻撃力アップ(%) ÷ 10000（単純な相対比較用の目安値です）</div>
     </div>
 
     <div class="at-panel">
@@ -562,7 +574,7 @@
       ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジーで選んでもOK</div>':''}
 
       <div class="at-note">
-        現在のビルドに候補スキルを1回分だけ追加した場合の総合火力指数（矢の本数×主武器倍率）の伸び率で比較しています。実際のダメージ計算（クリティカル・属性・貫通など）は含まれていない簡易的な目安です。
+        現在のビルドに候補スキルを1回分だけ追加した場合の総合火力指数（矢の本数×攻撃力アップ×主武器攻撃力アップ）の伸び率で比較しています。実際のダメージ計算（クリティカル・属性・貫通など）は含まれていない簡易的な目安です。
       </div>
     </div>
     `;
@@ -580,7 +592,7 @@
 
   function arrowsSettingsBody(){
     return `
-        <div class="at-panel-desc">攻撃力アップ系スキルの名称と、1回取得あたりの主武器倍率への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
+        <div class="at-panel-desc">攻撃力アップ系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
 
         <div class="at-field">
           <label class="at-label">攻撃力アップ系スキル</label>
