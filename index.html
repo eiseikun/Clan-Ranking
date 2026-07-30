@@ -408,6 +408,23 @@
     digits = digits==null?1:digits;
     return Number(n).toFixed(digits).replace(/\.0+$/,'').replace(/(\.\d*[1-9])0+$/,'$1');
   }
+  // 900000→900K、1000000→1M のようなK/M表記。小数第3位以下は切り捨てて小数第2位まで表示。
+  function fmtCompact(n){
+    n = Number(n)||0;
+    const neg = n < 0;
+    const abs = Math.abs(n);
+    let divisor = 1, suffix = '';
+    if(abs >= 1e6){ divisor = 1e6; suffix = 'M'; }
+    else if(abs >= 1e3){ divisor = 1e3; suffix = 'K'; }
+    const scaled = abs / divisor;
+    const truncated = Math.floor(scaled * 100) / 100; // 小数第3位切り捨て
+    let str = truncated.toFixed(2);
+    if(str.indexOf('.')!==-1){
+      str = str.replace(/0+$/,'').replace(/\.$/,'');
+    }
+    if(str==='') str = '0';
+    return (neg?'-':'') + str + suffix;
+  }
 
   // ---------- render helpers ----------
   const app = document.getElementById('at-app');
@@ -549,7 +566,7 @@
       <div class="at-row2" style="margin-bottom:8px;">
         <div class="at-statbox">
           <div class="at-statbox-label">総攻撃力</div>
-          <div class="at-statbox-val">${fmtNum(res.totalAtk,1)}</div>
+          <div class="at-statbox-val">${fmtCompact(res.totalAtk)}</div>
         </div>
         <div class="at-statbox">
           <div class="at-statbox-label">矢の本数</div>
@@ -569,7 +586,7 @@
       </div>
       <div class="at-statbox">
         <div class="at-statbox-label">最終ダメージ量</div>
-        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtNum(res.damage,1)}</div>
+        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
       </div>
       <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 主武器攻撃力アップ(%) ÷ 100</div>
     </div>
@@ -597,13 +614,13 @@
         <div class="at-compare-card ${cmp.winner==='a'?'win':''}">
           <div class="at-compare-name">候補A：${escapeHtml(cmp.candA?cmp.candA.label:'')}</div>
           <div class="at-compare-gain ${cmp.winner==='a'?'win':''}">${cmp.gainA>=0?'+':''}${fmtNum(cmp.gainA,1)}%</div>
-          <div class="at-compare-sub">ダメージ量 ${fmtNum(cmp.cur.damage,1)} → ${fmtNum(cmp.powerA.damage,1)}</div>
+          <div class="at-compare-sub">ダメージ量 ${fmtCompact(cmp.cur.damage)} → ${fmtCompact(cmp.powerA.damage)}</div>
           ${cmp.winner==='a'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
         </div>
         <div class="at-compare-card ${cmp.winner==='b'?'win':''}">
           <div class="at-compare-name">候補B：${escapeHtml(cmp.candB?cmp.candB.label:'')}</div>
           <div class="at-compare-gain ${cmp.winner==='b'?'win':''}">${cmp.gainB>=0?'+':''}${fmtNum(cmp.gainB,1)}%</div>
-          <div class="at-compare-sub">ダメージ量 ${fmtNum(cmp.cur.damage,1)} → ${fmtNum(cmp.powerB.damage,1)}</div>
+          <div class="at-compare-sub">ダメージ量 ${fmtCompact(cmp.cur.damage)} → ${fmtCompact(cmp.powerB.damage)}</div>
           ${cmp.winner==='b'?'<div class="at-crown">👑 こちらがおすすめ</div>':''}
         </div>
       </div>
