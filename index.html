@@ -68,6 +68,13 @@
     backdrop-filter:blur(8px);
   }
   .at-gear:hover{border-color:var(--gold-dark);box-shadow:0 0 12px rgba(212,175,55,.25);}
+  .at-special-btn{
+    position:fixed;top:14px;right:60px;z-index:200;
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,10,15,.85);border:1px solid var(--border);cursor:pointer;font-size:17px;
+    backdrop-filter:blur(8px);
+  }
+  .at-special-btn:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(69,196,176,.25);}
 
   .at-tabs{display:flex;gap:6px;margin:18px 0 16px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:5px;}
   .at-tab{
@@ -320,6 +327,7 @@
   let state = {
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
     settingsOpen:false,
+    specialOpen:false,
   };
   let toastMsg = null, toastTimer = null;
 
@@ -392,12 +400,24 @@
     if(quality==='legend') return 20;
     return 0;
   }
+  // 主武器アップ系スキル特殊補正：取得スキル「🗡️ 主武器ダメup」内のスキル
+  // （ダイアゴナルアロー／フロントアロー／リアアロー／追跡の目）を合計2つ以上取得している場合のみ、
+  // 合計取得数×+1%が主武器ダメupに補正として加算される（1つ以下なら補正なし）。
+  // 例：フロント単体-15%、追跡単体-10%＝-25%だが、2つ取得しているので+2%補正され-23%になる。
+  function mainWeaponSkillCount(b){
+    return (Number(b.diagonalCount)||0) + (Number(b.frontCount)||0) + (Number(b.rearCount)||0) + (b.tracking?1:0);
+  }
+  function mainWeaponSkillCorrection(b){
+    const total = mainWeaponSkillCount(b);
+    return total>=2 ? total : 0;
+  }
   // 主武器ダメup(%)：エンチャント(鋭利の矢・アローレイン)・鋭利の矢ルーン品質・虚無の刃・
-  // ダイアゴナル/フロント/リアアロー・追跡の目 → 総攻撃力に掛け合わせる倍率（基準100%）
+  // ダイアゴナル/フロント/リアアロー・追跡の目・主武器アップ系スキル特殊補正 → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcMainDmgUpMult(b){
     let m = 100;
     m -= (Number(b.frontCount)||0) * 15;
     if(b.tracking) m -= 10;
+    m += mainWeaponSkillCorrection(b);
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
@@ -773,6 +793,7 @@
         ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-15%', build.frontCount)}
         ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
         ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-10%（重複取得不可）', build.tracking, build.tracking?'-10%':'')}
+        <div class="at-hint" style="margin-top:6px;">合計2つ以上取得すると特殊補正が入ります。詳しくは右上の✨特殊効果をご確認ください（現在の補正：${mainWeaponSkillCorrection(build)>=0?'+':''}${mainWeaponSkillCorrection(build)}%）。</div>
       </div>
 
       <div class="at-subbox">
@@ -959,6 +980,36 @@
   }
 
 
+  function specialEffectsModal(){
+    if(!state.specialOpen) return '';
+    const total = mainWeaponSkillCount(build);
+    const correction = mainWeaponSkillCorrection(build);
+    return `
+    <div class="at-modal-backdrop" data-action="closeSpecialBackdrop">
+      <div class="at-modal">
+        <div class="at-modal-head">
+          <div class="at-modal-title">✨ 特殊効果</div>
+          <div class="at-modal-close" data-action="closeSpecial">✕</div>
+        </div>
+
+        <div class="at-panel-desc" style="margin-bottom:10px;">計算に反映されている特殊な補正ルールです。</div>
+
+        <div class="at-subbox" style="margin-bottom:0;">
+          <div class="at-subbox-title">🗡️ 主武器アップ系スキル 取得数補正</div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            「取得スキル」パネルの🗡️主武器ダメup内スキル（ダイアゴナルアロー／フロントアロー／リアアロー／追跡の目）を<b>合計2つ以上</b>取得している場合のみ、合計取得数×+1%が主武器ダメupに補正として加算されます（1つ以下の場合は補正なし）。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
+          </div>
+          <div class="at-hint">
+            現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   function render(){
     let body = tabsBar();
     if(state.tab==='arrows') body += arrowsTool();
@@ -968,11 +1019,12 @@
       ${header()}
       ${body}
       <div class="at-footer-note">非公式ファン制作ツールです。数値は自己申告のルール・設定に基づく目安であり、公式仕様を保証するものではありません。</div>
-    ` + settingsModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
+    ` + settingsModal() + specialEffectsModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
   }
 
   // ---------- events ----------
   document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="詳細設定">⚙️</div>`);
+  document.body.insertAdjacentHTML('afterbegin', `<div class="at-special-btn" data-action="openSpecial" title="特殊効果">✨</div>`);
 
   document.addEventListener('click', function(e){
     const el = e.target.closest('[data-action]');
@@ -1008,6 +1060,12 @@
     if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
     if(action==='closeSettingsBackdrop'){
       if(e.target===el){ state.settingsOpen = false; render(); }
+      return;
+    }
+    if(action==='openSpecial'){ state.specialOpen = true; render(); return; }
+    if(action==='closeSpecial'){ state.specialOpen = false; render(); return; }
+    if(action==='closeSpecialBackdrop'){
+      if(e.target===el){ state.specialOpen = false; render(); }
       return;
     }
     if(action==='setAtkMode'){
