@@ -309,6 +309,7 @@
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
     sharpRuneQuality:'none', // none | epic | legend
     painRing:false, ero:false,
+    baseAtkSpeed:0, atkSpeedBonusPct:0, critRatePct:0, critDmgMultPct:0,
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
     atkSkillCounts:{},
     otherSkillCounts:{},
@@ -424,11 +425,27 @@
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
   }
-  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(+35%) → 総攻撃力に掛け合わせる倍率（基準100%）
+  // 実攻撃速度(発/秒) ＝ 基本攻撃速度 ×（1 + 攻撃速度ボーナス/100）
+  function actualAtkSpeed(b){
+    return (Number(b.baseAtkSpeed)||0) * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
+  }
+  // 会心期待値 ＝ (1-会心率) + 会心率×会心ダメージ倍率　※会心ダメージ倍率は153%入力なら1.53として扱う
+  function critExpectation(b){
+    const cr = (Number(b.critRatePct)||0) / 100;
+    const cd = (Number(b.critDmgMultPct)||0) / 100;
+    return (1 - cr) + cr * cd;
+  }
+  // エロージョンフィールドの倍率 ＝ 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
+  function eroMultiplier(b){
+    const denom = actualAtkSpeed(b) * critExpectation(b);
+    if(!(denom > 0)) return 1.35;
+    return 1.35 + 2.25 / denom;
+  }
+  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(1.35+2.25÷(実攻撃速度×会心期待値)) → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcDmgTakenUpMult(b){
     let m = 100;
     if(b.painRing) m += 20;
-    if(b.ero) m += 35;
+    if(b.ero) m += (eroMultiplier(b) - 1) * 100;
     return m;
   }
   // 最終ダメボーナス(%)：手入力の追加ボーナス → 基準100%の倍率
@@ -531,7 +548,7 @@
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
       {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'ero', label:'エロージョンフィールド（被ダメup+35%・重複不可）', key:'ero', mode:'toggle'},
+      {id:'ero', label:'エロージョンフィールド（被ダメup 1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
       opts.push({id:'spirit', label:'精霊（攻撃力+10%・威圧所持時のみ）', key:'spiritCount', mode:'count'});
@@ -798,7 +815,24 @@
 
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('ero', 'エロージョンフィールド', '被ダメup+35%', build.ero, build.ero?'+35%':'')}
+        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        <div class="at-field">
+          <label class="at-label">基本攻撃速度（発/秒）</label>
+          <input class="at-input" type="number" step="0.01" value="${build.baseAtkSpeed}" data-bind="baseAtkSpeed">
+        </div>
+        <div class="at-field">
+          <label class="at-label">攻撃速度ボーナス（%）</label>
+          <input class="at-input" type="number" step="1" value="${build.atkSpeedBonusPct}" data-bind="atkSpeedBonusPct">
+        </div>
+        <div class="at-field">
+          <label class="at-label">会心率（%）</label>
+          <input class="at-input" type="number" step="1" value="${build.critRatePct}" data-bind="critRatePct">
+        </div>
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">会心ダメージ倍率（%・例：153%入力で1.53倍）</label>
+          <input class="at-input" type="number" step="1" value="${build.critDmgMultPct}" data-bind="critDmgMultPct">
+        </div>
+        <div class="at-hint" style="margin-top:6px;">実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒　会心期待値：${fmtNum(critExpectation(build),3)}</div>
       </div>
 
       <div class="at-subbox" style="margin-bottom:0;">
