@@ -443,6 +443,21 @@
     const damage = atkInfo.totalAtk * arrows * (atkUp/100) * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100) * (otherUp/100) * (otherSkillMult/100);
     return Object.assign({arrows, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, otherSkillMult, damage}, atkInfo);
   }
+  // 「取得スキル」パネルの各項目（品質攻撃力up・精霊・ダイアゴナル/フロント/リアアロー・追跡の目・
+  // エロージョンフィールド・その他）だけをすべて未取得の状態に戻したビルドを作る。
+  // 「現在のビルド」パネルの装備・エンチャント等はそのまま維持する。
+  function calcNoAcquiredSkillsBuild(b){
+    return Object.assign({}, b, {
+      atkSkillCounts:{},
+      otherSkillCounts:{},
+      spiritCount:0,
+      diagonalCount:0,
+      frontCount:0,
+      rearCount:0,
+      tracking:false,
+      ero:false
+    });
+  }
   // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" / "other:<id>" 形式。
   function getCount(key){
     if(key.indexOf('atk:')===0){
@@ -609,6 +624,8 @@
 
   function arrowsTool(){
     const res = calcPower(build);
+    const noSkillRes = calcPower(calcNoAcquiredSkillsBuild(build));
+    const skillMultiple = noSkillRes.damage>0 ? (res.damage/noSkillRes.damage) : null;
     const cmp = compareChoice(build);
     const candOpts = getCandidateOptions();
 
@@ -784,11 +801,18 @@
           <div class="at-statbox-val">${fmtNum(res.otherSkillMult,1)}%</div>
         </div>
       </div>
-      <div class="at-statbox" style="margin-top:8px;">
-        <div class="at-statbox-label">最終ダメージ量</div>
-        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
+      <div class="at-row2" style="margin-top:8px;">
+        <div class="at-statbox">
+          <div class="at-statbox-label">取得スキルなし比</div>
+          <div class="at-statbox-val cyan">${skillMultiple==null?'—':fmtNum(skillMultiple,2)+'倍'}</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">最終ダメージ量</div>
+          <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
+        </div>
       </div>
       <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）×（〇〇敵ダメup÷100）×（その他÷100）</div>
+      <div class="at-hint">取得スキルなし比 ＝ 現在のダメージ量 ÷「取得スキル」パネルの各項目を未取得にした場合のダメージ量</div>
     </div>
 
     <div class="at-panel">
