@@ -175,6 +175,18 @@
   .at-tier-del:hover{color:var(--down);}
   .at-percent-suffix{position:relative;}
 
+  .at-tierrow4{display:grid;grid-template-columns:1fr 70px 62px 30px;gap:6px;align-items:center;margin-bottom:6px;}
+  .at-tierrow4 input{padding:8px 8px;font-size:12px;}
+  .at-tierrow4 .at-input{width:100%;}
+
+  .at-modebtns{display:flex;gap:6px;margin-bottom:12px;}
+  .at-modebtn{flex:1;text-align:center;padding:9px 4px;border-radius:8px;font-size:12.5px;font-weight:700;
+    color:var(--text-dim);cursor:pointer;user-select:none;border:1px solid var(--border);background:var(--bg-panel2);}
+  .at-modebtn.active{border-color:var(--gold);color:var(--gold-soft);background:rgba(212,175,55,.1);}
+
+  .at-group-tag{display:inline-block;font-size:9.5px;color:var(--cyan);background:rgba(69,196,176,.12);border:1px solid rgba(69,196,176,.3);
+    border-radius:5px;padding:1px 6px;margin-left:6px;font-weight:700;letter-spacing:.02em;}
+
   .at-toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--bg-panel3);
     border:1px solid var(--gold);color:var(--gold-soft);padding:10px 18px;border-radius:999px;font-size:12.5px;
@@ -235,20 +247,27 @@
       {id:uid(), name:'レジェンド品質 攻撃力up', pct:0},
     ];
   }
+  // 取得スキル「その他」：自由に追加・削除・命名できるスキル。
+  // 同じグループ(group)同士は%を足し算、違うグループ同士は掛け算で最終ダメージ量に反映する。
+  function defaultOtherSkills(){
+    return [];
+  }
 
   const DEFAULT_SETTINGS = {
-    atkSkills: defaultAtkSkills()
+    atkSkills: defaultAtkSkills(),
+    otherSkills: defaultOtherSkills()
   };
   const OTHER_DMG_CATS = [
     {key:'otherAir', label:'空中の敵'},
-    {key:'otherGround', label:'地上の敵'},
-    {key:'otherTrash', label:'ザコ敵'},
+    {key:'otherGround', label:'地中の敵'},
+    {key:'otherTrash', label:'雑魚敵'},
     {key:'otherElite', label:'エリート'},
     {key:'otherBoss', label:'ボス'},
   ];
 
   const DEFAULT_BUILD = {
-    atkBase:0, atkBonusPct:0, finalDmgBonusPct:0,
+    atkInputMode:'split', // split: 攻撃力+攻撃力ボーナスを入力 / direct: 総攻撃力を直接入力
+    atkBase:0, atkBonusPct:0, totalAtkDirect:0, finalDmgBonusPct:0,
     otherAirOn:false, otherAirPct:0,
     otherGroundOn:false, otherGroundPct:0,
     otherTrashOn:false, otherTrashPct:0,
@@ -262,7 +281,8 @@
     painRing:false, ero:false,
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
     atkSkillCounts:{},
-    compareCandA:'diagonal', compareCandB:'front'
+    otherSkillCounts:{},
+    compareCandA:'diagonal', compareCandB:'none'
   };
 
   const TOOLS = [
@@ -378,14 +398,34 @@
     });
     return m;
   }
-  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × 攻撃力ボーナス ÷ 100 }
+  // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × 攻撃力ボーナス ÷ 100 }（個別入力モード）
+  // ／もしくは総攻撃力を直接入力（直接入力モード）
   function calcTotalAtk(b){
     const atkBase = Number(b.atkBase)||0;
     const atkBonusPct = Number(b.atkBonusPct)||0;
-    const totalAtk = atkBase + atkBase * (atkBonusPct/100);
-    return {atkBase, atkBonusPct, totalAtk};
+    const totalAtkDirect = Number(b.totalAtkDirect)||0;
+    const totalAtk = (b.atkInputMode==='direct') ? totalAtkDirect : (atkBase + atkBase * (atkBonusPct/100));
+    return {atkBase, atkBonusPct, totalAtkDirect, totalAtk};
   }
-  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × その他ダメup(%)
+  // その他(取得スキル・自由編集)：同じグループは%を足し算、違うグループは掛け算で合成する倍率（基準100%）
+  // 例）グループ「A」に+10%・+5%、グループ「B」に+20%がある場合
+  //   → (100+10+5)/100 × (100+20)/100 × 100 として算出
+  function calcOtherSkillMult(b){
+    const counts = b.otherSkillCounts || {};
+    const groups = {};
+    (settings.otherSkills||[]).forEach(function(s){
+      const cnt = Number(counts[s.id])||0;
+      if(cnt===0) return;
+      const g = (s.group && String(s.group).trim()) ? String(s.group).trim() : s.id;
+      groups[g] = (groups[g]||0) + cnt * (Number(s.pct)||0);
+    });
+    let frac = 1;
+    Object.keys(groups).forEach(function(g){
+      frac *= (100 + groups[g]) / 100;
+    });
+    return frac * 100;
+  }
+  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × その他ダメup(%) × その他(%)
   function calcPower(b){
     const arrows = calcArrows(b);
     const atkInfo = calcTotalAtk(b);
@@ -394,14 +434,19 @@
     const dmgTakenUp = calcDmgTakenUpMult(b);
     const finalBonus = calcFinalDmgBonusMult(b);
     const otherUp = calcOtherDmgUpMult(b);
-    const damage = atkInfo.totalAtk * arrows * (atkUp/100) * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100) * (otherUp/100);
-    return Object.assign({arrows, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, damage}, atkInfo);
+    const otherSkillMult = calcOtherSkillMult(b);
+    const damage = atkInfo.totalAtk * arrows * (atkUp/100) * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100) * (otherUp/100) * (otherSkillMult/100);
+    return Object.assign({arrows, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, otherSkillMult, damage}, atkInfo);
   }
-  // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" 形式。
+  // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" / "other:<id>" 形式。
   function getCount(key){
     if(key.indexOf('atk:')===0){
       const id = key.slice(4);
       return Number((build.atkSkillCounts||{})[id]) || 0;
+    }
+    if(key.indexOf('other:')===0){
+      const id = key.slice(6);
+      return Number((build.otherSkillCounts||{})[id]) || 0;
     }
     return Number(build[key]) || 0;
   }
@@ -410,6 +455,10 @@
       const id = key.slice(4);
       if(!build.atkSkillCounts) build.atkSkillCounts = {};
       build.atkSkillCounts[id] = newVal;
+    } else if(key.indexOf('other:')===0){
+      const id = key.slice(6);
+      if(!build.otherSkillCounts) build.otherSkillCounts = {};
+      build.otherSkillCounts[id] = newVal;
     } else {
       build[key] = newVal;
     }
@@ -417,6 +466,7 @@
   // ---------- candidate skill comparison ----------
   function getCandidateOptions(){
     const opts = [
+      {id:'none', label:'なし（比較しない）', mode:'none'},
       {id:'diagonal', label:'ダイアゴナルアロー（矢+2本）', key:'diagonalCount', mode:'count'},
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-10%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
@@ -429,20 +479,28 @@
     settings.atkSkills.forEach(function(s){
       opts.push({id:'atk:'+s.id, label:s.name+`（攻撃力+${s.pct}%）`, skillId:s.id, mode:'atk'});
     });
+    (settings.otherSkills||[]).forEach(function(s){
+      const g = (s.group && String(s.group).trim()) ? String(s.group).trim() : '個別';
+      opts.push({id:'other:'+s.id, label:s.name+`（${g}グループ、+${s.pct}%）`, skillId:s.id, mode:'other'});
+    });
     return opts;
   }
   function applyCandidate(b, cand){
-    const nb = Object.assign({}, b, {atkSkillCounts: Object.assign({}, b.atkSkillCounts||{})});
-    if(!cand) return nb;
+    const nb = Object.assign({}, b, {
+      atkSkillCounts: Object.assign({}, b.atkSkillCounts||{}),
+      otherSkillCounts: Object.assign({}, b.otherSkillCounts||{})
+    });
+    if(!cand || cand.mode==='none') return nb;
     if(cand.mode==='count'){ nb[cand.key] = (Number(nb[cand.key])||0) + 1; }
     else if(cand.mode==='toggle'){ nb[cand.key] = true; }
     else if(cand.mode==='atk'){ nb.atkSkillCounts[cand.skillId] = (Number(nb.atkSkillCounts[cand.skillId])||0) + 1; }
+    else if(cand.mode==='other'){ nb.otherSkillCounts[cand.skillId] = (Number(nb.otherSkillCounts[cand.skillId])||0) + 1; }
     return nb;
   }
   function compareChoice(b){
     const opts = getCandidateOptions();
     const candA = opts.find(o=>o.id===b.compareCandA) || opts[0];
-    const candB = opts.find(o=>o.id===b.compareCandB) || opts[1] || opts[0];
+    const candB = opts.find(o=>o.id===b.compareCandB) || opts[0];
     const cur = calcPower(b);
     const powerA = calcPower(applyCandidate(b, candA));
     const powerB = calcPower(applyCandidate(b, candB));
@@ -552,7 +610,20 @@
     return `
     <div class="at-panel">
       <div class="at-panel-title">⚔️ 攻撃力</div>
-      <div class="at-panel-desc">ステータス画面の「攻撃力」実数値と「攻撃力ボーナス」(%)を入力してください。攻撃力up・主武器ダメup・被ダメupは別枠で自動計算され、最終ダメージ量の計算時にそれぞれ独立した倍率として掛け合わされます。</div>
+      <div class="at-panel-desc">「攻撃力＋攻撃力ボーナス」から自動計算するか、ステータス画面に表示されている「総攻撃力」をそのまま入力するか選べます。攻撃力up・主武器ダメup・被ダメupは別枠で自動計算され、最終ダメージ量の計算時にそれぞれ独立した倍率として掛け合わされます。</div>
+
+      <div class="at-modebtns">
+        <div class="at-modebtn ${build.atkInputMode!=='direct'?'active':''}" data-action="setAtkMode" data-val="split">攻撃力＋ボーナスで入力</div>
+        <div class="at-modebtn ${build.atkInputMode==='direct'?'active':''}" data-action="setAtkMode" data-val="direct">総攻撃力を直接入力</div>
+      </div>
+
+      ${build.atkInputMode==='direct' ? `
+      <div class="at-field" style="margin-bottom:0;">
+        <label class="at-label">総攻撃力</label>
+        <input class="at-input" type="number" step="1" value="${build.totalAtkDirect}" data-bind="totalAtkDirect">
+      </div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">ステータス画面の「総攻撃力」の実数値をそのまま入力してください。</div>
+      ` : `
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
           <label class="at-label">攻撃力</label>
@@ -564,6 +635,7 @@
         </div>
       </div>
       <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 × 攻撃力ボーナス ÷ 100｝</div>
+      `}
 
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
@@ -657,9 +729,17 @@
         ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
       </div>
 
-      <div class="at-subbox" style="margin-bottom:0;">
+      <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
         ${checkRow('ero', 'エロージョンフィールド', '被ダメup+35%', build.ero, build.ero?'+35%':'')}
+      </div>
+
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-subbox-title">🎲 その他</div>
+        <div class="at-hint" style="margin-top:0;margin-bottom:10px;">同じグループのスキル同士は%を足し算、違うグループ同士は掛け算で最終ダメージ量に反映されます。スキルの名称・グループ・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
+        ${(settings.otherSkills||[]).length===0
+          ? `<div class="at-hint" style="margin-bottom:0;">まだ「その他」スキルが登録されていません。⚙️設定から追加してください。</div>`
+          : settings.otherSkills.map(s=>stepperRow('other:'+s.id, s.name+`<span class="at-group-tag">${escapeHtml((s.group&&String(s.group).trim())||'個別')}</span>`, `1回につき+${s.pct}%（同グループ内で加算）`, getCount('other:'+s.id))).join('')}
       </div>
     </div>
 
@@ -701,20 +781,26 @@
           <div class="at-statbox-val">${fmtNum(res.finalBonus,1)}%</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">その他ダメup</div>
+          <div class="at-statbox-label">〇〇敵ダメup</div>
           <div class="at-statbox-val">${fmtNum(res.otherUp,1)}%</div>
         </div>
       </div>
-      <div class="at-statbox">
-        <div class="at-statbox-label">最終ダメージ量</div>
-        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
+      <div class="at-row2" style="margin-bottom:8px;">
+        <div class="at-statbox">
+          <div class="at-statbox-label">その他</div>
+          <div class="at-statbox-val">${fmtNum(res.otherSkillMult,1)}%</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">最終ダメージ量</div>
+          <div class="at-statbox-val cyan" style="font-size:16px;">${fmtCompact(res.damage)}</div>
+        </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）×（その他ダメup÷100）</div>
+      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）×（〇〇敵ダメup÷100）×（その他÷100）</div>
     </div>
 
     <div class="at-panel">
       <div class="at-panel-title">🤔 候補スキル比較</div>
-      <div class="at-panel-desc">今、選択できるスキル候補A・Bを選ぶと、現在のビルドにそれぞれを1回追加した場合の火力の伸び率を比較します。</div>
+      <div class="at-panel-desc">今、選択できるスキル候補A・Bを選ぶと、現在のビルドにそれぞれを1回追加した場合の火力の伸び率を比較します。片方を「なし（比較しない）」に設定すると、そのスキル単体でどのくらい火力が上がるかを確認できます。</div>
 
       <div class="at-row2">
         <div class="at-field">
@@ -748,7 +834,7 @@
       ${cmp.winner==='even'?'<div class="at-hint" style="text-align:center;">両者の上昇率はほぼ同じです。他のシナジーで選んでもOK</div>':''}
 
       <div class="at-note">
-        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×攻撃力up×主武器ダメup×被ダメup×最終ダメボーナス×その他ダメup）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
+        現在のビルドに候補スキルを1回分だけ追加した場合の最終ダメージ量（総攻撃力×矢の本数×攻撃力up×主武器ダメup×被ダメup×最終ダメボーナス×〇〇敵ダメup×その他）の伸び率で比較しています。クリティカル・属性・貫通などの効果は含まれていない簡易的な目安です。
       </div>
     </div>
     `;
@@ -778,6 +864,22 @@
             </div>
           `).join('')}
           <div class="at-btn at-btn-ghost at-btn-sm" data-action="addAtkSkill">＋ スキルを追加</div>
+        </div>
+
+        <div class="at-divider"></div>
+
+        <div class="at-panel-desc" style="margin-bottom:8px;">取得スキル「その他」を自由に編集できます。名称・グループ名・1回取得あたりの効果（%）を設定してください。<b>同じグループ名</b>のスキル同士は%を足し算、<b>違うグループ名</b>のスキル同士は掛け算で最終ダメージ量に反映されます（グループ名を空欄にすると、そのスキル単独のグループとして扱われます）。</div>
+        <div class="at-field">
+          <label class="at-label">その他スキル（名称／グループ／%）</label>
+          ${(settings.otherSkills||[]).map(s=>`
+            <div class="at-tierrow4">
+              <input class="at-input" type="text" placeholder="スキル名" value="${escapeHtml(s.name)}" data-other-name="${s.id}">
+              <input class="at-input" type="text" placeholder="グループ" value="${escapeHtml(s.group||'')}" data-other-group="${s.id}">
+              <input class="at-input" type="number" step="1" value="${s.pct}" data-other-pct="${s.id}">
+              <div class="at-tier-del" data-action="delOtherSkill" data-val="${s.id}">✕</div>
+            </div>
+          `).join('')}
+          <div class="at-btn at-btn-ghost at-btn-sm" data-action="addOtherSkill">＋ その他スキルを追加</div>
         </div>
 
         <div class="at-divider"></div>
@@ -862,6 +964,12 @@
     }
     if(action==='openSettings'){ state.settingsOpen = true; render(); return; }
     if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
+    if(action==='setAtkMode'){
+      build.atkInputMode = val;
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='addAtkSkill'){
       settings.atkSkills.push({id:uid(), name:'新しいスキル', pct:0});
       saveSettings();
@@ -876,8 +984,23 @@
       render();
       return;
     }
+    if(action==='addOtherSkill'){
+      if(!settings.otherSkills) settings.otherSkills = [];
+      settings.otherSkills.push({id:uid(), name:'新しいスキル', group:'', pct:0});
+      saveSettings();
+      render();
+      return;
+    }
+    if(action==='delOtherSkill'){
+      settings.otherSkills = (settings.otherSkills||[]).filter(s=>s.id!==val);
+      if(build.otherSkillCounts) delete build.otherSkillCounts[val];
+      saveSettings();
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='resetSettings'){
-      if(confirm('攻撃力up系スキルの設定をすべて初期状態に戻します。よろしいですか？')){
+      if(confirm('攻撃力up系スキル・その他スキルの設定をすべて初期状態に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         saveSettings();
         showToast('設定をリセットしました');
@@ -906,6 +1029,24 @@
     if(atkName){
       const skill = settings.atkSkills.find(s=>s.id===atkName);
       if(skill){ skill.name = e.target.value; saveSettings(); render(); }
+      return;
+    }
+    const otherPct = e.target.getAttribute('data-other-pct');
+    if(otherPct){
+      const skill = (settings.otherSkills||[]).find(s=>s.id===otherPct);
+      if(skill){ skill.pct = Number(e.target.value)||0; saveSettings(); render(); }
+      return;
+    }
+    const otherName = e.target.getAttribute('data-other-name');
+    if(otherName){
+      const skill = (settings.otherSkills||[]).find(s=>s.id===otherName);
+      if(skill){ skill.name = e.target.value; saveSettings(); render(); }
+      return;
+    }
+    const otherGroup = e.target.getAttribute('data-other-group');
+    if(otherGroup){
+      const skill = (settings.otherSkills||[]).find(s=>s.id===otherGroup);
+      if(skill){ skill.group = e.target.value; saveSettings(); render(); }
       return;
     }
   });
