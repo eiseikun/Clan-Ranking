@@ -291,8 +291,8 @@
   };
 
   const TOOLS = [
-    {id:'arrows', label:'矢の本数', icon:'🏹'},
-    {id:'fishing', label:'釣り', icon:'🎣', comingSoon:true},
+    {id:'arrows', label:'スキル選択', icon:'🏹'},
+    {id:'fishing', label:'未定', icon:'🎣', comingSoon:true},
   ];
 
   let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
@@ -583,16 +583,16 @@
     </div>`;
   }
 
-  // ON/OFFの切り替えと、それぞれ独立したダメ%の手入力を両立させる行
-  function checkPctRow(key, label, on, pct){
+  // 選択リストで追加された敵タイプ1件分の表示行（%編集・削除ボタン付き）
+  function otherDmgCatRow(key, label, pct){
     return `
-    <div class="at-checkrow ${on?'on':''}" data-action="toggleBuild" data-val="${key}On">
+    <div class="at-checkrow on" style="cursor:default;">
       <div class="at-checkrow-main">
         <div class="at-checkrow-label">${label}</div>
       </div>
-      <input class="at-input" type="number" step="1" style="width:56px;text-align:center;margin-right:8px;" value="${pct}" data-bind="${key}Pct" onclick="event.stopPropagation()">
+      <input class="at-input" type="number" step="1" style="width:56px;text-align:center;margin-right:8px;" value="${pct}" data-bind="${key}Pct">
       <span style="font-size:12px;color:var(--text-faint);margin-right:8px;">%</span>
-      <div class="at-switch"></div>
+      <div class="at-tier-del" data-action="removeOtherDmgCat" data-val="${key}">✕</div>
     </div>`;
   }
 
@@ -670,8 +670,12 @@
 
     <div class="at-panel">
       <div class="at-panel-title">🎯 その他ダメup</div>
-      <div class="at-panel-desc">敵の種類ごとのダメージ増加効果です。該当する項目をONにして、それぞれのダメ%を入力してください。ONになっている項目の%がすべて合算されます。</div>
-      ${OTHER_DMG_CATS.map(c=>checkPctRow(c.key, c.label, build[c.key+'On'], build[c.key+'Pct'])).join('')}
+      <div class="at-panel-desc">敵の種類ごとのダメージ増加効果です。下のリストから該当する敵タイプを選んで追加し、それぞれのダメ%を入力してください。追加した項目の%がすべて合算されます。</div>
+      <select class="at-select" data-add-other-cat="1" style="margin-bottom:${OTHER_DMG_CATS.some(c=>build[c.key+'On'])?'10px':'0'};">
+        <option value="">＋ 敵タイプを選択して追加</option>
+        ${OTHER_DMG_CATS.filter(c=>!build[c.key+'On']).map(c=>`<option value="${c.key}">${c.label}</option>`).join('')}
+      </select>
+      ${OTHER_DMG_CATS.filter(c=>build[c.key+'On']).map(c=>otherDmgCatRow(c.key, c.label, build[c.key+'Pct'])).join('')}
     </div>
 
     <div class="at-panel">
@@ -862,7 +866,7 @@
     <div class="at-panel">
       <div class="at-empty">
         <div class="at-empty-icon">🎣</div>
-        「釣り」ツールは準備中です。<br>内容が決まり次第、追加されます。
+        「未定」ツールは準備中です。<br>内容が決まり次第、追加されます。
       </div>
     </div>`;
   }
@@ -909,14 +913,14 @@
     return `
         <div class="at-empty" style="padding:30px 12px;">
           <div class="at-empty-icon">🎣</div>
-          「釣り」ツールは準備中のため、設定項目はまだありません。<br>内容が決まり次第、ここに追加されます。
+          「未定」ツールは準備中のため、設定項目はまだありません。<br>内容が決まり次第、ここに追加されます。
         </div>
     `;
   }
 
   const SETTINGS_BY_TAB = {
-    arrows: { title:'⚙️ 矢の本数 詳細設定', body: arrowsSettingsBody },
-    fishing: { title:'⚙️ 釣り 詳細設定', body: fishingSettingsBody },
+    arrows: { title:'⚙️ スキル選択 詳細設定', body: arrowsSettingsBody },
+    fishing: { title:'⚙️ 未定 詳細設定', body: fishingSettingsBody },
   };
 
   function settingsModal(){
@@ -992,6 +996,12 @@
       render();
       return;
     }
+    if(action==='removeOtherDmgCat'){
+      build[val+'On'] = false;
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='addAtkSkill'){
       settings.atkSkills.push({id:uid(), name:'新しいスキル', pct:0});
       saveSettings();
@@ -1034,6 +1044,16 @@
   });
 
   document.addEventListener('change', function(e){
+    const addCat = e.target.getAttribute('data-add-other-cat');
+    if(addCat){
+      const key = e.target.value;
+      if(key){
+        build[key+'On'] = true;
+        saveBuild();
+      }
+      render();
+      return;
+    }
     const bind = e.target.getAttribute('data-bind');
     if(bind){
       let v = e.target.value;
