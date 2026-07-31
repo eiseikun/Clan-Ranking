@@ -262,6 +262,24 @@
     atkSkills: defaultAtkSkills(),
     otherSkills: defaultOtherSkills()
   };
+
+  // 端末のブラウザに以前保存された古い設定(localStorage)が残っていても、
+  // グレート/エピック/巨大化/レジェンドなどの「固定(locked)」スキルは常に
+  // コード側の最新の数値に同期させる（ユーザーが自由に追加した非固定スキルはそのまま維持）。
+  function reconcileAtkSkills(savedAtkSkills){
+    const saved = Array.isArray(savedAtkSkills) ? savedAtkSkills : [];
+    const savedLockedByName = {};
+    saved.forEach(function(s){ if(s && s.locked) savedLockedByName[s.name] = s; });
+    const freshLocked = defaultAtkSkills().map(function(defSkill){
+      const existing = savedLockedByName[defSkill.name];
+      // id はそのまま引き継ぐ（取得回数の紐付けを維持するため）。pct・name・locked は常に最新化。
+      return existing
+        ? {id: existing.id, name: defSkill.name, pct: defSkill.pct, locked: true}
+        : defSkill;
+    });
+    const customSkills = saved.filter(function(s){ return s && !s.locked; });
+    return freshLocked.concat(customSkills);
+  }
   const OTHER_DMG_CATS = [
     {key:'otherAir', label:'空中の敵'},
     {key:'otherGround', label:'地中の敵'},
@@ -296,6 +314,8 @@
   ];
 
   let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
+  settings.atkSkills = reconcileAtkSkills(settings.atkSkills);
+  saveJSON('at2_settings_v3', settings);
   let build = loadJSON('at2_build_v3', DEFAULT_BUILD);
   let state = {
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
