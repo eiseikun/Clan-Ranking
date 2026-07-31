@@ -241,10 +241,10 @@
   // 攻撃力up系スキル：スキル名・倍率(%)は設定画面で自由に編集・追加・削除できる。
   function defaultAtkSkills(){
     return [
-      {id:uid(), name:'グレート品質 攻撃力up', pct:0},
-      {id:uid(), name:'エピック品質 攻撃力up', pct:0},
-      {id:uid(), name:'巨大化', pct:0},
-      {id:uid(), name:'レジェンド品質 攻撃力up', pct:0},
+      {id:uid(), name:'グレート品質 攻撃力up', pct:10, locked:true},
+      {id:uid(), name:'エピック品質 攻撃力up', pct:25, locked:true},
+      {id:uid(), name:'巨大化', pct:20, locked:true},
+      {id:uid(), name:'レジェンド品質 攻撃力up', pct:40, locked:true},
     ];
   }
   // 取得スキル「その他」：自由に追加・削除・命名できるスキル。
@@ -371,8 +371,8 @@
   // ダイアゴナル/フロント/リアアロー・追跡の目 → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcMainDmgUpMult(b){
     let m = 100;
-    m -= (Number(b.frontCount)||0) * 10;
-    if(b.tracking) m -= 15;
+    m -= (Number(b.frontCount)||0) * 15;
+    if(b.tracking) m -= 10;
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
@@ -468,9 +468,9 @@
     const opts = [
       {id:'none', label:'なし（比較しない）', mode:'none'},
       {id:'diagonal', label:'ダイアゴナルアロー（矢+2本）', key:'diagonalCount', mode:'count'},
-      {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-10%）', key:'frontCount', mode:'count'},
+      {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
-      {id:'tracking', label:'追跡の目（主武器ダメup-15%・重複不可）', key:'tracking', mode:'toggle'},
+      {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
       {id:'ero', label:'エロージョンフィールド（被ダメup+35%・重複不可）', key:'ero', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
@@ -724,9 +724,9 @@
       <div class="at-subbox">
         <div class="at-subbox-title">🗡️ 主武器ダメup</div>
         ${stepperRow('diagonalCount', 'ダイアゴナルアロー', '1回につき矢+2本', build.diagonalCount)}
-        ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-10%', build.frontCount)}
+        ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-15%', build.frontCount)}
         ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
-        ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-15%（重複取得不可）', build.tracking, build.tracking?'-15%':'')}
+        ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-10%（重複取得不可）', build.tracking, build.tracking?'-10%':'')}
       </div>
 
       <div class="at-subbox">
@@ -852,15 +852,15 @@
 
   function arrowsSettingsBody(){
     return `
-        <div class="at-panel-desc">攻撃力up系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。</div>
+        <div class="at-panel-desc">攻撃力up系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。グレート／エピック／レジェンド品質攻撃力up・巨大化は固定値（10%／25%／40%／20%）のため%は編集できません。</div>
 
         <div class="at-field">
           <label class="at-label">攻撃力up系スキル</label>
           ${settings.atkSkills.map(s=>`
             <div class="at-tierrow">
               <input class="at-input" type="text" value="${escapeHtml(s.name)}" data-atk-name="${s.id}">
-              <input class="at-input" type="number" step="1" value="${s.pct}" data-atk-pct="${s.id}">
-              <div class="at-tier-del" data-action="delAtkSkill" data-val="${s.id}">✕</div>
+              <input class="at-input" type="number" step="1" value="${s.pct}" data-atk-pct="${s.id}" ${s.locked?'disabled title="固定値のため編集できません"':''}>
+              ${s.locked ? `<div class="at-tier-del" style="opacity:.3;cursor:default;" title="固定スキルは削除できません">🔒</div>` : `<div class="at-tier-del" data-action="delAtkSkill" data-val="${s.id}">✕</div>`}
             </div>
           `).join('')}
           <div class="at-btn at-btn-ghost at-btn-sm" data-action="addAtkSkill">＋ スキルを追加</div>
@@ -871,6 +871,7 @@
         <div class="at-panel-desc" style="margin-bottom:8px;">取得スキル「その他」を自由に編集できます。名称・グループ名・1回取得あたりの効果（%）を設定してください。<b>同じグループ名</b>のスキル同士は%を足し算、<b>違うグループ名</b>のスキル同士は掛け算で最終ダメージ量に反映されます（グループ名を空欄にすると、そのスキル単独のグループとして扱われます）。</div>
         <div class="at-field">
           <label class="at-label">その他スキル（名称／グループ／%）</label>
+          ${(settings.otherSkills||[]).length===0 ? `<div class="at-hint" style="margin-bottom:8px;">まだ登録されていません。下のボタンから追加してください。</div>` : ''}
           ${(settings.otherSkills||[]).map(s=>`
             <div class="at-tierrow4">
               <input class="at-input" type="text" placeholder="スキル名" value="${escapeHtml(s.name)}" data-other-name="${s.id}">
@@ -897,16 +898,16 @@
   }
 
   const SETTINGS_BY_TAB = {
-    arrows: { title:'⚙️ 矢の本数 設定', body: arrowsSettingsBody },
-    fishing: { title:'⚙️ 釣り 設定', body: fishingSettingsBody },
+    arrows: { title:'⚙️ 矢の本数 詳細設定', body: arrowsSettingsBody },
+    fishing: { title:'⚙️ 釣り 詳細設定', body: fishingSettingsBody },
   };
 
   function settingsModal(){
     if(!state.settingsOpen) return '';
     const cfg = SETTINGS_BY_TAB[state.tab] || SETTINGS_BY_TAB.arrows;
     return `
-    <div class="at-modal-backdrop" data-action="closeSettings">
-      <div class="at-modal" onclick="event.stopPropagation()">
+    <div class="at-modal-backdrop" data-action="closeSettingsBackdrop">
+      <div class="at-modal">
         <div class="at-modal-head">
           <div class="at-modal-title">${cfg.title}</div>
           <div class="at-modal-close" data-action="closeSettings">✕</div>
@@ -930,7 +931,7 @@
   }
 
   // ---------- events ----------
-  document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="設定">⚙️</div>`);
+  document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="詳細設定">⚙️</div>`);
 
   document.addEventListener('click', function(e){
     const el = e.target.closest('[data-action]');
@@ -964,6 +965,10 @@
     }
     if(action==='openSettings'){ state.settingsOpen = true; render(); return; }
     if(action==='closeSettings'){ state.settingsOpen = false; render(); return; }
+    if(action==='closeSettingsBackdrop'){
+      if(e.target===el){ state.settingsOpen = false; render(); }
+      return;
+    }
     if(action==='setAtkMode'){
       build.atkInputMode = val;
       saveBuild();
@@ -977,6 +982,8 @@
       return;
     }
     if(action==='delAtkSkill'){
+      const target = settings.atkSkills.find(s=>s.id===val);
+      if(target && target.locked){ return; }
       settings.atkSkills = settings.atkSkills.filter(s=>s.id!==val);
       if(build.atkSkillCounts) delete build.atkSkillCounts[val];
       saveSettings();
@@ -1022,7 +1029,7 @@
     const atkPct = e.target.getAttribute('data-atk-pct');
     if(atkPct){
       const skill = settings.atkSkills.find(s=>s.id===atkPct);
-      if(skill){ skill.pct = Number(e.target.value)||0; saveSettings(); render(); }
+      if(skill && !skill.locked){ skill.pct = Number(e.target.value)||0; saveSettings(); render(); }
       return;
     }
     const atkName = e.target.getAttribute('data-atk-name');
