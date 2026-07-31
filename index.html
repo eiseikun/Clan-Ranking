@@ -401,12 +401,13 @@
     if(quality==='legend') return 20;
     return 0;
   }
-  // 主武器アップ系スキル特殊補正：取得スキル「🗡️ 主武器ダメup」内のスキル
-  // （ダイアゴナルアロー／フロントアロー／リアアロー／追跡の目）を合計2つ以上取得している場合のみ、
+  // 主武器アップ系スキル特殊補正：取得スキル「🗡️ 主武器ダメup」内の"-〇%"が付くスキル
+  // （フロントアロー／追跡の目）を合計2つ以上取得している場合のみ、
   // 合計取得数×+1%が主武器ダメupに補正として加算される（1つ以下なら補正なし）。
+  // ※ダイアゴナルアロー／リアアローは矢数のみの効果で%補正が無いため対象外。
   // 例：フロント単体-15%、追跡単体-10%＝-25%だが、2つ取得しているので+2%補正され-23%になる。
   function mainWeaponSkillCount(b){
-    return (Number(b.diagonalCount)||0) + (Number(b.frontCount)||0) + (Number(b.rearCount)||0) + (b.tracking?1:0);
+    return (Number(b.frontCount)||0) + (b.tracking?1:0);
   }
   function mainWeaponSkillCorrection(b){
     const total = mainWeaponSkillCount(b);
@@ -1031,7 +1032,7 @@
         <div class="at-subbox" style="margin-bottom:0;">
           <div class="at-subbox-title">🗡️ 主武器アップ系スキル 取得数補正</div>
           <div class="at-hint" style="margin-bottom:8px;">
-            「取得スキル」パネルの🗡️主武器ダメup内スキル（ダイアゴナルアロー／フロントアロー／リアアロー／追跡の目）を<b>合計2つ以上</b>取得している場合のみ、合計取得数×+1%が主武器ダメupに補正として加算されます（1つ以下の場合は補正なし）。
+            「取得スキル」パネルの🗡️主武器ダメup内で"-〇%"の主武器ダメup効果が付くスキル（フロントアロー／追跡の目）を<b>合計2つ以上</b>取得している場合のみ、合計取得数×+1%が主武器ダメupに補正として加算されます（1つ以下の場合は補正なし）。ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外です。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
             例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
