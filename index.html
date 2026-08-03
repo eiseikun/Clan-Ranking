@@ -309,7 +309,7 @@
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
     sharpRuneQuality:'none', // none | epic | legend
     painRing:false, ero:false,
-    baseAtkSpeed:0, atkSpeedBonusPct:0, critRatePct:0, critDmgMultPct:0,
+    atkSpeedBonusPct:0, critRatePct:0, critDmgMultPct:0,
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
     atkSkillCounts:{},
     otherSkillCounts:{},
@@ -426,9 +426,10 @@
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
   }
-  // 実攻撃速度(発/秒) ＝ 基本攻撃速度 ×（1 + 攻撃速度ボーナス/100）
+  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.732) ×（1 + 攻撃速度ボーナス/100）
+  const BASE_ATK_SPEED = 1.732;
   function actualAtkSpeed(b){
-    return (Number(b.baseAtkSpeed)||0) * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
+    return BASE_ATK_SPEED * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
   }
   // 会心期待値 ＝ (1-会心率) + 会心率×会心ダメージ倍率　※会心ダメージ倍率は153%入力なら1.53として扱う
   function critExpectation(b){
@@ -819,7 +820,7 @@
         ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
         <div class="at-field">
           <label class="at-label">基本攻撃速度（発/秒）</label>
-          <input class="at-input" type="number" step="0.01" value="${build.baseAtkSpeed}" data-bind="baseAtkSpeed">
+          <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
         </div>
         <div class="at-field">
           <label class="at-label">攻撃速度ボーナス（%）</label>
