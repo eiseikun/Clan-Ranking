@@ -591,7 +591,11 @@
     if(cand.mode==='count'){ nb[cand.key] = (Number(nb[cand.key])||0) + 1; }
     else if(cand.mode==='toggle'){ nb[cand.key] = true; }
     else if(cand.mode==='atk'){ nb.atkSkillCounts[cand.skillId] = (Number(nb.atkSkillCounts[cand.skillId])||0) + 1; }
-    else if(cand.mode==='other'){ nb.otherSkillCounts[cand.skillId] = (Number(nb.otherSkillCounts[cand.skillId])||0) + 1; }
+    else if(cand.mode==='other'){
+      const skill = (settings.otherSkills||[]).find(s=>s.id===cand.skillId);
+      if(skill && skill.unique){ nb.otherSkillCounts[cand.skillId] = 1; }
+      else { nb.otherSkillCounts[cand.skillId] = (Number(nb.otherSkillCounts[cand.skillId])||0) + 1; }
+    }
     return nb;
   }
   function compareChoice(b){
@@ -835,9 +839,9 @@
 
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('multishot', 'マルチショット', 'エロージョンフィールドの実質攻撃頻度×1.63（重複不可）', build.multishot, build.multishot?'×1.63':'')}
         ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
-        <div class="at-hint" style="margin-top:6px;">実質攻撃頻度（現在：×${fmtNum(eroFreqMultiplier(build),2)}）＝フロントアロー・追跡の目・マルチショットの取得状況から自動計算されます（ダイアゴナルアロー／リアアローは対象外）。</div>
+        ${build.ero ? checkRow('multishot', 'マルチショット（実質攻撃頻度用）', 'エロージョンフィールドの実質攻撃頻度×1.63（重複不可）', build.multishot, build.multishot?'×1.63':'') : ''}
+        ${build.ero ? `<div class="at-hint" style="margin-top:6px;">実質攻撃頻度（現在：×${fmtNum(eroFreqMultiplier(build),2)}）＝フロントアロー・追跡の目・マルチショットの取得状況から自動計算されます（ダイアゴナルアロー／リアアローは対象外）。</div>` : ''}
         <div class="at-field">
           <label class="at-label">基本攻撃速度（発/秒）</label>
           <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
@@ -862,7 +866,22 @@
         <div class="at-hint" style="margin-top:0;margin-bottom:10px;">同じグループのスキル同士は%を足し算、違うグループ同士は掛け算で最終ダメージ量に反映されます。スキルの名称・グループ・倍率(%)は右上の⚙️設定から編集・追加・削除できます。</div>
         ${(settings.otherSkills||[]).length===0
           ? `<div class="at-hint" style="margin-bottom:0;">まだ「その他」スキルが登録されていません。⚙️設定から追加してください。</div>`
-          : settings.otherSkills.map(s=>stepperRow('other:'+s.id, s.name+`<span class="at-group-tag">${escapeHtml((s.group&&String(s.group).trim())||'個別')}</span>`, `1回につき+${s.pct}%（同グループ内で加算）`, getCount('other:'+s.id))).join('')}
+          : settings.otherSkills.map(s=>{
+              const label = s.name+`<span class="at-group-tag">${escapeHtml((s.group&&String(s.group).trim())||'個別')}</span>`;
+              if(s.unique){
+                const on = getCount('other:'+s.id) > 0;
+                return `
+                <div class="at-checkrow ${on?'on':''}" data-action="toggleOtherSkill" data-val="${s.id}">
+                  <div class="at-checkrow-main">
+                    <div class="at-checkrow-label">${label}</div>
+                    <div class="at-checkrow-sub">+${s.pct}%（重複取得不可・オンオフ）</div>
+                  </div>
+                  ${on?`<div class="at-checkrow-badge">+${s.pct}%</div>`:''}
+                  <div class="at-switch"></div>
+                </div>`;
+              }
+              return stepperRow('other:'+s.id, label, `1回につき+${s.pct}%（同グループ内で加算）`, getCount('other:'+s.id));
+            }).join('')}
       </div>
     </div>
 
@@ -997,6 +1016,9 @@
               <input class="at-input" type="number" step="1" value="${s.pct}" data-other-pct="${s.id}">
               <div class="at-tier-del" data-action="delOtherSkill" data-val="${s.id}">✕</div>
             </div>
+            <label class="at-hint" style="display:flex;align-items:center;gap:6px;margin:-4px 0 8px;">
+              <input type="checkbox" ${s.unique?'checked':''} data-other-unique="${s.id}"> 重複取得不可（オンオフ切り替えにする）
+            </label>
           `).join('')}
           <div class="at-btn at-btn-ghost at-btn-sm" data-action="addOtherSkill">＋ その他スキルを追加</div>
         </div>
@@ -1168,9 +1190,15 @@
       render();
       return;
     }
+    if(action==='toggleOtherSkill'){
+      setCount('other:'+val, getCount('other:'+val) > 0 ? 0 : 1);
+      saveBuild();
+      render();
+      return;
+    }
     if(action==='addOtherSkill'){
       if(!settings.otherSkills) settings.otherSkills = [];
-      settings.otherSkills.push({id:uid(), name:'新しいスキル', group:'', pct:0});
+      settings.otherSkills.push({id:uid(), name:'新しいスキル', group:'', pct:0, unique:false});
       saveSettings();
       render();
       return;
@@ -1241,6 +1269,17 @@
     if(otherGroup){
       const skill = (settings.otherSkills||[]).find(s=>s.id===otherGroup);
       if(skill){ skill.group = e.target.value; saveSettings(); render(); }
+      return;
+    }
+    const otherUnique = e.target.getAttribute('data-other-unique');
+    if(otherUnique){
+      const skill = (settings.otherSkills||[]).find(s=>s.id===otherUnique);
+      if(skill){
+        skill.unique = e.target.checked;
+        if(skill.unique && getCount('other:'+otherUnique) > 1){ setCount('other:'+otherUnique, 1); saveBuild(); }
+        saveSettings();
+        render();
+      }
       return;
     }
   });
