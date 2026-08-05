@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -307,7 +305,7 @@
     otherBossOn:false, otherBossPct:0,
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
-    diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
+    diagonalCount:0, frontCount:0, rearCount:0, tracking:false, multishot:false,
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
     sharpRuneQuality:'none', // none | epic | legend
     painRing:false, ero:false,
@@ -439,13 +437,29 @@
     const cd = (Number(b.critDmgMultPct)||0) / 100;
     return (1 - cr) + cr * cd;
   }
-  // エロージョンフィールドの倍率 ＝ 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
-  function eroMultiplier(b){
-    const denom = actualAtkSpeed(b) * critExpectation(b);
-    if(!(denom > 0)) return 1.35;
-    return 1.35 + 2.25 / denom;
+  // エロージョンフィールドの「実質攻撃頻度」補正 ＝ フロントアロー・追跡の目・マルチショットの実測係数を掛け合わせたもの。
+  // ・フロントアロー：(1+frontCount)×0.85　例）frontCount=1なら2本×0.85＝1.7
+  // ・追跡の目：×0.9
+  // ・マルチショット：×1.63
+  // ・ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外（実質攻撃頻度は変化しない＝×1のまま）
+  function eroFreqMultiplier(b){
+    let f = 1;
+    const frontN = Number(b.frontCount)||0;
+    if(frontN > 0) f *= (1 + frontN) * 0.85;
+    if(b.tracking) f *= 0.9;
+    if(b.multishot) f *= 1.63;
+    return f;
   }
-  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(1.35+2.25÷(実攻撃速度×会心期待値)) → 総攻撃力に掛け合わせる倍率（基準100%）
+  // エロージョンフィールドの倍率 ＝ 実質攻撃頻度×1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
+  // （通常攻撃分＝実質攻撃頻度×1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)。
+  // 　DoT分は自分の攻撃頻度と無関係な固定100tick/30秒のため実質攻撃頻度の影響を受けない）
+  function eroMultiplier(b){
+    const freq = eroFreqMultiplier(b);
+    const denom = actualAtkSpeed(b) * critExpectation(b);
+    if(!(denom > 0)) return freq * 1.35;
+    return freq * 1.35 + 2.25 / denom;
+  }
+  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)) → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcDmgTakenUpMult(b){
     let m = 100;
     if(b.painRing) m += 20;
@@ -516,6 +530,7 @@
       frontCount:0,
       rearCount:0,
       tracking:false,
+      multishot:false,
       ero:false
     });
   }
@@ -552,7 +567,8 @@
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
       {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'ero', label:'エロージョンフィールド（被ダメup 1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
+      {id:'multishot', label:'マルチショット（エロージョンフィールドの実質攻撃頻度×1.63・重複不可）', key:'multishot', mode:'toggle'},
+      {id:'ero', label:'エロージョンフィールド（被ダメup 実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
       opts.push({id:'spirit', label:'精霊（攻撃力+10%・威圧所持時のみ）', key:'spiritCount', mode:'count'});
@@ -819,7 +835,9 @@
 
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        ${checkRow('multishot', 'マルチショット', 'エロージョンフィールドの実質攻撃頻度×1.63（重複不可）', build.multishot, build.multishot?'×1.63':'')}
+        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        <div class="at-hint" style="margin-top:6px;">実質攻撃頻度（現在：×${fmtNum(eroFreqMultiplier(build),2)}）＝フロントアロー・追跡の目・マルチショットの取得状況から自動計算されます（ダイアゴナルアロー／リアアローは対象外）。</div>
         <div class="at-field">
           <label class="at-label">基本攻撃速度（発/秒）</label>
           <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
@@ -1022,6 +1040,8 @@
     if(!state.specialOpen) return '';
     const total = mainWeaponSkillCount(build);
     const correction = mainWeaponSkillCorrection(build);
+    const eroFreq = eroFreqMultiplier(build);
+    const eroPct = (eroMultiplier(build)-1)*100;
     return `
     <div class="at-modal-backdrop" data-action="closeSpecialBackdrop">
       <div class="at-modal">
@@ -1042,6 +1062,20 @@
           </div>
           <div class="at-hint">
             現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>
+          </div>
+        </div>
+
+        <div class="at-subbox" style="margin-bottom:0;margin-top:12px;">
+          <div class="at-subbox-title">💥 エロージョンフィールド 実質攻撃頻度補正</div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            エロージョンフィールドの被ダメup倍率は本来「攻撃力×(未会心率+会心率×会心倍率)×30秒当たりの攻撃数×範囲内被ダメ倍率(1.35) ＋ 攻撃力×0.5×範囲内被ダメ倍率(1.35)×100」で決まりますが、フロントアロー／追跡の目／マルチショットを同時に取得すると「30秒当たりの攻撃数」の実効値が単純な発射レート通りにならないため、実測に基づく「実質攻撃頻度」係数を1.35倍の項にだけ掛けて補正しています（フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)は自分の攻撃頻度と無関係なため対象外）。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            係数：フロントアロー(1+取得数)×0.85／追跡の目×0.9／マルチショット×1.63（すべて掛け合わせ、ダイアゴナルアロー／リアアローは対象外）。<br>
+            例：フロントアロー単体→2本×0.85＝1.7、フロントアロー＋追跡の目→2本×0.85×0.9＝1.53。
+          </div>
+          <div class="at-hint">
+            現在のビルドでの実質攻撃頻度：<b>×${fmtNum(eroFreq,2)}</b>　エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
           </div>
         </div>
       </div>
