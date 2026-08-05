@@ -365,12 +365,14 @@
     const t = findTier(itemKey, tierId);
     return t ? (Number(t.pct)||0) : 0;
   }
+  // 矢の本数：エロージョンフィールド取得時は、フロントアローの矢+1本分をここでは加算しない
+  // （フロントアローの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため、二重計上を避ける）
   function calcArrows(b){
     let n = 1;
     if(b.symphony) n += 2;
     n += armorBonus(b.armor);
     n += (Number(b.diagonalCount)||0) * 2;
-    n += (Number(b.frontCount)||0) * 1;
+    if(!b.ero) n += (Number(b.frontCount)||0) * 1;
     n += (Number(b.rearCount)||0) * 1;
     return n;
   }
@@ -413,13 +415,21 @@
     const total = mainWeaponSkillCount(b);
     return total>=2 ? total : 0;
   }
+  // エロージョンフィールド取得時に実際に適用される主武器アップ系スキル特殊補正（適用されない場合は0）
+  function appliedMainWeaponSkillCorrection(b){
+    return b.ero ? 0 : mainWeaponSkillCorrection(b);
+  }
   // 主武器ダメup(%)：エンチャント(鋭利の矢・アローレイン)・鋭利の矢ルーン品質・虚無の刃・
   // ダイアゴナル/フロント/リアアロー・追跡の目・主武器アップ系スキル特殊補正 → 総攻撃力に掛け合わせる倍率（基準100%）
+  // ※エロージョンフィールド取得時は、フロントアロー／追跡の目による矢数・主武器ダメup%への影響は
+  // 　エロージョンフィールドの実質攻撃頻度にすでに統合されているため、ここでは適用しない（二重計上防止）。
   function calcMainDmgUpMult(b){
     let m = 100;
-    m -= (Number(b.frontCount)||0) * 15;
-    if(b.tracking) m -= 10;
-    m += mainWeaponSkillCorrection(b);
+    if(!b.ero){
+      m -= (Number(b.frontCount)||0) * 15;
+      if(b.tracking) m -= 10;
+      m += mainWeaponSkillCorrection(b);
+    }
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
@@ -834,7 +844,9 @@
         ${stepperRow('frontCount', 'フロントアロー', '1回につき矢+1本／主武器ダメup-15%', build.frontCount)}
         ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
         ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-10%（重複取得不可）', build.tracking, build.tracking?'-10%':'')}
-        <div class="at-hint" style="margin-top:6px;">合計2つ以上取得すると特殊補正が入ります。詳しくは右上の✨特殊効果をご確認ください（現在の補正：${mainWeaponSkillCorrection(build)>=0?'+':''}${mainWeaponSkillCorrection(build)}%）。</div>
+        ${build.ero
+          ? `<div class="at-hint" style="margin-top:6px;">エロージョンフィールド取得中は、フロントアロー・追跡の目による矢数・主武器ダメup%・特殊補正はこの計算結果には反映されません（それらの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため）。現在の補正：+0%（未適用）。</div>`
+          : `<div class="at-hint" style="margin-top:6px;">合計2つ以上取得すると特殊補正が入ります。詳しくは右上の✨特殊効果をご確認ください（現在の補正：${mainWeaponSkillCorrection(build)>=0?'+':''}${mainWeaponSkillCorrection(build)}%）。</div>`}
       </div>
 
       <div class="at-subbox">
@@ -1062,6 +1074,7 @@
     if(!state.specialOpen) return '';
     const total = mainWeaponSkillCount(build);
     const correction = mainWeaponSkillCorrection(build);
+    const appliedCorrection = appliedMainWeaponSkillCorrection(build);
     const eroFreq = eroFreqMultiplier(build);
     const eroPct = (eroMultiplier(build)-1)*100;
     return `
@@ -1082,8 +1095,11 @@
           <div class="at-hint" style="margin-bottom:8px;">
             例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
           </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            ※エロージョンフィールド取得中は、フロントアロー・追跡の目の矢数・主武器ダメup%・この特殊補正はいずれも計算結果に適用されません（エロージョンフィールドの実質攻撃頻度にすでに統合されているため）。
+          </div>
           <div class="at-hint">
-            現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>
+            現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>${build.ero?`（エロージョンフィールド取得中のため実際の適用は<b>${appliedCorrection>=0?'+':''}${appliedCorrection}%</b>）`:''}
           </div>
         </div>
 
