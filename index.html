@@ -267,7 +267,8 @@
 
   const DEFAULT_SETTINGS = {
     atkSkills: defaultAtkSkills(),
-    otherSkills: defaultOtherSkills()
+    otherSkills: defaultOtherSkills(),
+    multishotMult: 1.63
   };
 
   // 端末のブラウザに以前保存された古い設定(localStorage)が残っていても、
@@ -323,6 +324,7 @@
 
   let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
   settings.atkSkills = reconcileAtkSkills(settings.atkSkills);
+  if(!(Number(settings.multishotMult) > 0)) settings.multishotMult = DEFAULT_SETTINGS.multishotMult;
   saveJSON('at2_settings_v3', settings);
   let build = loadJSON('at2_build_v3', DEFAULT_BUILD);
   let state = {
@@ -455,19 +457,19 @@
   // エロージョンフィールドの「実質攻撃頻度」補正 ＝ フロントアロー・追跡の目・マルチショットの実測係数を掛け合わせたもの。
   // ・フロントアロー：(1+frontCount)×0.85　例）frontCount=1なら2本×0.85＝1.7
   // ・追跡の目：×0.9
-  // ・マルチショット：×1.63
+  // ・マルチショット：×settings.multishotMult（設定画面で変更可能・初期値1.63）
   // ・ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外（実質攻撃頻度は変化しない＝×1のまま）
   // エロージョンフィールドの「実質攻撃頻度」補正 ＝ 本来の矢の本数(rawArrows：シンフォニー・鎧・
   // ダイアゴナル/フロント/リアアローすべて込み)を基礎倍率とし、そこにフロントアロー由来の効率係数0.85・
-  // 追跡の目の0.9・マルチショットの1.63を掛け合わせたもの。
+  // 追跡の目の0.9・マルチショットの倍率（設定値、初期1.63）を掛け合わせたもの。
   // 例）フロントアロー単体（矢2本）→2×0.85＝1.7、フロント＋追跡→2×0.85×0.9＝1.53、
-  // 　　追跡単体（矢1本）→1×0.9＝0.9、マルチショット単体（矢1本）→1×1.63＝1.63
+  // 　　追跡単体（矢1本）→1×0.9＝0.9、マルチショット単体（矢1本・初期設定時）→1×1.63＝1.63
   function eroFreqMultiplier(b){
     let f = rawArrows(b);
     const frontN = Number(b.frontCount)||0;
     if(frontN > 0) f *= 0.85;
     if(b.tracking) f *= 0.9;
-    if(b.multishot) f *= 1.63;
+    if(b.multishot) f *= (Number(settings.multishotMult) || DEFAULT_SETTINGS.multishotMult);
     return f;
   }
   // エロージョンフィールドの倍率 ＝ 実質攻撃頻度×1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
@@ -588,7 +590,7 @@
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
       {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'multishot', label:'マルチショット（エロージョンフィールドの実質攻撃頻度×1.63・重複不可）', key:'multishot', mode:'toggle'},
+      {id:'multishot', label:`マルチショット（エロージョンフィールドの実質攻撃頻度×${fmtNum(settings.multishotMult,2)}・重複不可）`, key:'multishot', mode:'toggle'},
       {id:'ero', label:'エロージョンフィールド（被ダメup 実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
@@ -864,7 +866,7 @@
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
         ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
-        ${build.ero ? checkRow('multishot', 'マルチショット（実質攻撃頻度用）', 'エロージョンフィールドの実質攻撃頻度×1.63（重複不可）', build.multishot, build.multishot?'×1.63':'') : ''}
+        ${build.ero ? checkRow('multishot', 'マルチショット（実質攻撃頻度用）', `エロージョンフィールドの実質攻撃頻度×${fmtNum(settings.multishotMult,2)}（重複不可）`, build.multishot, build.multishot?`×${fmtNum(settings.multishotMult,2)}`:'') : ''}
         ${build.ero ? `<div class="at-hint" style="margin-top:6px;">実質攻撃頻度（現在：×${fmtNum(eroFreqMultiplier(build),2)}）＝フロントアロー・追跡の目・マルチショットの取得状況から自動計算されます（ダイアゴナルアロー／リアアローは対象外）。</div>` : ''}
         <div class="at-field">
           <label class="at-label">基本攻撃速度（発/秒）</label>
@@ -1030,6 +1032,14 @@
 
         <div class="at-divider"></div>
 
+        <div class="at-panel-desc" style="margin-bottom:8px;">マルチショットの倍率（エロージョンフィールドの実質攻撃頻度に掛け合わせる係数）を編集できます。「取得スキル」画面の被ダメup欄・矢の本数欄、いずれのマルチショットもこの値が共通で使われます。</div>
+        <div class="at-field">
+          <label class="at-label">マルチショット倍率</label>
+          <input class="at-input" type="number" step="0.01" value="${settings.multishotMult}" data-multishot-mult>
+        </div>
+
+        <div class="at-divider"></div>
+
         <div class="at-panel-desc" style="margin-bottom:8px;">取得スキル「その他」を自由に編集できます。名称・グループ名・1回取得あたりの効果（%）を設定してください。<b>同じグループ名</b>のスキル同士は%を足し算、<b>違うグループ名</b>のスキル同士は掛け算で最終ダメージ量に反映されます（グループ名を空欄にすると、そのスキル単独のグループとして扱われます）。</div>
         <div class="at-field">
           <label class="at-label">その他スキル（名称／グループ／%）</label>
@@ -1122,7 +1132,7 @@
             エロージョンフィールドの被ダメup倍率は本来「攻撃力×(未会心率+会心率×会心倍率)×30秒当たりの攻撃数×範囲内被ダメ倍率(1.35) ＋ 攻撃力×0.5×範囲内被ダメ倍率(1.35)×100」で決まりますが、シンフォニーアロー／鎧／ダイアゴナル・フロント・リアアロー／追跡の目／マルチショットを同時に取得すると「30秒当たりの攻撃数」の実効値が単純な発射レート通りにならないため、実測に基づく「実質攻撃頻度」係数を1.35倍の項にだけ掛けて補正しています（フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)は自分の攻撃頻度と無関係なため対象外）。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            実質攻撃頻度＝本来の矢の本数（シンフォニー・鎧・ダイアゴナル/フロント/リアアローすべて込み）×フロントアロー効率係数0.85（取得時のみ）×追跡の目0.9（取得時のみ）×マルチショット1.63（取得時のみ）。<br>
+            実質攻撃頻度＝本来の矢の本数（シンフォニー・鎧・ダイアゴナル/フロント/リアアローすべて込み）×フロントアロー効率係数0.85（取得時のみ）×追跡の目0.9（取得時のみ）×マルチショット${fmtNum(settings.multishotMult,2)}（取得時のみ）。<br>
             例：フロントアロー単体（矢2本）→2×0.85＝1.7、フロントアロー＋追跡の目→2×0.85×0.9＝1.53、追跡の目単体（矢1本）→1×0.9＝0.9。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
@@ -1270,6 +1280,13 @@
       if(e.target.type==='number') v = v===''? '' : Number(v);
       build[bind] = v;
       saveBuild();
+      render();
+      return;
+    }
+    if(e.target.hasAttribute('data-multishot-mult')){
+      const v = Number(e.target.value);
+      settings.multishotMult = (v > 0) ? v : DEFAULT_SETTINGS.multishotMult;
+      saveSettings();
       render();
       return;
     }
