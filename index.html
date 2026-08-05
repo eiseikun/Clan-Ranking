@@ -625,7 +625,7 @@
     digits = digits==null?1:digits;
     return Number(n).toFixed(digits).replace(/\.0+$/,'').replace(/(\.\d*[1-9])0+$/,'$1');
   }
-  // 900000→900K、1000000→1M のようなK/M表記。小数第3位以下は切り捨てて小数第2位まで表示。
+  // 900000→900K、1000000→1M のようなK/M表記。小数第3位以下は四捨五入して小数第2位まで表示。
   function fmtCompact(n){
     n = Number(n)||0;
     const neg = n < 0;
@@ -634,8 +634,8 @@
     if(abs >= 1e6){ divisor = 1e6; suffix = 'M'; }
     else if(abs >= 1e3){ divisor = 1e3; suffix = 'K'; }
     const scaled = abs / divisor;
-    const truncated = Math.floor(scaled * 100) / 100; // 小数第3位切り捨て
-    let str = truncated.toFixed(2);
+    const rounded = Math.round(scaled * 100) / 100; // 小数第3位四捨五入
+    let str = rounded.toFixed(2);
     if(str.indexOf('.')!==-1){
       str = str.replace(/0+$/,'').replace(/\.$/,'');
     }
