@@ -365,16 +365,21 @@
     const t = findTier(itemKey, tierId);
     return t ? (Number(t.pct)||0) : 0;
   }
-  // 矢の本数：エロージョンフィールド取得時は、フロントアローの矢+1本分をここでは加算しない
-  // （フロントアローの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため、二重計上を避ける）
-  function calcArrows(b){
+  // 矢の本数（本来の値）：シンフォニー・鎧ボーナス・ダイアゴナル/フロント/リアアローすべてを含む
+  function rawArrows(b){
     let n = 1;
     if(b.symphony) n += 2;
     n += armorBonus(b.armor);
     n += (Number(b.diagonalCount)||0) * 2;
-    if(!b.ero) n += (Number(b.frontCount)||0) * 1;
+    n += (Number(b.frontCount)||0) * 1;
     n += (Number(b.rearCount)||0) * 1;
     return n;
+  }
+  // 矢の本数（最終ダメージ計算用）：エロージョンフィールド取得時は、シンフォニー・鎧ボーナス・
+  // ダイアゴナル/フロント/リアアローによる矢数増加をすべて計算から除外し、基礎の1本のみとする
+  // （これらの効果はエロージョンフィールドの実質攻撃頻度にまとめて統合されるため、二重計上を避ける）。
+  function calcArrows(b){
+    return b.ero ? 1 : rawArrows(b);
   }
   function spiritSynergyBonus(b){
     if(!b.spiritIntimidation) return 0;
@@ -452,10 +457,15 @@
   // ・追跡の目：×0.9
   // ・マルチショット：×1.63
   // ・ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外（実質攻撃頻度は変化しない＝×1のまま）
+  // エロージョンフィールドの「実質攻撃頻度」補正 ＝ 本来の矢の本数(rawArrows：シンフォニー・鎧・
+  // ダイアゴナル/フロント/リアアローすべて込み)を基礎倍率とし、そこにフロントアロー由来の効率係数0.85・
+  // 追跡の目の0.9・マルチショットの1.63を掛け合わせたもの。
+  // 例）フロントアロー単体（矢2本）→2×0.85＝1.7、フロント＋追跡→2×0.85×0.9＝1.53、
+  // 　　追跡単体（矢1本）→1×0.9＝0.9、マルチショット単体（矢1本）→1×1.63＝1.63
   function eroFreqMultiplier(b){
-    let f = 1;
+    let f = rawArrows(b);
     const frontN = Number(b.frontCount)||0;
-    if(frontN > 0) f *= (1 + frontN) * 0.85;
+    if(frontN > 0) f *= 0.85;
     if(b.tracking) f *= 0.9;
     if(b.multishot) f *= 1.63;
     return f;
@@ -518,6 +528,7 @@
   // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × その他ダメup(%) × その他(%)
   function calcPower(b){
     const arrows = calcArrows(b);
+    const rawArrowsVal = rawArrows(b);
     const atkInfo = calcTotalAtk(b);
     const atkUp = calcAtkUpMult(b);
     const mainUp = calcMainDmgUpMult(b);
@@ -526,7 +537,7 @@
     const otherUp = calcOtherDmgUpMult(b);
     const otherSkillMult = calcOtherSkillMult(b);
     const damage = atkInfo.totalAtk * arrows * (atkUp/100) * (mainUp/100) * (dmgTakenUp/100) * (finalBonus/100) * (otherUp/100) * (otherSkillMult/100);
-    return Object.assign({arrows, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, otherSkillMult, damage}, atkInfo);
+    return Object.assign({arrows, rawArrows:rawArrowsVal, atkUp, mainUp, dmgTakenUp, finalBonus, otherUp, otherSkillMult, damage}, atkInfo);
   }
   // 「取得スキル」パネルの各項目（品質攻撃力up・精霊・ダイアゴナル/フロント/リアアロー・追跡の目・
   // エロージョンフィールド・その他）だけをすべて未取得の状態に戻したビルドを作る。
@@ -784,6 +795,7 @@
             <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
           </select>
           <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
+          ${build.ero ? `<div class="at-hint" style="margin-top:6px;">※エロージョンフィールド取得中は、シンフォニーアロー・鎧による矢数ボーナスも（ダイアゴナル/フロント/リアアロー同様）最終ダメージ計算には反映されません。エロージョンフィールドの実質攻撃頻度にまとめて統合されます。</div>` : ''}
         </div>
       </div>
 
@@ -845,7 +857,7 @@
         ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
         ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-10%（重複取得不可）', build.tracking, build.tracking?'-10%':'')}
         ${build.ero
-          ? `<div class="at-hint" style="margin-top:6px;">エロージョンフィールド取得中は、フロントアロー・追跡の目による矢数・主武器ダメup%・特殊補正はこの計算結果には反映されません（それらの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため）。現在の補正：+0%（未適用）。</div>`
+          ? `<div class="at-hint" style="margin-top:6px;">エロージョンフィールド取得中は、ダイアゴナル/フロント/リアアローによる矢数、フロントアロー・追跡の目による主武器ダメup%・特殊補正、いずれもこの計算結果には反映されません（それらの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため）。現在の補正：+0%（未適用）。</div>`
           : `<div class="at-hint" style="margin-top:6px;">合計2つ以上取得すると特殊補正が入ります。詳しくは右上の✨特殊効果をご確認ください（現在の補正：${mainWeaponSkillCorrection(build)>=0?'+':''}${mainWeaponSkillCorrection(build)}%）。</div>`}
       </div>
 
@@ -907,6 +919,7 @@
         <div class="at-statbox">
           <div class="at-statbox-label">矢の本数</div>
           <div class="at-statbox-val">${res.arrows}本</div>
+          ${build.ero ? `<div style="font-size:9px;color:var(--text-faint);margin-top:3px;line-height:1.3;">(本来：${res.rawArrows}本／ダメ計算には未反映・実質攻撃頻度に統合済み)</div>` : ''}
         </div>
         <div class="at-statbox">
           <div class="at-statbox-label">攻撃力up</div>
@@ -1106,11 +1119,14 @@
         <div class="at-subbox" style="margin-bottom:0;margin-top:12px;">
           <div class="at-subbox-title">💥 エロージョンフィールド 実質攻撃頻度補正</div>
           <div class="at-hint" style="margin-bottom:8px;">
-            エロージョンフィールドの被ダメup倍率は本来「攻撃力×(未会心率+会心率×会心倍率)×30秒当たりの攻撃数×範囲内被ダメ倍率(1.35) ＋ 攻撃力×0.5×範囲内被ダメ倍率(1.35)×100」で決まりますが、フロントアロー／追跡の目／マルチショットを同時に取得すると「30秒当たりの攻撃数」の実効値が単純な発射レート通りにならないため、実測に基づく「実質攻撃頻度」係数を1.35倍の項にだけ掛けて補正しています（フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)は自分の攻撃頻度と無関係なため対象外）。
+            エロージョンフィールドの被ダメup倍率は本来「攻撃力×(未会心率+会心率×会心倍率)×30秒当たりの攻撃数×範囲内被ダメ倍率(1.35) ＋ 攻撃力×0.5×範囲内被ダメ倍率(1.35)×100」で決まりますが、シンフォニーアロー／鎧／ダイアゴナル・フロント・リアアロー／追跡の目／マルチショットを同時に取得すると「30秒当たりの攻撃数」の実効値が単純な発射レート通りにならないため、実測に基づく「実質攻撃頻度」係数を1.35倍の項にだけ掛けて補正しています（フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)は自分の攻撃頻度と無関係なため対象外）。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            係数：フロントアロー(1+取得数)×0.85／追跡の目×0.9／マルチショット×1.63（すべて掛け合わせ、ダイアゴナルアロー／リアアローは対象外）。<br>
-            例：フロントアロー単体→2本×0.85＝1.7、フロントアロー＋追跡の目→2本×0.85×0.9＝1.53。
+            実質攻撃頻度＝本来の矢の本数（シンフォニー・鎧・ダイアゴナル/フロント/リアアローすべて込み）×フロントアロー効率係数0.85（取得時のみ）×追跡の目0.9（取得時のみ）×マルチショット1.63（取得時のみ）。<br>
+            例：フロントアロー単体（矢2本）→2×0.85＝1.7、フロントアロー＋追跡の目→2×0.85×0.9＝1.53、追跡の目単体（矢1本）→1×0.9＝0.9。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            なお、エロージョンフィールド取得中はシンフォニーアロー・鎧・ダイアゴナル/フロント/リアアローによる矢数増加そのものは最終ダメージ計算（矢の本数×攻撃力up×主武器ダメup…の項）には反映されません。計算結果の「矢の本数」欄には参考として本来の本数が控えめに表示されます。
           </div>
           <div class="at-hint">
             現在のビルドでの実質攻撃頻度：<b>×${fmtNum(eroFreq,2)}</b>　エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
