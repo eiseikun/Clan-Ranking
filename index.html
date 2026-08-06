@@ -75,6 +75,13 @@
     backdrop-filter:blur(8px);
   }
   .at-special-btn:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(69,196,176,.25);}
+  .at-info-btn{
+    position:fixed;top:14px;right:106px;z-index:200;
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(10,10,15,.85);border:1px solid var(--border);cursor:pointer;font-size:17px;
+    backdrop-filter:blur(8px);
+  }
+  .at-info-btn:hover{border-color:var(--gold-soft);box-shadow:0 0 12px rgba(232,207,122,.25);}
 
   .at-tabs{display:flex;gap:6px;margin:18px 0 16px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:5px;}
   .at-tab{
@@ -84,7 +91,7 @@
   .at-tab.active{background:linear-gradient(180deg,#2a2033,var(--bg-panel3));color:var(--gold-soft);box-shadow:inset 0 0 0 1px rgba(212,175,55,.35);}
   .at-tab .soon{display:block;font-size:9.5px;color:var(--text-faint);margin-top:2px;font-weight:600;letter-spacing:.04em;}
 
-  .at-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:18px 16px;margin-bottom:18px;box-shadow:0 6px 20px -14px rgba(0,0,0,.6);}
+  .at-panel{background:var(--bg-panel);border:1.5px solid #323b56;border-radius:14px;padding:18px 16px;margin-bottom:18px;box-shadow:0 6px 20px -14px rgba(0,0,0,.6);}
   .at-panel-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:15px;color:var(--gold-soft);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:8px;}
   .at-panel-desc{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-bottom:14px;}
   .at-subbox{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;}
@@ -94,6 +101,7 @@
   .at-field{margin-bottom:12px;}
   .at-label{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;letter-spacing:.03em;}
   .at-hint{font-size:10.5px;color:var(--text-faint);margin-top:4px;line-height:1.5;}
+  .at-caveat{font-size:10.5px;color:var(--text-faint);margin-top:8px;line-height:1.5;font-style:italic;}
   .at-input, .at-select{
     width:100%;background:var(--bg-panel2);border:1px solid var(--border);color:var(--text);
     padding:10px 12px;border-radius:8px;font-size:13.5px;font-family:'Noto Sans JP',sans-serif;
@@ -332,6 +340,7 @@
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
     settingsOpen:false,
     specialOpen:false,
+    infoOpen:false,
   };
   let toastMsg = null, toastTimer = null;
 
@@ -805,7 +814,7 @@
           <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">攻撃速度アップボーナスなしの基本攻撃速度は${BASE_ATK_SPEED}発/秒で固定です。実攻撃速度 ＝ 基本攻撃速度 ×（1 + 攻撃速度ボーナス÷100）＝ 現在${fmtNum(actualAtkSpeed(build),2)}発/秒。</div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒（計算式は📐計算式ガイド参照）</div>
 
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
@@ -817,7 +826,7 @@
           <input class="at-input" type="number" step="1" value="${build.critDmgMultPct}" data-bind="critDmgMultPct">
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;margin-bottom:14px;">会心期待値 ＝（1−会心率）＋ 会心率 × 会心ダメージ倍率 ＝ 現在${fmtNum(critExpectation(build),3)}</div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:14px;">会心期待値：現在${fmtNum(critExpectation(build),3)}</div>
 
       <div class="at-subbox">
         <div class="at-subbox-title">🎒 現在のビルド</div>
@@ -900,8 +909,7 @@
           <div class="at-statbox-val cyan">${fmtCompact(avgAtk)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）× 最終ダメボーナス(÷100)／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
-      <div class="at-hint">※この2つの計算に含まれるのは📚基本情報📚に入力・設定されている内容のみです。「その他」は基本情報には項目が無いため基本何もなし（倍率1）として計算しており、📖取得スキルパネル側で何かを取得しても、会心なし基本攻撃力・平均攻撃力の値は変化しません。</div>
+      <div class="at-hint" style="margin-top:8px;">📖取得スキルの取得状況を変えてもこの2つの値は変化しません（計算式は📐計算式ガイド参照）。</div>
     </div>
 
     <div class="at-panel">
@@ -1005,10 +1013,8 @@
           <div class="at-statbox-val cyan" style="font-size:19px;">${fmtCompact(withSkillDPS)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">取得スキルなしDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス　※各項目は📚基本情報📚のみを反映（取得スキルの%などは含まない）</div>
-      <div class="at-hint">取得スキルありDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス　※各項目は📚基本情報📚と📖取得スキルの両方を反映</div>
-      <div class="at-hint">取得スキルなし比 ＝ 現在のダメージ量 ÷「取得スキル」パネルの各項目を未取得にした場合のダメージ量</div>
-      <div class="at-hint" style="margin-top:8px;color:var(--gold-soft);">⚠️ 注意事項：DPS（1秒当たりのダメージ）は、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提とした理論値です。実際の命中率やヒット数によって実際のダメージ効率は変動します。</div>
+      <div class="at-hint" style="margin-top:8px;">取得スキルなし比・DPSの計算式は📐計算式ガイドをご覧ください。</div>
+      <div class="at-caveat">※DPSは全弾ヒットを前提とした理論値です。</div>
     </div>
 
     <div class="at-panel">
@@ -1029,9 +1035,8 @@
         <div class="at-statbox-label">${fmtNum(simSeconds,3)}秒間のダメージ量</div>
         <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(simDamage)}</div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">${fmtNum(simSeconds,3)}秒間のダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス × 秒数</div>
-      <div class="at-hint">攻撃1回分の秒数 ＝ 1 ÷（基本攻撃速度 × 攻撃速度upボーナス）＝ 1 ÷ 実攻撃速度 ＝ 現在${fmtNum(defaultSimSeconds,3)}秒</div>
-      <div class="at-hint" style="color:var(--gold-soft);">⚠️ この計算も、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提としています。</div>
+      <div class="at-hint" style="margin-top:8px;">計算式は📐計算式ガイドをご覧ください（攻撃1回分の秒数：現在${fmtNum(defaultSimSeconds,3)}秒）。</div>
+      <div class="at-caveat">※この計算も全弾ヒットを前提とした理論値です。</div>
     </div>
 
     <div class="at-panel">
@@ -1205,6 +1210,45 @@
     </div>`;
   }
 
+  function infoModal(){
+    if(!state.infoOpen) return '';
+    return `
+    <div class="at-modal-backdrop" data-action="closeInfoBackdrop">
+      <div class="at-modal">
+        <div class="at-modal-head">
+          <div class="at-modal-title">📐 計算式ガイド</div>
+          <div class="at-modal-close" data-action="closeInfo">✕</div>
+        </div>
+
+        <div class="at-panel-desc" style="margin-bottom:10px;">サイト内の各数値がどう計算されているかをまとめています。</div>
+
+        <div class="at-subbox" style="margin-bottom:12px;">
+          <div class="at-subbox-title">📚 基本情報</div>
+          <div class="at-hint" style="margin-bottom:6px;">総攻撃力 ＝ 攻撃力 ＋｛攻撃力 × 攻撃力ボーナス÷100｝（直接入力モードでは総攻撃力をそのまま使用）</div>
+          <div class="at-hint" style="margin-bottom:6px;">実攻撃速度 ＝ 基本攻撃速度（${BASE_ATK_SPEED}発/秒・固定）×（1 + 攻撃速度ボーナス÷100）</div>
+          <div class="at-hint" style="margin-bottom:6px;">会心期待値 ＝（1－会心率）＋ 会心率 × 会心ダメージ倍率</div>
+          <div class="at-hint" style="margin-bottom:0;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（最終ダメボーナス÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 × 会心期待値<br>※この2つは📚基本情報📚のみを反映し、📖取得スキルパネル側の内容は含みません。</div>
+        </div>
+
+        <div class="at-subbox" style="margin-bottom:12px;">
+          <div class="at-subbox-title">📊 計算結果</div>
+          <div class="at-hint" style="margin-bottom:6px;">取得スキルなしDPS／取得スキルありDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス</div>
+          <div class="at-hint" style="margin-bottom:6px;">「なし」は📚基本情報📚のみ、「あり」は📚基本情報📚＋📖取得スキルの両方を反映した値です（最終ダメボーナスは含みません）。</div>
+          <div class="at-hint" style="margin-bottom:0;">取得スキルなし比 ＝ 現在のダメージ量 ÷「取得スキル」パネルの各項目を未取得にした場合のダメージ量</div>
+        </div>
+
+        <div class="at-subbox" style="margin-bottom:0;">
+          <div class="at-subbox-title">⏱️ シミュレーション</div>
+          <div class="at-hint" style="margin-bottom:6px;">指定秒数のダメージ量 ＝ 取得スキルありDPS × 秒数</div>
+          <div class="at-hint" style="margin-bottom:0;">攻撃1回分の秒数（デフォルト値） ＝ 1 ÷ 実攻撃速度</div>
+        </div>
+
+        <div class="at-divider"></div>
+        <div class="at-caveat" style="margin-top:0;">※DPS・シミュレーションの数値は、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提とした理論値です。実際の命中率やヒット数によって数値は変動します。</div>
+      </div>
+    </div>`;
+  }
+
   function render(){
     let body = tabsBar();
     if(state.tab==='arrows') body += arrowsTool();
@@ -1214,12 +1258,13 @@
       ${header()}
       ${body}
       <div class="at-footer-note">非公式ファン制作ツールです。数値は自己申告のルール・設定に基づく目安であり、公式仕様を保証するものではありません。</div>
-    ` + settingsModal() + specialEffectsModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
+    ` + settingsModal() + specialEffectsModal() + infoModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
   }
 
   // ---------- events ----------
   document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="詳細設定">⚙️</div>`);
   document.body.insertAdjacentHTML('afterbegin', `<div class="at-special-btn" data-action="openSpecial" title="特殊効果">✨</div>`);
+  document.body.insertAdjacentHTML('afterbegin', `<div class="at-info-btn" data-action="openInfo" title="計算式ガイド">📐</div>`);
 
   document.addEventListener('click', function(e){
     const el = e.target.closest('[data-action]');
@@ -1261,6 +1306,12 @@
     if(action==='closeSpecial'){ state.specialOpen = false; render(); return; }
     if(action==='closeSpecialBackdrop'){
       if(e.target===el){ state.specialOpen = false; render(); }
+      return;
+    }
+    if(action==='openInfo'){ state.infoOpen = true; render(); return; }
+    if(action==='closeInfo'){ state.infoOpen = false; render(); return; }
+    if(action==='closeInfoBackdrop'){
+      if(e.target===el){ state.infoOpen = false; render(); }
       return;
     }
     if(action==='resetSimSeconds'){
