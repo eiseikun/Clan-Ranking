@@ -453,8 +453,8 @@
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
   }
-  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.732発/秒。攻撃速度アップボーナスなしの場合の発/秒) ×（1 + 攻撃速度ボーナス/100）
-  const BASE_ATK_SPEED = 1.732;
+  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.651発/秒。攻撃速度アップボーナスなしの場合の発/秒) ×（1 + 攻撃速度ボーナス/100）
+  const BASE_ATK_SPEED = 1.651;
   function actualAtkSpeed(b){
     return BASE_ATK_SPEED * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
   }
