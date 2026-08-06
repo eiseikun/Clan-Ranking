@@ -740,7 +740,7 @@
     const baseMainUp = calcBaseMainDmgUpMult(build);
     const baseDmgTakenUp = calcBaseDmgTakenUpMult(build);
     const baseOtherMult = 100; // その他：📚基本情報📚には現状「その他」の項目がないため、基本何もなし（100%＝倍率1）として計算
-    const noCritBaseAtk = res.totalAtk * (baseAtkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (res.otherUp/100) * (baseOtherMult/100);
+    const noCritBaseAtk = res.totalAtk * (baseAtkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (res.otherUp/100) * (baseOtherMult/100) * (res.finalBonus/100);
     const avgAtk = noCritBaseAtk * critExpectation(build);
 
     return `
@@ -880,7 +880,7 @@
           <div class="at-statbox-val cyan">${fmtCompact(avgAtk)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
+      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）× 最終ダメボーナス(÷100)／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
       <div class="at-hint">※この2つの計算に含まれるのは📚基本情報📚に入力・設定されている内容のみです。「その他」は基本情報には項目が無いため基本何もなし（倍率1）として計算しており、📖取得スキルパネル側で何かを取得しても、会心なし基本攻撃力・平均攻撃力の値は変化しません。</div>
     </div>
 
