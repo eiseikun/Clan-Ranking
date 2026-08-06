@@ -68,20 +68,20 @@
     backdrop-filter:blur(8px);
   }
   .at-gear:hover{border-color:var(--gold-dark);box-shadow:0 0 12px rgba(212,175,55,.25);}
-  .at-special-btn{
+  .at-info-btn{
     position:fixed;top:14px;right:60px;z-index:200;
     width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
     background:rgba(10,10,15,.85);border:1px solid var(--border);cursor:pointer;font-size:17px;
     backdrop-filter:blur(8px);
   }
-  .at-special-btn:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(69,196,176,.25);}
-  .at-info-btn{
+  .at-info-btn:hover{border-color:var(--gold-soft);box-shadow:0 0 12px rgba(232,207,122,.25);}
+  .at-preset-btn{
     position:fixed;top:14px;right:106px;z-index:200;
     width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
     background:rgba(10,10,15,.85);border:1px solid var(--border);cursor:pointer;font-size:17px;
     backdrop-filter:blur(8px);
   }
-  .at-info-btn:hover{border-color:var(--gold-soft);box-shadow:0 0 12px rgba(232,207,122,.25);}
+  .at-preset-btn:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(69,196,176,.25);}
 
   .at-tabs{display:flex;gap:6px;margin:18px 0 16px;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:5px;}
   .at-tab{
@@ -339,10 +339,38 @@
   let state = {
     tab: localStorage.getItem('at2_tab_v1') || 'arrows',
     settingsOpen:false,
-    specialOpen:false,
     infoOpen:false,
+    presetOpen:false,
+    presetEditIdx:null,
+    presetActionIdx:null,
   };
   let toastMsg = null, toastTimer = null;
+
+  const PRESET_SLOT_COUNT = 3;
+  const PRESET_FIELDS = [
+    'atkInputMode','atkBase','atkBonusPct','totalAtkDirect','finalDmgBonusPct',
+    'atkSpeedBonusPct','critRatePct','critDmgMultPct',
+    'otherAirOn','otherAirPct','otherGroundOn','otherGroundPct','otherTrashOn','otherTrashPct',
+    'otherEliteOn','otherElitePct','otherBossOn','otherBossPct'
+  ];
+  function loadPresets(){
+    let p = loadJSON('at2_presets_v1', null);
+    if(!Array.isArray(p)) p = [];
+    p = p.slice(0, PRESET_SLOT_COUNT);
+    while(p.length < PRESET_SLOT_COUNT) p.push(null);
+    return p;
+  }
+  function savePresets(){ saveJSON('at2_presets_v1', presets); }
+  function snapshotPresetData(b){
+    const d = {};
+    PRESET_FIELDS.forEach(function(k){ d[k] = b[k]; });
+    return d;
+  }
+  function applyPresetData(b, d){
+    PRESET_FIELDS.forEach(function(k){ if(Object.prototype.hasOwnProperty.call(d,k)) b[k] = d[k]; });
+  }
+
+  let presets = loadPresets();
 
   function saveSettings(){ saveJSON('at2_settings_v3', settings); }
   function saveBuild(){ saveJSON('at2_build_v3', build); }
@@ -741,6 +769,43 @@
     const tiers = itemKey==='sharp' || itemKey==='rain' ? SHARP_RAIN_TIERS : VOID_TIERS;
     const opts = tiers.map(t=>`<option value="${t.id}" ${t.id===currentId?'selected':''}>${escapeHtml(t.name)}（${t.pct>0?'+':''}${t.pct}%）</option>`);
     return `<select class="at-select" data-bind="${bindKey}">${opts.join('')}</select>`;
+  }
+
+  function presetSlotHtml(p, i){
+    if(state.presetEditIdx === i){
+      const nameVal = p ? escapeHtml(p.name) : '';
+      return `
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-field" style="margin-bottom:8px;">
+          <label class="at-label">プリセット名</label>
+          <input class="at-input" type="text" maxlength="20" placeholder="例：会心特化編成" value="${nameVal}" data-preset-name-input="${i}">
+        </div>
+        <div class="at-row2">
+          <div class="at-btn at-btn-gold at-btn-full" data-action="presetConfirmSave" data-idx="${i}">${p? '上書き保存':'保存'}</div>
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetCancelEdit">キャンセル</div>
+        </div>
+      </div>`;
+    }
+    if(p){
+      return `
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" data-action="presetToggleMenu" data-idx="${i}">
+          <div style="font-weight:700;color:var(--gold-soft);font-size:13px;">📌 ${escapeHtml(p.name)}</div>
+          <div style="font-size:11px;color:var(--text-faint);">${state.presetActionIdx===i? '▲':'▼'}</div>
+        </div>
+        ${state.presetActionIdx===i ? `
+        <div class="at-row2" style="margin-top:10px;">
+          <div class="at-btn at-btn-gold at-btn-full" data-action="presetApply" data-idx="${i}">反映</div>
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetEdit" data-idx="${i}">編集</div>
+        </div>
+        <div class="at-btn at-btn-danger at-btn-full" style="margin-top:8px;" data-action="presetDelete" data-idx="${i}">削除</div>
+        ` : ''}
+      </div>`;
+    }
+    return `
+    <div class="at-subbox" style="margin-bottom:0;text-align:center;color:var(--text-faint);cursor:pointer;border-style:dashed;" data-action="presetEdit" data-idx="${i}">
+      ＋ プリセット${i+1}に現在の内容を保存
+    </div>`;
   }
 
   function escapeHtml(s){
@@ -1162,56 +1227,12 @@
   }
 
 
-  function specialEffectsModal(){
-    if(!state.specialOpen) return '';
+  function infoModal(){
+    if(!state.infoOpen) return '';
     const total = mainWeaponSkillCount(build);
     const correction = mainWeaponSkillCorrection(build);
     const appliedCorrection = appliedMainWeaponSkillCorrection(build);
     const eroPct = (eroMultiplier(build)-1)*100;
-    return `
-    <div class="at-modal-backdrop" data-action="closeSpecialBackdrop">
-      <div class="at-modal">
-        <div class="at-modal-head">
-          <div class="at-modal-title">✨ 特殊効果</div>
-          <div class="at-modal-close" data-action="closeSpecial">✕</div>
-        </div>
-
-        <div class="at-panel-desc" style="margin-bottom:10px;">計算に反映されている特殊な補正ルールです。</div>
-
-        <div class="at-subbox" style="margin-bottom:0;">
-          <div class="at-subbox-title">🗡️ 主武器アップ系スキル 取得数補正</div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            「取得スキル」パネルの🗡️主武器ダメup内で"-〇%"の主武器ダメup効果が付くスキル（フロントアロー／追跡の目）を<b>合計2つ以上</b>取得している場合のみ、合計取得数×+1%が主武器ダメupに補正として加算されます（1つ以下の場合は補正なし）。ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外です。
-          </div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
-          </div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            ※エロージョンフィールド取得中は、フロントアロー・追跡の目の矢数・主武器ダメup%・この特殊補正はいずれも計算結果に適用されません。
-          </div>
-          <div class="at-hint">
-            現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>${build.ero?`（エロージョンフィールド取得中のため実際の適用は<b>${appliedCorrection>=0?'+':''}${appliedCorrection}%</b>）`:''}
-          </div>
-        </div>
-
-        <div class="at-subbox" style="margin-bottom:0;margin-top:12px;">
-          <div class="at-subbox-title">💥 エロージョンフィールド（単体取得時の式）</div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            エロージョンフィールドの被ダメup倍率 ＝ 1.35 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）。通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)です。
-          </div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            ※フロントアロー・追跡の目・マルチショットなど他のスキルと組み合わせた場合の計算方法は現在調整中のため、今はエロージョンフィールドのみを取得した場合の式で計算しています。今後アップデートで対応予定です。
-          </div>
-          <div class="at-hint">
-            エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  function infoModal(){
-    if(!state.infoOpen) return '';
     return `
     <div class="at-modal-backdrop" data-action="closeInfoBackdrop">
       <div class="at-modal">
@@ -1221,6 +1242,8 @@
         </div>
 
         <div class="at-panel-desc" style="margin-bottom:10px;">サイト内の各数値がどう計算されているかをまとめています。</div>
+
+        <div class="at-panel-desc" style="margin-bottom:8px;font-weight:700;color:var(--gold-soft);">■ 基本の計算式（すべてのビルドに共通して当てはまる項目）</div>
 
         <div class="at-subbox" style="margin-bottom:12px;">
           <div class="at-subbox-title">📚 基本情報</div>
@@ -1243,8 +1266,59 @@
           <div class="at-hint" style="margin-bottom:0;">攻撃1回分の秒数（デフォルト値） ＝ 1 ÷ 実攻撃速度</div>
         </div>
 
-        <div class="at-divider"></div>
+        <div class="at-divider" style="margin-top:16px;"></div>
+        <div class="at-panel-desc" style="margin-top:12px;margin-bottom:8px;font-weight:700;color:var(--cyan);">■ 例外ルール（特定のスキル・状況でのみ適用される特殊な補正）</div>
+
+        <div class="at-subbox" style="margin-bottom:12px;">
+          <div class="at-subbox-title">🗡️ 主武器アップ系スキル 取得数補正</div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            「取得スキル」パネルの🗡️主武器ダメup内で"-〇%"の主武器ダメup効果が付くスキル（フロントアロー／追跡の目）を<b>合計2つ以上</b>取得している場合のみ、合計取得数×+1%が主武器ダメupに補正として加算されます（1つ以下の場合は補正なし）。ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外です。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            ※エロージョンフィールド取得中は、フロントアロー・追跡の目の矢数・主武器ダメup%・この特殊補正はいずれも計算結果に適用されません。
+          </div>
+          <div class="at-hint">
+            現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>${build.ero?`（エロージョンフィールド取得中のため実際の適用は<b>${appliedCorrection>=0?'+':''}${appliedCorrection}%</b>）`:''}
+          </div>
+        </div>
+
+        <div class="at-subbox" style="margin-bottom:0;">
+          <div class="at-subbox-title">💥 エロージョンフィールド（単体取得時の式）</div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            エロージョンフィールドの被ダメup倍率 ＝ 1.35 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）。通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)です。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            ※フロントアロー・追跡の目・マルチショットなど他のスキルと組み合わせた場合の計算方法は現在調整中のため、今はエロージョンフィールドのみを取得した場合の式で計算しています。今後アップデートで対応予定です。
+          </div>
+          <div class="at-hint">
+            エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
+          </div>
+        </div>
+
+        <div class="at-divider" style="margin-top:16px;"></div>
         <div class="at-caveat" style="margin-top:0;">※DPS・シミュレーションの数値は、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提とした理論値です。実際の命中率やヒット数によって数値は変動します。</div>
+      </div>
+    </div>`;
+  }
+
+  function presetModal(){
+    if(!state.presetOpen) return '';
+    return `
+    <div class="at-modal-backdrop" data-action="closePresetBackdrop">
+      <div class="at-modal">
+        <div class="at-modal-head">
+          <div class="at-modal-title">💾 プリセット</div>
+          <div class="at-modal-close" data-action="closePreset">✕</div>
+        </div>
+
+        <div class="at-panel-desc" style="margin-bottom:10px;">総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメupの内容を${PRESET_SLOT_COUNT}件まで保存できます。名前をタップすると「反映・編集・削除」を選べます。</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${presets.map(function(p,i){ return presetSlotHtml(p,i); }).join('')}
+        </div>
       </div>
     </div>`;
   }
@@ -1258,13 +1332,13 @@
       ${header()}
       ${body}
       <div class="at-footer-note">非公式ファン制作ツールです。数値は自己申告のルール・設定に基づく目安であり、公式仕様を保証するものではありません。</div>
-    ` + settingsModal() + specialEffectsModal() + infoModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
+    ` + settingsModal() + infoModal() + presetModal() + (toastMsg? `<div class="at-toast">${escapeHtml(toastMsg)}</div>` : '');
   }
 
   // ---------- events ----------
   document.body.insertAdjacentHTML('afterbegin', `<div class="at-gear" data-action="openSettings" title="詳細設定">⚙️</div>`);
-  document.body.insertAdjacentHTML('afterbegin', `<div class="at-special-btn" data-action="openSpecial" title="特殊効果">✨</div>`);
   document.body.insertAdjacentHTML('afterbegin', `<div class="at-info-btn" data-action="openInfo" title="計算式ガイド">📐</div>`);
+  document.body.insertAdjacentHTML('afterbegin', `<div class="at-preset-btn" data-action="openPreset" title="プリセット">💾</div>`);
 
   document.addEventListener('click', function(e){
     const el = e.target.closest('[data-action]');
@@ -1302,16 +1376,78 @@
       if(e.target===el){ state.settingsOpen = false; render(); }
       return;
     }
-    if(action==='openSpecial'){ state.specialOpen = true; render(); return; }
-    if(action==='closeSpecial'){ state.specialOpen = false; render(); return; }
-    if(action==='closeSpecialBackdrop'){
-      if(e.target===el){ state.specialOpen = false; render(); }
-      return;
-    }
     if(action==='openInfo'){ state.infoOpen = true; render(); return; }
     if(action==='closeInfo'){ state.infoOpen = false; render(); return; }
     if(action==='closeInfoBackdrop'){
       if(e.target===el){ state.infoOpen = false; render(); }
+      return;
+    }
+    if(action==='openPreset'){ state.presetOpen = true; render(); return; }
+    if(action==='closePreset'){
+      state.presetOpen = false;
+      state.presetEditIdx = null;
+      state.presetActionIdx = null;
+      render();
+      return;
+    }
+    if(action==='closePresetBackdrop'){
+      if(e.target===el){
+        state.presetOpen = false;
+        state.presetEditIdx = null;
+        state.presetActionIdx = null;
+        render();
+      }
+      return;
+    }
+    if(action==='presetToggleMenu'){
+      const idx = Number(el.getAttribute('data-idx'));
+      state.presetActionIdx = (state.presetActionIdx===idx) ? null : idx;
+      render();
+      return;
+    }
+    if(action==='presetEdit'){
+      const idx = Number(el.getAttribute('data-idx'));
+      state.presetEditIdx = idx;
+      state.presetActionIdx = null;
+      render();
+      return;
+    }
+    if(action==='presetCancelEdit'){
+      state.presetEditIdx = null;
+      render();
+      return;
+    }
+    if(action==='presetConfirmSave'){
+      const idx = Number(el.getAttribute('data-idx'));
+      const input = document.querySelector('[data-preset-name-input="'+idx+'"]');
+      const typed = input ? input.value.trim() : '';
+      const name = typed || ('プリセット'+(idx+1));
+      presets[idx] = { name: name, data: snapshotPresetData(build) };
+      savePresets();
+      state.presetEditIdx = null;
+      showToast('プリセット「'+name+'」を保存しました');
+      return;
+    }
+    if(action==='presetApply'){
+      const idx = Number(el.getAttribute('data-idx'));
+      const p = presets[idx];
+      if(p){
+        applyPresetData(build, p.data);
+        saveBuild();
+        state.presetActionIdx = null;
+        showToast('プリセット「'+p.name+'」を反映しました');
+      }
+      return;
+    }
+    if(action==='presetDelete'){
+      const idx = Number(el.getAttribute('data-idx'));
+      const p = presets[idx];
+      if(p && confirm('プリセット「'+p.name+'」を削除しますか？')){
+        presets[idx] = null;
+        savePresets();
+        state.presetActionIdx = null;
+        render();
+      }
       return;
     }
     if(action==='resetSimSeconds'){
