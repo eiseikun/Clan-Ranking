@@ -473,12 +473,36 @@
   function calcFinalDmgBonusMult(b){
     return 100 + (Number(b.finalDmgBonusPct)||0);
   }
-  // その他ダメup(%)：空中の敵・地上の敵・ザコ敵・エリート・ボスなど、ONにしたカテゴリの%を合算 → 基準100%の倍率
+  // 〇〇敵ダメup(%)：空中の敵・地上の敵・ザコ敵・エリート・ボスなど、ONにしたカテゴリの%を合算 → 基準100%の倍率
   function calcOtherDmgUpMult(b){
     let m = 100;
     OTHER_DMG_CATS.forEach(function(c){
       if(b[c.key+'On']) m += Number(b[c.key+'Pct'])||0;
     });
+    return m;
+  }
+  // ▼「会心なし基本攻撃力」計算専用：📚基本情報📚パネルに書かれている項目のみを反映する簡易版の各倍率。
+  // 　「取得スキル」パネルで取得する項目（品質攻撃力up・精霊本数・ダイアゴナル/フロント/リアアロー・
+  // 　追跡の目・エロージョンフィールド・取得スキル「その他」など）は一切含めないため、
+  // 　取得スキル側の取得状況を変えても会心なし基本攻撃力・平均攻撃力の値は変化しない。
+  // 攻撃力up(基本情報のみ)：精霊シナジーボーナスのみ（精霊の本数は取得スキル側のため含まない）
+  function calcBaseAtkUpMult(b){
+    return 100 + spiritSynergyBonus(b);
+  }
+  // 主武器ダメup(基本情報のみ)：エンチャント(鋭利の矢・アローレイン)・鋭利の矢ルーン品質・虚無の刃のみ
+  // （フロントアロー／追跡の目／主武器アップ系スキル特殊補正は取得スキル側のため含まない）
+  function calcBaseMainDmgUpMult(b){
+    let m = 100;
+    m += findTierPct('sharp', b.sharpTierId);
+    m += findTierPct('rain', b.rainTierId);
+    m += findTierPct('voidblade', b.voidTierId);
+    m += sharpRuneBonus(b.sharpRuneQuality);
+    return m;
+  }
+  // 被ダメup(基本情報のみ)：苦痛の輪のみ（エロージョンフィールドは取得スキル側のため含まない）
+  function calcBaseDmgTakenUpMult(b){
+    let m = 100;
+    if(b.painRing) m += 20;
     return m;
   }
   // 総攻撃力 ＝ 攻撃力 ＋ { 攻撃力 × 攻撃力ボーナス ÷ 100 }（個別入力モード）
@@ -508,7 +532,7 @@
     });
     return frac * 100;
   }
-  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × その他ダメup(%) × その他(%)
+  // 最終ダメージ量 ＝ 総攻撃力 × 矢の本数 × 攻撃力up(%) × 主武器ダメup(%) × 被ダメup(%) × 最終ダメボーナス(%) × 〇〇敵ダメup(%) × その他(%)
   function calcPower(b){
     const arrows = calcArrows(b);
     const rawArrowsVal = rawArrows(b);
@@ -712,7 +736,11 @@
     const cmp = compareChoice(build);
     const candOpts = getCandidateOptions();
 
-    const noCritBaseAtk = res.totalAtk * (res.otherUp/100);
+    const baseAtkUp = calcBaseAtkUpMult(build);
+    const baseMainUp = calcBaseMainDmgUpMult(build);
+    const baseDmgTakenUp = calcBaseDmgTakenUpMult(build);
+    const baseOtherMult = 100; // その他：📚基本情報📚には現状「その他」の項目がないため、基本何もなし（100%＝倍率1）として計算
+    const noCritBaseAtk = res.totalAtk * (baseAtkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (res.otherUp/100) * (baseOtherMult/100);
     const avgAtk = noCritBaseAtk * critExpectation(build);
 
     return `
@@ -775,8 +803,65 @@
       </div>
       <div class="at-hint" style="margin-top:8px;margin-bottom:14px;">会心期待値 ＝（1−会心率）＋ 会心率 × 会心ダメージ倍率 ＝ 現在${fmtNum(critExpectation(build),3)}</div>
 
+      <div class="at-subbox">
+        <div class="at-subbox-title">🎒 現在のビルド</div>
+        <div class="at-panel-desc" style="margin-bottom:10px;">装備・エンチャント・ルーン・聖物・精霊など、レベルアップ中ではなく事前に整えておく項目です。</div>
+
+        <div class="at-subbox">
+          <div class="at-subbox-title">🏹 矢の本数</div>
+          ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
+          <div class="at-field" style="margin-top:12px;margin-bottom:0;">
+            <label class="at-label">装備中の鎧</label>
+            <select class="at-select" data-bind="armor">
+              <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
+              <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
+              <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
+            </select>
+            <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
+            ${build.ero ? `<div class="at-hint" style="margin-top:6px;">※エロージョンフィールド取得中は、シンフォニーアロー・鎧による矢数ボーナスも（ダイアゴナル/フロント/リアアロー同様）最終ダメージ計算には反映されません。</div>` : ''}
+          </div>
+        </div>
+
+        <div class="at-subbox">
+          <div class="at-subbox-title">💪 攻撃力up</div>
+          ${checkRow('spiritIntimidation', '銘刻ルーン「精霊の威圧」', 'シナジーボーナスの発生条件／取得スキルの精霊stackの解禁条件', build.spiritIntimidation)}
+          ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
+          ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
+          <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+        </div>
+
+        <div class="at-subbox">
+          <div class="at-subbox-title">🗡️ 主武器ダメup</div>
+          <div class="at-field">
+            <label class="at-label">鋭利の矢（エンチャント）</label>
+            ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
+          </div>
+          <div class="at-field">
+            <label class="at-label">鋭利の矢ルーン品質</label>
+            <select class="at-select" data-bind="sharpRuneQuality">
+              <option value="none" ${build.sharpRuneQuality==='none'?'selected':''}>なし（+0%）</option>
+              <option value="epic" ${build.sharpRuneQuality==='epic'?'selected':''}>エピック（+10%）</option>
+              <option value="legend" ${build.sharpRuneQuality==='legend'?'selected':''}>レジェンド（+20%）</option>
+            </select>
+          </div>
+          <div class="at-field">
+            <label class="at-label">アローレイン（エンチャント）</label>
+            ${tierSelect('rain','rainTierId', build.rainTierId)}
+          </div>
+          <div class="at-field" style="margin-bottom:0;">
+            <label class="at-label">虚無の刃（聖物）</label>
+            ${tierSelect('voidblade','voidTierId', build.voidTierId)}
+          </div>
+        </div>
+
+        <div class="at-subbox" style="margin-bottom:0;">
+          <div class="at-subbox-title">💥 被ダメup</div>
+          ${checkRow('painRing', '苦痛の輪', '被ダメup+20%', build.painRing, build.painRing?'+20%':'')}
+        </div>
+      </div>
+
       <div class="at-subbox" style="margin-bottom:0;">
-        <div class="at-subbox-title">🎯 その他ダメup</div>
+        <div class="at-subbox-title">🎯 〇〇敵ダメup</div>
         <div class="at-panel-desc" style="margin-bottom:10px;">敵の種類ごとのダメージ増加効果です。下のリストから該当する敵タイプを選んで追加し、それぞれのダメ%を入力してください。追加した項目の%がすべて合算されます。</div>
         <select class="at-select" data-add-other-cat="1" style="margin-bottom:${OTHER_DMG_CATS.some(c=>build[c.key+'On'])?'10px':'0'};">
           <option value="">＋ 敵タイプを選択して追加</option>
@@ -795,64 +880,8 @@
           <div class="at-statbox-val cyan">${fmtCompact(avgAtk)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（その他ダメup÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
-    </div>
-
-    <div class="at-panel">
-      <div class="at-panel-title">🎒 現在のビルド</div>
-      <div class="at-panel-desc">装備・エンチャント・ルーン・聖物・精霊など、レベルアップ中ではなく事前に整えておく項目です。</div>
-
-      <div class="at-subbox">
-        <div class="at-subbox-title">🏹 矢の本数</div>
-        ${checkRow('symphony', 'シンフォニーアロー（レジェンド品質）', '所持で矢+2本', build.symphony, build.symphony?'+2本':'')}
-        <div class="at-field" style="margin-top:12px;margin-bottom:0;">
-          <label class="at-label">装備中の鎧</label>
-          <select class="at-select" data-bind="armor">
-            <option value="oracle_myth" ${build.armor==='oracle_myth'?'selected':''}>神託の鎧（ミシック以上）（+4本）</option>
-            <option value="oracle_low" ${build.armor==='oracle_low'?'selected':''}>神託の鎧（ミシック未満）（+2本）</option>
-            <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
-          </select>
-          <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
-          ${build.ero ? `<div class="at-hint" style="margin-top:6px;">※エロージョンフィールド取得中は、シンフォニーアロー・鎧による矢数ボーナスも（ダイアゴナル/フロント/リアアロー同様）最終ダメージ計算には反映されません。</div>` : ''}
-        </div>
-      </div>
-
-      <div class="at-subbox">
-        <div class="at-subbox-title">💪 攻撃力up</div>
-        ${checkRow('spiritIntimidation', '銘刻ルーン「精霊の威圧」', 'シナジーボーナスの発生条件／取得スキルの精霊stackの解禁条件', build.spiritIntimidation)}
-        ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
-        ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
-        <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
-      </div>
-
-      <div class="at-subbox">
-        <div class="at-subbox-title">🗡️ 主武器ダメup</div>
-        <div class="at-field">
-          <label class="at-label">鋭利の矢（エンチャント）</label>
-          ${tierSelect('sharp','sharpTierId', build.sharpTierId)}
-        </div>
-        <div class="at-field">
-          <label class="at-label">鋭利の矢ルーン品質</label>
-          <select class="at-select" data-bind="sharpRuneQuality">
-            <option value="none" ${build.sharpRuneQuality==='none'?'selected':''}>なし（+0%）</option>
-            <option value="epic" ${build.sharpRuneQuality==='epic'?'selected':''}>エピック（+10%）</option>
-            <option value="legend" ${build.sharpRuneQuality==='legend'?'selected':''}>レジェンド（+20%）</option>
-          </select>
-        </div>
-        <div class="at-field">
-          <label class="at-label">アローレイン（エンチャント）</label>
-          ${tierSelect('rain','rainTierId', build.rainTierId)}
-        </div>
-        <div class="at-field" style="margin-bottom:0;">
-          <label class="at-label">虚無の刃（聖物）</label>
-          ${tierSelect('voidblade','voidTierId', build.voidTierId)}
-        </div>
-      </div>
-
-      <div class="at-subbox" style="margin-bottom:0;">
-        <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('painRing', '苦痛の輪', '被ダメup+20%', build.painRing, build.painRing?'+20%':'')}
-      </div>
+      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
+      <div class="at-hint">※この2つの計算に含まれるのは📚基本情報📚に入力・設定されている内容のみです。「その他」は基本情報には項目が無いため基本何もなし（倍率1）として計算しており、📖取得スキルパネル側で何かを取得しても、会心なし基本攻撃力・平均攻撃力の値は変化しません。</div>
     </div>
 
     <div class="at-panel">
