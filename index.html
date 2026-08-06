@@ -310,6 +310,7 @@
     sharpRuneQuality:'none', // none | epic | legend
     painRing:false, ero:false,
     atkSpeedBonusPct:0, critRatePct:0, critDmgMultPct:0,
+    simSeconds:null, // null＝未入力時はデフォルト（1回の攻撃分＝1/実攻撃速度秒）を使用
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
     atkSkillCounts:{},
     otherSkillCounts:{},
@@ -451,6 +452,12 @@
     const cr = (Number(b.critRatePct)||0) / 100;
     const cd = (Number(b.critDmgMultPct)||0) / 100;
     return (1 - cr) + cr * cd;
+  }
+  // DPS(1秒当たりのダメージ) ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス
+  // ※最終ダメボーナスは含めない。基本攻撃速度×攻撃速度upボーナス ＝ actualAtkSpeed(build) と同一。
+  // ※DPSは全弾ヒットを前提とした値。
+  function calcDPSValue(r, b){
+    return r.totalAtk * r.arrows * (r.atkUp/100) * (r.mainUp/100) * (r.dmgTakenUp/100) * (r.otherUp/100) * (r.otherSkillMult/100) * critExpectation(b) * actualAtkSpeed(b);
   }
   // エロージョンフィールドの倍率（エロージョンフィールドのみを取得した場合の式） ＝
   // 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
@@ -733,6 +740,13 @@
     const res = calcPower(build);
     const noSkillRes = calcPower(calcNoAcquiredSkillsBuild(build));
     const skillMultiple = noSkillRes.damage>0 ? (res.damage/noSkillRes.damage) : null;
+    const noSkillDPS = calcDPSValue(noSkillRes, build);
+    const withSkillDPS = calcDPSValue(res, build);
+    const defaultSimSeconds = actualAtkSpeed(build) > 0 ? 1/actualAtkSpeed(build) : 0;
+    const simSecondsRaw = build.simSeconds;
+    const simSecondsInputVal = (simSecondsRaw===null || simSecondsRaw===undefined || simSecondsRaw==='') ? defaultSimSeconds : simSecondsRaw;
+    const simSeconds = Number(simSecondsInputVal)||0;
+    const simDamage = withSkillDPS * simSeconds;
     const cmp = compareChoice(build);
     const candOpts = getCandidateOptions();
 
@@ -942,10 +956,6 @@
       <div class="at-panel-title">📊 計算結果</div>
       <div class="at-statgrid4">
         <div class="at-statbox">
-          <div class="at-statbox-label">総攻撃力</div>
-          <div class="at-statbox-val">${fmtCompact(res.totalAtk)}</div>
-        </div>
-        <div class="at-statbox">
           <div class="at-statbox-label">矢の本数</div>
           <div class="at-statbox-val">${res.arrows}本</div>
           ${build.ero ? `<div style="font-size:9px;color:var(--text-faint);margin-top:3px;line-height:1.3;">(本来：${res.rawArrows}本／ダメ計算には未反映)</div>` : ''}
@@ -981,12 +991,43 @@
           <div class="at-statbox-val cyan">${skillMultiple==null?'—':fmtNum(skillMultiple,2)+'倍'}</div>
         </div>
         <div class="at-statbox">
-          <div class="at-statbox-label">最終ダメージ量</div>
-          <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(res.damage)}</div>
+          <div class="at-statbox-label">取得スキルなしDPS</div>
+          <div class="at-statbox-val cyan" style="font-size:20px;">${fmtCompact(noSkillDPS)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">最終ダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（最終ダメボーナス÷100）×（〇〇敵ダメup÷100）×（その他÷100）</div>
+      <div class="at-row2" style="margin-top:8px;">
+        <div class="at-statbox" style="grid-column:1 / -1;">
+          <div class="at-statbox-label">取得スキルありDPS</div>
+          <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(withSkillDPS)}</div>
+        </div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;">取得スキルなしDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス　※各項目は📚基本情報📚のみを反映（取得スキルの%などは含まない）</div>
+      <div class="at-hint">取得スキルありDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス　※各項目は📚基本情報📚と📖取得スキルの両方を反映</div>
       <div class="at-hint">取得スキルなし比 ＝ 現在のダメージ量 ÷「取得スキル」パネルの各項目を未取得にした場合のダメージ量</div>
+      <div class="at-hint" style="margin-top:8px;color:var(--gold-soft);">⚠️ 注意事項：DPS（1秒当たりのダメージ）は、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提とした理論値です。実際の命中率やヒット数によって実際のダメージ効率は変動します。</div>
+    </div>
+
+    <div class="at-panel">
+      <div class="at-panel-title">⏱️ シミュレーション</div>
+      <div class="at-panel-desc">秒数を入力すると、現在の📚基本情報📚と📖取得スキルの内容から、その秒数で与えられるダメージ量を計算します。デフォルトは攻撃1回分（1÷実攻撃速度＝${fmtNum(defaultSimSeconds,3)}秒）です。</div>
+
+      <div class="at-row2">
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">秒数（秒）</label>
+          <input class="at-input" type="number" step="0.01" value="${simSecondsInputVal}" data-bind="simSeconds">
+        </div>
+        <div class="at-field" style="margin-bottom:0;display:flex;align-items:flex-end;">
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="resetSimSeconds">攻撃1回分に戻す</div>
+        </div>
+      </div>
+
+      <div class="at-statbox" style="margin-top:12px;">
+        <div class="at-statbox-label">${fmtNum(simSeconds,3)}秒間のダメージ量</div>
+        <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(simDamage)}</div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;">${fmtNum(simSeconds,3)}秒間のダメージ量 ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス × 秒数</div>
+      <div class="at-hint">攻撃1回分の秒数 ＝ 1 ÷（基本攻撃速度 × 攻撃速度upボーナス）＝ 1 ÷ 実攻撃速度 ＝ 現在${fmtNum(defaultSimSeconds,3)}秒</div>
+      <div class="at-hint" style="color:var(--gold-soft);">⚠️ この計算も、放った矢・弾がすべて敵に命中する「全弾ヒット」を前提としています。</div>
     </div>
 
     <div class="at-panel">
@@ -1216,6 +1257,12 @@
     if(action==='closeSpecial'){ state.specialOpen = false; render(); return; }
     if(action==='closeSpecialBackdrop'){
       if(e.target===el){ state.specialOpen = false; render(); }
+      return;
+    }
+    if(action==='resetSimSeconds'){
+      build.simSeconds = null;
+      saveBuild();
+      render();
       return;
     }
     if(action==='setAtkMode'){
