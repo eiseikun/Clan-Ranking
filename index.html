@@ -464,11 +464,11 @@
     const cd = (Number(b.critDmgMultPct)||0) / 100;
     return (1 - cr) + cr * cd;
   }
-  // DPS(1秒当たりのダメージ) ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス
-  // ※最終ダメボーナスは含めない。基本攻撃速度×攻撃速度upボーナス ＝ actualAtkSpeed(build) と同一。
+  // DPS(1秒当たりのダメージ) ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（最終ダメボーナス÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス
+  // ※基本攻撃速度×攻撃速度upボーナス ＝ actualAtkSpeed(build) と同一。
   // ※DPSは全弾ヒットを前提とした値。
   function calcDPSValue(r, b){
-    return r.totalAtk * r.arrows * (r.atkUp/100) * (r.mainUp/100) * (r.dmgTakenUp/100) * (r.otherUp/100) * (r.otherSkillMult/100) * critExpectation(b) * actualAtkSpeed(b);
+    return r.totalAtk * r.arrows * (r.atkUp/100) * (r.mainUp/100) * (r.dmgTakenUp/100) * (r.finalBonus/100) * (r.otherUp/100) * (r.otherSkillMult/100) * critExpectation(b) * actualAtkSpeed(b);
   }
   // エロージョンフィールドの倍率（エロージョンフィールドのみを取得した場合の式） ＝
   // 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
@@ -1232,8 +1232,8 @@
 
         <div class="at-subbox" style="margin-bottom:12px;">
           <div class="at-subbox-title">📊 計算結果</div>
-          <div class="at-hint" style="margin-bottom:6px;">取得スキルなしDPS／取得スキルありDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス</div>
-          <div class="at-hint" style="margin-bottom:6px;">「なし」は📚基本情報📚のみ、「あり」は📚基本情報📚＋📖取得スキルの両方を反映した値です（最終ダメボーナスは含みません）。</div>
+          <div class="at-hint" style="margin-bottom:6px;">取得スキルなしDPS／取得スキルありDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（最終ダメボーナス÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス</div>
+          <div class="at-hint" style="margin-bottom:6px;">「なし」は📚基本情報📚のみ、「あり」は📚基本情報📚＋📖取得スキルの両方を反映した値です。</div>
           <div class="at-hint" style="margin-bottom:0;">取得スキルなし比 ＝ 現在のダメージ量 ÷「取得スキル」パネルの各項目を未取得にした場合のダメージ量</div>
         </div>
 
