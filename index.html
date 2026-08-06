@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -268,8 +267,7 @@
 
   const DEFAULT_SETTINGS = {
     atkSkills: defaultAtkSkills(),
-    otherSkills: defaultOtherSkills(),
-    multishotMult: 1.63
+    otherSkills: defaultOtherSkills()
   };
 
   // 端末のブラウザに以前保存された古い設定(localStorage)が残っていても、
@@ -307,7 +305,7 @@
     otherBossOn:false, otherBossPct:0,
     symphony:false,
     armor:'other', // oracle_myth | oracle_low | dragoon | griffon | other
-    diagonalCount:0, frontCount:0, rearCount:0, tracking:false, multishot:false,
+    diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
     sharpRuneQuality:'none', // none | epic | legend
     painRing:false, ero:false,
@@ -325,7 +323,6 @@
 
   let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
   settings.atkSkills = reconcileAtkSkills(settings.atkSkills);
-  if(!(Number(settings.multishotMult) > 0)) settings.multishotMult = DEFAULT_SETTINGS.multishotMult;
   saveJSON('at2_settings_v3', settings);
   let build = loadJSON('at2_build_v3', DEFAULT_BUILD);
   let state = {
@@ -380,7 +377,7 @@
   }
   // 矢の本数（最終ダメージ計算用）：エロージョンフィールド取得時は、シンフォニー・鎧ボーナス・
   // ダイアゴナル/フロント/リアアローによる矢数増加をすべて計算から除外し、基礎の1本のみとする
-  // （これらの効果はエロージョンフィールドの実質攻撃頻度にまとめて統合されるため、二重計上を避ける）。
+  // （エロージョンフィールド取得時は矢数を含む計算方法が異なるため、二重計上を避ける）。
   function calcArrows(b){
     return b.ero ? 1 : rawArrows(b);
   }
@@ -430,7 +427,7 @@
   // 主武器ダメup(%)：エンチャント(鋭利の矢・アローレイン)・鋭利の矢ルーン品質・虚無の刃・
   // ダイアゴナル/フロント/リアアロー・追跡の目・主武器アップ系スキル特殊補正 → 総攻撃力に掛け合わせる倍率（基準100%）
   // ※エロージョンフィールド取得時は、フロントアロー／追跡の目による矢数・主武器ダメup%への影響は
-  // 　エロージョンフィールドの実質攻撃頻度にすでに統合されているため、ここでは適用しない（二重計上防止）。
+  // 　エロージョンフィールド取得時は矢数を含む計算方法が異なるため、ここでは適用しない（二重計上防止）。
   function calcMainDmgUpMult(b){
     let m = 100;
     if(!b.ero){
@@ -444,8 +441,8 @@
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
   }
-  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.758) ×（1 + 攻撃速度ボーナス/100）
-  const BASE_ATK_SPEED = 1.758;
+  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.732発/秒。攻撃速度アップボーナスなしの場合の発/秒) ×（1 + 攻撃速度ボーナス/100）
+  const BASE_ATK_SPEED = 1.732;
   function actualAtkSpeed(b){
     return BASE_ATK_SPEED * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
   }
@@ -455,34 +452,17 @@
     const cd = (Number(b.critDmgMultPct)||0) / 100;
     return (1 - cr) + cr * cd;
   }
-  // エロージョンフィールドの「実質攻撃頻度」補正 ＝ フロントアロー・追跡の目・マルチショットの実測係数を掛け合わせたもの。
-  // ・フロントアロー：(1+frontCount)×0.85　例）frontCount=1なら2本×0.85＝1.7
-  // ・追跡の目：×0.9
-  // ・マルチショット：×settings.multishotMult（設定画面で変更可能・初期値1.63）
-  // ・ダイアゴナルアロー／リアアローは矢数のみの効果のため対象外（実質攻撃頻度は変化しない＝×1のまま）
-  // エロージョンフィールドの「実質攻撃頻度」補正 ＝ 本来の矢の本数(rawArrows：シンフォニー・鎧・
-  // ダイアゴナル/フロント/リアアローすべて込み)を基礎倍率とし、そこにフロントアロー由来の効率係数0.85・
-  // 追跡の目の0.9・マルチショットの倍率（設定値、初期1.63）を掛け合わせたもの。
-  // 例）フロントアロー単体（矢2本）→2×0.85＝1.7、フロント＋追跡→2×0.85×0.9＝1.53、
-  // 　　追跡単体（矢1本）→1×0.9＝0.9、マルチショット単体（矢1本・初期設定時）→1×1.63＝1.63
-  function eroFreqMultiplier(b){
-    let f = rawArrows(b);
-    const frontN = Number(b.frontCount)||0;
-    if(frontN > 0) f *= 0.85;
-    if(b.tracking) f *= 0.9;
-    if(b.multishot) f *= (Number(settings.multishotMult) || DEFAULT_SETTINGS.multishotMult);
-    return f;
-  }
-  // エロージョンフィールドの倍率 ＝ 実質攻撃頻度×1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
-  // （通常攻撃分＝実質攻撃頻度×1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)。
-  // 　DoT分は自分の攻撃頻度と無関係な固定100tick/30秒のため実質攻撃頻度の影響を受けない）
+  // エロージョンフィールドの倍率（エロージョンフィールドのみを取得した場合の式） ＝
+  // 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
+  // （通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)。
+  // 　フロントアロー・追跡の目・マルチショットなど他スキルとの複合計算は今後の計算方法変更に伴い別途対応予定のため、
+  // 　現時点ではエロージョンフィールド単体取得時の式のみを採用しています。）
   function eroMultiplier(b){
-    const freq = eroFreqMultiplier(b);
     const denom = actualAtkSpeed(b) * critExpectation(b);
-    if(!(denom > 0)) return freq * 1.35;
-    return freq * 1.35 + 2.25 / denom;
+    if(!(denom > 0)) return 1.35;
+    return 1.35 + 2.25 / denom;
   }
-  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)) → 総攻撃力に掛け合わせる倍率（基準100%）
+  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(1.35+2.25÷(実攻撃速度×会心期待値)・単体取得時の式) → 総攻撃力に掛け合わせる倍率（基準100%）
   function calcDmgTakenUpMult(b){
     let m = 100;
     if(b.painRing) m += 20;
@@ -554,7 +534,6 @@
       frontCount:0,
       rearCount:0,
       tracking:false,
-      multishot:false,
       ero:false
     });
   }
@@ -591,8 +570,7 @@
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
       {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'multishot', label:`マルチショット（エロージョンフィールドの実質攻撃頻度×${fmtNum(settings.multishotMult,2)}・重複不可）`, key:'multishot', mode:'toggle'},
-      {id:'ero', label:'エロージョンフィールド（被ダメup 実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
+      {id:'ero', label:'エロージョンフィールド（被ダメup 1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
       opts.push({id:'spirit', label:'精霊（攻撃力+10%・威圧所持時のみ）', key:'spiritCount', mode:'count'});
@@ -734,9 +712,12 @@
     const cmp = compareChoice(build);
     const candOpts = getCandidateOptions();
 
+    const noCritBaseAtk = res.totalAtk * (res.otherUp/100);
+    const avgAtk = noCritBaseAtk * critExpectation(build);
+
     return `
     <div class="at-panel">
-      <div class="at-panel-title">⚔️ 攻撃力</div>
+      <div class="at-panel-title">📚基本情報📚</div>
       <div class="at-panel-desc">「攻撃力＋攻撃力ボーナス」から自動計算するか、ステータス画面に表示されている「総攻撃力」をそのまま入力するか選べます。攻撃力up・主武器ダメup・被ダメupは別枠で自動計算され、最終ダメージ量の計算時にそれぞれ独立した倍率として掛け合わされます。</div>
 
       <div class="at-modebtns">
@@ -764,23 +745,57 @@
       <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">総攻撃力 ＝ 攻撃力 ＋ ｛攻撃力 × 攻撃力ボーナス ÷ 100｝</div>
       `}
 
+      <div class="at-field">
+        <label class="at-label">最終ダメボーナス(%)</label>
+        <input class="at-input" type="number" step="1" value="${build.finalDmgBonusPct}" data-bind="finalDmgBonusPct">
+      </div>
+      <div class="at-hint" style="margin-top:-6px;margin-bottom:12px;">他のパネルに当てはまらない最終ダメージへの追加ボーナスがあれば入力してください（無ければ0のままでOK）。</div>
+
       <div class="at-row2">
         <div class="at-field" style="margin-bottom:0;">
-          <label class="at-label">最終ダメボーナス(%)</label>
-          <input class="at-input" type="number" step="1" value="${build.finalDmgBonusPct}" data-bind="finalDmgBonusPct">
+          <label class="at-label">攻撃速度ボーナス（%）</label>
+          <input class="at-input" type="number" step="1" value="${build.atkSpeedBonusPct}" data-bind="atkSpeedBonusPct">
+        </div>
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">基本攻撃速度（発/秒）</label>
+          <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">他のパネルに当てはまらない最終ダメージへの追加ボーナスがあれば入力してください（無ければ0のままでOK）。</div>
-    </div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">攻撃速度アップボーナスなしの基本攻撃速度は${BASE_ATK_SPEED}発/秒で固定です。実攻撃速度 ＝ 基本攻撃速度 ×（1 + 攻撃速度ボーナス÷100）＝ 現在${fmtNum(actualAtkSpeed(build),2)}発/秒。</div>
 
-    <div class="at-panel">
-      <div class="at-panel-title">🎯 その他ダメup</div>
-      <div class="at-panel-desc">敵の種類ごとのダメージ増加効果です。下のリストから該当する敵タイプを選んで追加し、それぞれのダメ%を入力してください。追加した項目の%がすべて合算されます。</div>
-      <select class="at-select" data-add-other-cat="1" style="margin-bottom:${OTHER_DMG_CATS.some(c=>build[c.key+'On'])?'10px':'0'};">
-        <option value="">＋ 敵タイプを選択して追加</option>
-        ${OTHER_DMG_CATS.filter(c=>!build[c.key+'On']).map(c=>`<option value="${c.key}">${c.label}</option>`).join('')}
-      </select>
-      ${OTHER_DMG_CATS.filter(c=>build[c.key+'On']).map(c=>otherDmgCatRow(c.key, c.label, build[c.key+'Pct'])).join('')}
+      <div class="at-row2">
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">会心率（%）</label>
+          <input class="at-input" type="number" step="1" value="${build.critRatePct}" data-bind="critRatePct">
+        </div>
+        <div class="at-field" style="margin-bottom:0;">
+          <label class="at-label">会心ダメージ倍率（%・例：153%入力で1.53倍）</label>
+          <input class="at-input" type="number" step="1" value="${build.critDmgMultPct}" data-bind="critDmgMultPct">
+        </div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;margin-bottom:14px;">会心期待値 ＝（1−会心率）＋ 会心率 × 会心ダメージ倍率 ＝ 現在${fmtNum(critExpectation(build),3)}</div>
+
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-subbox-title">🎯 その他ダメup</div>
+        <div class="at-panel-desc" style="margin-bottom:10px;">敵の種類ごとのダメージ増加効果です。下のリストから該当する敵タイプを選んで追加し、それぞれのダメ%を入力してください。追加した項目の%がすべて合算されます。</div>
+        <select class="at-select" data-add-other-cat="1" style="margin-bottom:${OTHER_DMG_CATS.some(c=>build[c.key+'On'])?'10px':'0'};">
+          <option value="">＋ 敵タイプを選択して追加</option>
+          ${OTHER_DMG_CATS.filter(c=>!build[c.key+'On']).map(c=>`<option value="${c.key}">${c.label}</option>`).join('')}
+        </select>
+        ${OTHER_DMG_CATS.filter(c=>build[c.key+'On']).map(c=>otherDmgCatRow(c.key, c.label, build[c.key+'Pct'])).join('')}
+      </div>
+
+      <div class="at-row2" style="margin-top:14px;">
+        <div class="at-statbox">
+          <div class="at-statbox-label">会心なし基本攻撃力</div>
+          <div class="at-statbox-val">${fmtCompact(noCritBaseAtk)}</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">平均攻撃力</div>
+          <div class="at-statbox-val cyan">${fmtCompact(avgAtk)}</div>
+        </div>
+      </div>
+      <div class="at-hint" style="margin-top:8px;">会心なし基本攻撃力 ＝ 総攻撃力 ×（その他ダメup÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）</div>
     </div>
 
     <div class="at-panel">
@@ -798,7 +813,7 @@
             <option value="other" ${build.armor==='other'?'selected':''}>その他の鎧・未装備（+0本）</option>
           </select>
           <div class="at-hint">神託の鎧を装備している場合のみ矢の本数ボーナスが発生します。</div>
-          ${build.ero ? `<div class="at-hint" style="margin-top:6px;">※エロージョンフィールド取得中は、シンフォニーアロー・鎧による矢数ボーナスも（ダイアゴナル/フロント/リアアロー同様）最終ダメージ計算には反映されません。エロージョンフィールドの実質攻撃頻度にまとめて統合されます。</div>` : ''}
+          ${build.ero ? `<div class="at-hint" style="margin-top:6px;">※エロージョンフィールド取得中は、シンフォニーアロー・鎧による矢数ボーナスも（ダイアゴナル/フロント/リアアロー同様）最終ダメージ計算には反映されません。</div>` : ''}
         </div>
       </div>
 
@@ -860,32 +875,14 @@
         ${stepperRow('rearCount', 'リアアロー', '1回につき矢+1本', build.rearCount)}
         ${checkRow('tracking', '追跡の目', '本数は変わらず主武器ダメup-10%（重複取得不可）', build.tracking, build.tracking?'-10%':'')}
         ${build.ero
-          ? `<div class="at-hint" style="margin-top:6px;">エロージョンフィールド取得中は、ダイアゴナル/フロント/リアアローによる矢数、フロントアロー・追跡の目による主武器ダメup%・特殊補正、いずれもこの計算結果には反映されません（それらの効果はエロージョンフィールドの実質攻撃頻度に統合済みのため）。現在の補正：+0%（未適用）。</div>`
+          ? `<div class="at-hint" style="margin-top:6px;">エロージョンフィールド取得中は、ダイアゴナル/フロント/リアアローによる矢数、フロントアロー・追跡の目による主武器ダメup%・特殊補正、いずれもこの計算結果には反映されません。現在の補正：+0%（未適用）。</div>`
           : `<div class="at-hint" style="margin-top:6px;">合計2つ以上取得すると特殊補正が入ります。詳しくは右上の✨特殊効果をご確認ください（現在の補正：${mainWeaponSkillCorrection(build)>=0?'+':''}${mainWeaponSkillCorrection(build)}%）。</div>`}
       </div>
 
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（実質攻撃頻度×1.35+2.25÷(実攻撃速度×会心期待値)）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
-        ${build.ero ? checkRow('multishot', 'マルチショット（実質攻撃頻度用）', `エロージョンフィールドの実質攻撃頻度×${fmtNum(settings.multishotMult,2)}（重複不可）`, build.multishot, build.multishot?`×${fmtNum(settings.multishotMult,2)}`:'') : ''}
-        ${build.ero ? `<div class="at-hint" style="margin-top:6px;">実質攻撃頻度（現在：×${fmtNum(eroFreqMultiplier(build),2)}）＝フロントアロー・追跡の目・マルチショットの取得状況から自動計算されます（ダイアゴナルアロー／リアアローは対象外）。</div>` : ''}
-        <div class="at-field">
-          <label class="at-label">基本攻撃速度（発/秒）</label>
-          <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
-        </div>
-        <div class="at-field">
-          <label class="at-label">攻撃速度ボーナス（%）</label>
-          <input class="at-input" type="number" step="1" value="${build.atkSpeedBonusPct}" data-bind="atkSpeedBonusPct">
-        </div>
-        <div class="at-field">
-          <label class="at-label">会心率（%）</label>
-          <input class="at-input" type="number" step="1" value="${build.critRatePct}" data-bind="critRatePct">
-        </div>
-        <div class="at-field" style="margin-bottom:0;">
-          <label class="at-label">会心ダメージ倍率（%・例：153%入力で1.53倍）</label>
-          <input class="at-input" type="number" step="1" value="${build.critDmgMultPct}" data-bind="critDmgMultPct">
-        </div>
-        <div class="at-hint" style="margin-top:6px;">実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒　会心期待値：${fmtNum(critExpectation(build),3)}</div>
+        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35+2.25÷(実攻撃速度×会心期待値)・エロージョンフィールド単体取得時の式）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        <div class="at-hint" style="margin-top:6px;">攻撃速度ボーナス・会心率・会心ダメージ倍率は📚基本情報📚で入力してください（実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒　会心期待値：${fmtNum(critExpectation(build),3)}）。</div>
       </div>
 
       <div class="at-subbox" style="margin-bottom:0;">
@@ -922,7 +919,7 @@
         <div class="at-statbox">
           <div class="at-statbox-label">矢の本数</div>
           <div class="at-statbox-val">${res.arrows}本</div>
-          ${build.ero ? `<div style="font-size:9px;color:var(--text-faint);margin-top:3px;line-height:1.3;">(本来：${res.rawArrows}本／ダメ計算には未反映・実質攻撃頻度に統合済み)</div>` : ''}
+          ${build.ero ? `<div style="font-size:9px;color:var(--text-faint);margin-top:3px;line-height:1.3;">(本来：${res.rawArrows}本／ダメ計算には未反映)</div>` : ''}
         </div>
         <div class="at-statbox">
           <div class="at-statbox-label">攻撃力up</div>
@@ -1033,14 +1030,6 @@
 
         <div class="at-divider"></div>
 
-        <div class="at-panel-desc" style="margin-bottom:8px;">マルチショットの倍率（エロージョンフィールドの実質攻撃頻度に掛け合わせる係数）を編集できます。「取得スキル」画面の被ダメup欄・矢の本数欄、いずれのマルチショットもこの値が共通で使われます。</div>
-        <div class="at-field">
-          <label class="at-label">マルチショット倍率</label>
-          <input class="at-input" type="number" step="0.01" value="${settings.multishotMult}" data-multishot-mult>
-        </div>
-
-        <div class="at-divider"></div>
-
         <div class="at-panel-desc" style="margin-bottom:8px;">取得スキル「その他」を自由に編集できます。名称・グループ名・1回取得あたりの効果（%）を設定してください。<b>同じグループ名</b>のスキル同士は%を足し算、<b>違うグループ名</b>のスキル同士は掛け算で最終ダメージ量に反映されます（グループ名を空欄にすると、そのスキル単独のグループとして扱われます）。</div>
         <div class="at-field">
           <label class="at-label">その他スキル（名称／グループ／%）</label>
@@ -1099,7 +1088,6 @@
     const total = mainWeaponSkillCount(build);
     const correction = mainWeaponSkillCorrection(build);
     const appliedCorrection = appliedMainWeaponSkillCorrection(build);
-    const eroFreq = eroFreqMultiplier(build);
     const eroPct = (eroMultiplier(build)-1)*100;
     return `
     <div class="at-modal-backdrop" data-action="closeSpecialBackdrop">
@@ -1120,7 +1108,7 @@
             例：フロントアロー単体-15%、追跡の目単体-10%＝合計-25%だが、2つ取得しているので+2%補正され、最終的に-23%になる。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            ※エロージョンフィールド取得中は、フロントアロー・追跡の目の矢数・主武器ダメup%・この特殊補正はいずれも計算結果に適用されません（エロージョンフィールドの実質攻撃頻度にすでに統合されているため）。
+            ※エロージョンフィールド取得中は、フロントアロー・追跡の目の矢数・主武器ダメup%・この特殊補正はいずれも計算結果に適用されません。
           </div>
           <div class="at-hint">
             現在のビルドでの主武器アップ系スキル合計取得数：<b>${total}</b>　補正：<b>${correction>=0?'+':''}${correction}%</b>${build.ero?`（エロージョンフィールド取得中のため実際の適用は<b>${appliedCorrection>=0?'+':''}${appliedCorrection}%</b>）`:''}
@@ -1128,19 +1116,15 @@
         </div>
 
         <div class="at-subbox" style="margin-bottom:0;margin-top:12px;">
-          <div class="at-subbox-title">💥 エロージョンフィールド 実質攻撃頻度補正</div>
+          <div class="at-subbox-title">💥 エロージョンフィールド（単体取得時の式）</div>
           <div class="at-hint" style="margin-bottom:8px;">
-            エロージョンフィールドの被ダメup倍率は本来「攻撃力×(未会心率+会心率×会心倍率)×30秒当たりの攻撃数×範囲内被ダメ倍率(1.35) ＋ 攻撃力×0.5×範囲内被ダメ倍率(1.35)×100」で決まりますが、シンフォニーアロー／鎧／ダイアゴナル・フロント・リアアロー／追跡の目／マルチショットを同時に取得すると「30秒当たりの攻撃数」の実効値が単純な発射レート通りにならないため、実測に基づく「実質攻撃頻度」係数を1.35倍の項にだけ掛けて補正しています（フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)は自分の攻撃頻度と無関係なため対象外）。
+            エロージョンフィールドの被ダメup倍率 ＝ 1.35 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）。通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)です。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            実質攻撃頻度＝本来の矢の本数（シンフォニー・鎧・ダイアゴナル/フロント/リアアローすべて込み）×フロントアロー効率係数0.85（取得時のみ）×追跡の目0.9（取得時のみ）×マルチショット${fmtNum(settings.multishotMult,2)}（取得時のみ）。<br>
-            例：フロントアロー単体（矢2本）→2×0.85＝1.7、フロントアロー＋追跡の目→2×0.85×0.9＝1.53、追跡の目単体（矢1本）→1×0.9＝0.9。
-          </div>
-          <div class="at-hint" style="margin-bottom:8px;">
-            なお、エロージョンフィールド取得中はシンフォニーアロー・鎧・ダイアゴナル/フロント/リアアローによる矢数増加そのものは最終ダメージ計算（矢の本数×攻撃力up×主武器ダメup…の項）には反映されません。計算結果の「矢の本数」欄には参考として本来の本数が控えめに表示されます。
+            ※フロントアロー・追跡の目・マルチショットなど他のスキルと組み合わせた場合の計算方法は現在調整中のため、今はエロージョンフィールドのみを取得した場合の式で計算しています。今後アップデートで対応予定です。
           </div>
           <div class="at-hint">
-            現在のビルドでの実質攻撃頻度：<b>×${fmtNum(eroFreq,2)}</b>　エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
+            エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
           </div>
         </div>
       </div>
@@ -1281,13 +1265,6 @@
       if(e.target.type==='number') v = v===''? '' : Number(v);
       build[bind] = v;
       saveBuild();
-      render();
-      return;
-    }
-    if(e.target.hasAttribute('data-multishot-mult')){
-      const v = Number(e.target.value);
-      settings.multishotMult = (v > 0) ? v : DEFAULT_SETTINGS.multishotMult;
-      saveSettings();
       render();
       return;
     }
