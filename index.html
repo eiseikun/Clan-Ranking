@@ -84,10 +84,11 @@
   .at-tab.active{background:linear-gradient(180deg,#2a2033,var(--bg-panel3));color:var(--gold-soft);box-shadow:inset 0 0 0 1px rgba(212,175,55,.35);}
   .at-tab .soon{display:block;font-size:9.5px;color:var(--text-faint);margin-top:2px;font-weight:600;letter-spacing:.04em;}
 
-  .at-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
-  .at-panel-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:15px;color:var(--gold-soft);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+  .at-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:18px 16px;margin-bottom:18px;box-shadow:0 6px 20px -14px rgba(0,0,0,.6);}
+  .at-panel-title{font-family:'Shippori Mincho',serif;font-weight:800;font-size:15px;color:var(--gold-soft);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:8px;}
   .at-panel-desc{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-bottom:14px;}
   .at-subbox{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;}
+  .at-subbox .at-subbox{background:rgba(255,255,255,0.045);border-left:3px solid rgba(212,175,55,.35);border-radius:8px;}
   .at-subbox-title{font-size:12.5px;font-weight:700;color:var(--gold-soft);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 
   .at-field{margin-bottom:12px;}
@@ -134,15 +135,16 @@
     color:var(--text);
   }
 
-  .at-statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;}
-  .at-statgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .at-statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:4px;}
+  .at-statgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
   .at-statgrid4 .at-statbox{padding:10px 4px;}
   .at-statgrid4 .at-statbox-label{font-size:9.5px;}
   .at-statgrid4 .at-statbox-val{font-size:14px;}
   .at-statbox{background:var(--bg-panel2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;}
-  .at-statbox-label{font-size:10.5px;color:var(--text-faint);letter-spacing:.02em;margin-bottom:6px;}
+  .at-statbox-label{font-size:10.5px;color:var(--text-faint);letter-spacing:.03em;margin-bottom:6px;text-transform:uppercase;}
   .at-statbox-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:var(--gold-soft);}
   .at-statbox-val.cyan{color:var(--cyan);}
+  .at-statbox-pair{border-color:rgba(69,196,176,.3);}
 
   .at-btn{
     background:linear-gradient(180deg,#2a3244,var(--bg-panel3));border:1px solid var(--border);color:var(--text);
@@ -839,9 +841,13 @@
         <div class="at-subbox">
           <div class="at-subbox-title">💪 攻撃力up</div>
           ${checkRow('spiritIntimidation', '銘刻ルーン「精霊の威圧」', 'シナジーボーナスの発生条件／取得スキルの精霊stackの解禁条件', build.spiritIntimidation)}
-          ${checkRow('spiritRecovery', '回復精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritRecovery)}
-          ${checkRow('spiritMelee', '近接精霊', '威圧所持時、単独+20%（両方で+40%）', build.spiritMelee)}
-          <div class="at-hint" style="margin-top:2px;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+          ${build.spiritIntimidation ? `
+          <div class="at-subbox" style="margin-top:10px;margin-bottom:0;">
+            ${checkRow('spiritRecovery', '回復精霊', '単独+20%（両方で+40%）', build.spiritRecovery)}
+            ${checkRow('spiritMelee', '近接精霊', '単独+20%（両方で+40%）', build.spiritMelee)}
+            <div class="at-hint" style="margin-top:2px;margin-bottom:0;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+          </div>
+          ` : `<div class="at-hint" style="margin-top:8px;margin-bottom:0;">「精霊の威圧」をONにすると、回復精霊・近接精霊の選択肢が表示されます。</div>`}
         </div>
 
         <div class="at-subbox">
@@ -985,20 +991,18 @@
           <div class="at-statbox-val">${fmtNum(res.otherSkillMult,1)}%</div>
         </div>
       </div>
-      <div class="at-row2" style="margin-top:8px;">
-        <div class="at-statbox">
-          <div class="at-statbox-label">取得スキルなし比</div>
-          <div class="at-statbox-val cyan">${skillMultiple==null?'—':fmtNum(skillMultiple,2)+'倍'}</div>
-        </div>
-        <div class="at-statbox">
-          <div class="at-statbox-label">取得スキルなしDPS</div>
-          <div class="at-statbox-val cyan" style="font-size:20px;">${fmtCompact(noSkillDPS)}</div>
-        </div>
+      <div class="at-statbox" style="margin-top:8px;">
+        <div class="at-statbox-label">取得スキルなし比</div>
+        <div class="at-statbox-val cyan">${skillMultiple==null?'—':fmtNum(skillMultiple,2)+'倍'}</div>
       </div>
       <div class="at-row2" style="margin-top:8px;">
-        <div class="at-statbox" style="grid-column:1 / -1;">
+        <div class="at-statbox at-statbox-pair">
+          <div class="at-statbox-label">取得スキルなしDPS</div>
+          <div class="at-statbox-val" style="font-size:19px;">${fmtCompact(noSkillDPS)}</div>
+        </div>
+        <div class="at-statbox at-statbox-pair">
           <div class="at-statbox-label">取得スキルありDPS</div>
-          <div class="at-statbox-val cyan" style="font-size:22px;">${fmtCompact(withSkillDPS)}</div>
+          <div class="at-statbox-val cyan" style="font-size:19px;">${fmtCompact(withSkillDPS)}</div>
         </div>
       </div>
       <div class="at-hint" style="margin-top:8px;">取得スキルなしDPS ＝ 総攻撃力 × 矢の本数 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（未会心率＋会心率×会心倍率）× 基本攻撃速度 × 攻撃速度upボーナス　※各項目は📚基本情報📚のみを反映（取得スキルの%などは含まない）</div>
