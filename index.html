@@ -231,6 +231,54 @@
 <div id="at-root"><div class="at-wrap" id="at-app"></div></div>
 
 <script>
+  // メインスクリプト(下の非moduleスクリプト)から使うためのプレースホルダー。
+  // 下のtype="module"スクリプトが読み込み完了した時点でready Promiseが解決し、
+  // loadPresets / savePresets の実装が差し込まれる。
+  window.AT2Cloud = {
+    ready: new Promise(function(resolve){ window.__at2CloudResolve = resolve; })
+  };
+</script>
+<script type="module">
+  // ---------- Firebase (Firestore) クラウド同期 ----------
+  // プリセットを「同期コード」単位でFirestoreに保存し、コードを他の端末で入力すると
+  // 同じプリセットを読み込めるようにする（アカウント登録なしの簡易クラウド保存）。
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCzbAnlP-XRNZe210GEYvEVFskayxjX9UI",
+    authDomain: "clan-ranking-661e3.firebaseapp.com",
+    projectId: "clan-ranking-661e3",
+    storageBucket: "clan-ranking-661e3.firebasestorage.app",
+    messagingSenderId: "790320652461",
+    appId: "1:790320652461:web:9d5f01428aa9de57bba624",
+    measurementId: "G-SPNBH7FEPK"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const db = getFirestore(firebaseApp);
+  const COLLECTION = 'at2PresetSync';
+
+  async function loadPresetsFromCloud(code){
+    const ref = doc(db, COLLECTION, code);
+    const snap = await getDoc(ref);
+    if(!snap.exists()) return null;
+    const data = snap.data();
+    return Array.isArray(data && data.presets) ? data.presets : null;
+  }
+  async function savePresetsToCloud(code, presets){
+    const ref = doc(db, COLLECTION, code);
+    await setDoc(ref, { presets: presets, updatedAt: serverTimestamp() });
+  }
+
+  window.AT2Cloud.loadPresets = loadPresetsFromCloud;
+  window.AT2Cloud.savePresets = savePresetsToCloud;
+  window.__at2CloudResolve();
+</script>
+
+<script>
 (function(){
   // ---------- storage helpers ----------
   function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -367,7 +415,68 @@
       return new Array(PRESET_SLOT_MIN).fill(null);
     }
   }
-  function savePresets(){ saveJSON('at2_presets_v1', presets); }
+  // ---------- cloud sync (Firebase Firestore) ----------
+  // コード入力なしで、常に同じ1つの共有ドキュメントを読み書きする。
+  // → どの端末・ブラウザで開いても自動的に同じプリセットが表示・共有される。
+  const SHARED_PRESET_DOC = 'shared';
+  let cloudBusy = false;
+  let cloudStatus = 'idle'; // idle | ok | error
+  let cloudPushTimer = null;
+
+  // クラウドから取得したデータをプリセット配列として安全な形に整える
+  function sanitizePresetsArray(arr){
+    let p = Array.isArray(arr) ? arr.slice(0, PRESET_SLOT_MAX) : [];
+    p = p.map(function(item){
+      if(item && typeof item==='object' && typeof item.name==='string' && item.data && typeof item.data==='object'){
+        return {name:item.name, data:item.data};
+      }
+      return null;
+    });
+    while(p.length < PRESET_SLOT_MIN) p.push(null);
+    return p;
+  }
+  // 共有ドキュメントの最新プリセットを取得してこのブラウザに反映。
+  // クラウド側にまだ何も無い場合は、今のプリセットをそのままクラウドへ保存する。
+  function cloudPull(){
+    if(!window.AT2Cloud || !window.AT2Cloud.ready){ cloudStatus = 'error'; return; }
+    cloudBusy = true; render();
+    window.AT2Cloud.ready.then(function(){
+      return window.AT2Cloud.loadPresets(SHARED_PRESET_DOC);
+    }).then(function(remote){
+      if(remote){
+        presets = sanitizePresetsArray(remote);
+        saveJSON('at2_presets_v1', presets); // ローカルにもキャッシュ（cloudPushは呼ばない）
+        cloudStatus = 'ok';
+      } else {
+        return window.AT2Cloud.savePresets(SHARED_PRESET_DOC, presets).then(function(){
+          cloudStatus = 'ok';
+        });
+      }
+    }).catch(function(){
+      cloudStatus = 'error';
+    }).finally(function(){
+      cloudBusy = false; render();
+    });
+  }
+  // ローカルの変更をデバウンスしてクラウドへ自動反映
+  function cloudPush(){
+    if(!window.AT2Cloud || !window.AT2Cloud.ready) return;
+    clearTimeout(cloudPushTimer);
+    cloudBusy = true;
+    cloudPushTimer = setTimeout(function(){
+      window.AT2Cloud.ready.then(function(){
+        return window.AT2Cloud.savePresets(SHARED_PRESET_DOC, presets);
+      }).then(function(){
+        cloudStatus = 'ok';
+      }).catch(function(){
+        cloudStatus = 'error';
+      }).finally(function(){
+        cloudBusy = false; render();
+      });
+    }, 500);
+  }
+
+  function savePresets(){ saveJSON('at2_presets_v1', presets); cloudPush(); }
   function snapshotPresetData(b){
     const d = {};
     PRESET_FIELDS.forEach(function(k){ d[k] = b[k]; });
@@ -378,6 +487,8 @@
   }
 
   let presets = loadPresets();
+  // 起動時に必ずクラウドの最新プリセットを取得する（コード入力不要・全端末共通）
+  setTimeout(function(){ cloudPull(); }, 30);
 
   function saveSettings(){ saveJSON('at2_settings_v3', settings); }
   function saveBuild(){ saveJSON('at2_build_v3', build); }
@@ -1334,6 +1445,19 @@
     </div>`;
   }
 
+  function presetCloudSection(){
+    const statusText = cloudBusy ? '同期中…' : (cloudStatus==='error' ? '同期エラー（通信環境をご確認ください）' : '同期済み');
+    const statusColor = cloudBusy ? 'var(--text-dim)' : (cloudStatus==='error' ? 'var(--down)' : 'var(--cyan)');
+    return `
+    <div class="at-subbox" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div class="at-panel-desc" style="margin-bottom:0;">☁️ プリセットは自動でクラウドに保存され、どの端末・ブラウザで開いても同じ内容が表示されます（全員で共有されます）。</div>
+        <div class="at-btn at-btn-ghost" style="padding:6px 12px;font-size:12px;white-space:nowrap;" data-action="cloudRefresh">${cloudBusy?'⏳':'🔄'}</div>
+      </div>
+      <div class="at-hint" style="margin-top:6px;margin-bottom:0;color:${statusColor};">${statusText}</div>
+    </div>`;
+  }
+
   function presetModal(){
     if(!state.presetOpen) return '';
     const canAdd = presets.length < PRESET_SLOT_MAX;
@@ -1346,6 +1470,8 @@
         </div>
 
         <div class="at-panel-desc" style="margin-bottom:10px;">総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメupの内容を保存できます（現在${presets.length}枠 / 最大${PRESET_SLOT_MAX}枠）。名前をタップすると「反映・編集・削除」を選べます。</div>
+
+        ${presetCloudSection()}
 
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${presets.map(function(p,i){ return presetSlotHtml(p,i); }).join('')}
@@ -1539,6 +1665,10 @@
         savePresets();
         render();
       }
+      return;
+    }
+    if(action==='cloudRefresh'){
+      cloudPull();
       return;
     }
     if(action==='resetSimSeconds'){
