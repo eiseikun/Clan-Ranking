@@ -343,6 +343,7 @@
     presetOpen:false,
     presetEditIdx:null,
     presetActionIdx:null,
+    presetRenameIdx:null,
   };
   let toastMsg = null, toastTimer = null;
 
@@ -778,17 +779,33 @@
   }
 
   function presetSlotHtml(p, i){
+    // 新規保存フォーム（空き枠に名前を付けて保存）
     if(state.presetEditIdx === i){
-      const nameVal = p ? escapeHtml(p.name) : '';
       return `
       <div class="at-subbox" style="margin-bottom:0;">
         <div class="at-field" style="margin-bottom:8px;">
           <label class="at-label">プリセット名</label>
-          <input class="at-input" type="text" maxlength="20" placeholder="例：会心特化編成" value="${nameVal}" data-preset-name-input="${i}">
+          <input class="at-input" type="text" maxlength="20" placeholder="例：会心特化編成" value="" data-preset-name-input="${i}">
         </div>
+        <div class="at-hint" style="margin-bottom:8px;">現在入力されている📚基本情報📚の内容（総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメup）をこの名前で保存します。</div>
         <div class="at-row2">
-          <div class="at-btn at-btn-gold at-btn-full" data-action="presetConfirmSave" data-idx="${i}">${p? '上書き保存':'保存'}</div>
+          <div class="at-btn at-btn-gold at-btn-full" data-action="presetConfirmSave" data-idx="${i}">この内容で保存</div>
           <div class="at-btn at-btn-ghost at-btn-full" data-action="presetCancelEdit">キャンセル</div>
+        </div>
+      </div>`;
+    }
+    // 名前変更フォーム（保存済みの入力内容には触れず、名前だけ変更）
+    if(state.presetRenameIdx === i && p){
+      return `
+      <div class="at-subbox" style="margin-bottom:0;">
+        <div class="at-field" style="margin-bottom:8px;">
+          <label class="at-label">プリセット名を変更</label>
+          <input class="at-input" type="text" maxlength="20" value="${escapeHtml(p.name)}" data-preset-name-input="${i}">
+        </div>
+        <div class="at-hint" style="margin-bottom:8px;">名前のみを変更します。保存されている数値は変わりません。</div>
+        <div class="at-row2">
+          <div class="at-btn at-btn-gold at-btn-full" data-action="presetRenameConfirm" data-idx="${i}">名前を保存</div>
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetRenameCancel">キャンセル</div>
         </div>
       </div>`;
     }
@@ -802,9 +819,13 @@
         ${state.presetActionIdx===i ? `
         <div class="at-row2" style="margin-top:10px;">
           <div class="at-btn at-btn-gold at-btn-full" data-action="presetApply" data-idx="${i}">反映</div>
-          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetEdit" data-idx="${i}">編集</div>
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetUpdateData" data-idx="${i}">現在の内容に更新</div>
         </div>
-        <div class="at-btn at-btn-danger at-btn-full" style="margin-top:8px;" data-action="presetDelete" data-idx="${i}">削除</div>
+        <div class="at-row2" style="margin-top:8px;">
+          <div class="at-btn at-btn-ghost at-btn-full" data-action="presetRenameStart" data-idx="${i}">名前を変更</div>
+          <div class="at-btn at-btn-danger at-btn-full" data-action="presetDelete" data-idx="${i}">削除</div>
+        </div>
+        <div class="at-hint" style="margin-top:8px;margin-bottom:0;">反映：このプリセットの数値を今の入力欄に読み込みます／現在の内容に更新：今の入力欄の数値でこのプリセットを上書きします（名前はそのまま）</div>
         ` : ''}
       </div>`;
     }
@@ -1399,6 +1420,7 @@
       state.presetOpen = false;
       state.presetEditIdx = null;
       state.presetActionIdx = null;
+      state.presetRenameIdx = null;
       render();
       return;
     }
@@ -1407,6 +1429,7 @@
         state.presetOpen = false;
         state.presetEditIdx = null;
         state.presetActionIdx = null;
+        state.presetRenameIdx = null;
         render();
       }
       return;
@@ -1448,6 +1471,43 @@
         saveBuild();
         state.presetActionIdx = null;
         showToast('プリセット「'+p.name+'」を反映しました');
+      }
+      return;
+    }
+    if(action==='presetUpdateData'){
+      const idx = Number(el.getAttribute('data-idx'));
+      const p = presets[idx];
+      if(p && confirm('プリセット「'+p.name+'」を、現在の入力内容で更新しますか？（名前はそのままです）')){
+        presets[idx] = { name: p.name, data: snapshotPresetData(build) };
+        savePresets();
+        state.presetActionIdx = null;
+        showToast('プリセット「'+p.name+'」を現在の内容に更新しました');
+      }
+      return;
+    }
+    if(action==='presetRenameStart'){
+      const idx = Number(el.getAttribute('data-idx'));
+      state.presetRenameIdx = idx;
+      state.presetActionIdx = null;
+      render();
+      return;
+    }
+    if(action==='presetRenameCancel'){
+      state.presetRenameIdx = null;
+      render();
+      return;
+    }
+    if(action==='presetRenameConfirm'){
+      const idx = Number(el.getAttribute('data-idx'));
+      const p = presets[idx];
+      if(p){
+        const input = document.querySelector('[data-preset-name-input="'+idx+'"]');
+        const typed = input ? input.value.trim() : '';
+        const name = typed || p.name;
+        presets[idx] = { name: name, data: p.data };
+        savePresets();
+        state.presetRenameIdx = null;
+        showToast('プリセット名を「'+name+'」に変更しました');
       }
       return;
     }
