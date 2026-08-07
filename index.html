@@ -366,7 +366,7 @@
     diagonalCount:0, frontCount:0, rearCount:0, tracking:false,
     sharpTierId:'none', rainTierId:'none', voidTierId:'none',
     sharpRuneQuality:'none', // none | epic | legend
-    painRing:false, ero:false,
+    painRing:false, ero:false, multishot:false,
     atkSpeedBonusPct:0, critRatePct:0, critDmgMultPct:0,
     simSeconds:null, // null＝未入力時はデフォルト（1回の攻撃分＝1/実攻撃速度秒）を使用
     spiritIntimidation:false, spiritRecovery:false, spiritMelee:false, spiritCount:0,
@@ -586,18 +586,29 @@
   // ダイアゴナル/フロント/リアアロー・追跡の目・主武器アップ系スキル特殊補正 → 総攻撃力に掛け合わせる倍率（基準100%）
   // ※エロージョンフィールド取得時は、フロントアロー／追跡の目による矢数・主武器ダメup%への影響は
   // 　エロージョンフィールド取得時は矢数を含む計算方法が異なるため、ここでは適用しない（二重計上防止）。
-  function calcMainDmgUpMult(b){
+  // 　（フロントアロー／追跡の目の影響を含めたフル計算は calcMainDmgUpMultFull を参照。
+  // 　　エロージョンフィールドの被ダメup倍率＝実質攻撃頻度の算出に使用する。）
+  function calcMainDmgUpMultFull(b){
     let m = 100;
-    if(!b.ero){
-      m -= (Number(b.frontCount)||0) * 15;
-      if(b.tracking) m -= 10;
-      m += mainWeaponSkillCorrection(b);
-    }
+    m -= (Number(b.frontCount)||0) * 15;
+    if(b.tracking) m -= 10;
+    m += mainWeaponSkillCorrection(b);
     m += findTierPct('sharp', b.sharpTierId);
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
     m += sharpRuneBonus(b.sharpRuneQuality);
     return m;
+  }
+  function calcMainDmgUpMult(b){
+    if(b.ero){
+      let m = 100;
+      m += findTierPct('sharp', b.sharpTierId);
+      m += findTierPct('rain', b.rainTierId);
+      m += findTierPct('voidblade', b.voidTierId);
+      m += sharpRuneBonus(b.sharpRuneQuality);
+      return m;
+    }
+    return calcMainDmgUpMultFull(b);
   }
   // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.651発/秒。攻撃速度アップボーナスなしの場合の発/秒) ×（1 + 攻撃速度ボーナス/100）
   const BASE_ATK_SPEED = 1.651;
@@ -616,21 +627,42 @@
   function calcDPSValue(r, b){
     return r.totalAtk * r.arrows * (r.atkUp/100) * (r.mainUp/100) * (r.dmgTakenUp/100) * (r.finalBonus/100) * (r.otherUp/100) * (r.otherSkillMult/100) * critExpectation(b) * actualAtkSpeed(b);
   }
-  // エロージョンフィールドの倍率（エロージョンフィールドのみを取得した場合の式） ＝
-  // 1.35 + 2.25 ÷（実攻撃速度 × 会心期待値）
-  // （通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)。
-  // 　フロントアロー・追跡の目・マルチショットなど他スキルとの複合計算は今後の計算方法変更に伴い別途対応予定のため、
-  // 　現時点ではエロージョンフィールド単体取得時の式のみを採用しています。）
+  // マルチショット倍率：エロージョンフィールドの実質攻撃頻度に掛け合わせる係数。
+  // 取得している場合は×1.7、未取得の場合は×1（未適用）。
+  function multishotMultiplier(b){
+    return b.multishot ? 1.7 : 1;
+  }
+  // エロージョンフィールドの実質攻撃頻度 ＝ 矢の本数（本来の値。ダイアゴナル/フロント/リアアロー・
+  // シンフォニー・鎧ボーナスを含む） × 主武器ダメup(フロントアロー／追跡の目の影響を含むフル計算・÷100)
+  // × マルチショット倍率
+  function attackFrequencyForEro(b){
+    return rawArrows(b) * (calcMainDmgUpMultFull(b)/100) * multishotMultiplier(b);
+  }
+  // エロージョンフィールドの倍率 ＝
+  // 1.35 × 実質攻撃頻度 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）
+  // （通常攻撃分＝1.35×実質攻撃頻度、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)。
+  // 　エロージョンフィールド単体（矢の本数1・主武器ダメup±0%・マルチショットなし）の場合は
+  // 　実質攻撃頻度＝1となり、1.35 + 2.25÷(実攻撃速度×会心期待値) と同じ値になる。
+  // 　主武器ダメupスキル（フロントアロー・追跡の目など）やマルチショットを合わせて取得している場合は、
+  // 　それらを含めた実質攻撃頻度がこの式にそのまま反映される。）
   function eroMultiplier(b){
     const denom = actualAtkSpeed(b) * critExpectation(b);
-    if(!(denom > 0)) return 1.35;
-    return 1.35 + 2.25 / denom;
+    const freq = attackFrequencyForEro(b);
+    if(!(denom > 0)) return 1.35 * freq;
+    return 1.35 * freq + 2.25 / denom;
   }
   // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(1.35+2.25÷(実攻撃速度×会心期待値)・単体取得時の式) → 総攻撃力に掛け合わせる倍率（基準100%）
+  // 被ダメup(%)：苦痛の輪(+20%)・エロージョンフィールド(1.35×実質攻撃頻度+2.25÷(実攻撃速度×会心期待値))・
+  // マルチショット(×1.7。エロージョンフィールドと組み合わせない場合のみここに加算。組み合わせる場合は
+  // エロージョンフィールドの実質攻撃頻度側に折り込まれるため、ここでは二重計上しない) → 基準100%の倍率
   function calcDmgTakenUpMult(b){
     let m = 100;
     if(b.painRing) m += 20;
-    if(b.ero) m += (eroMultiplier(b) - 1) * 100;
+    if(b.ero){
+      m += (eroMultiplier(b) - 1) * 100;
+    } else {
+      m += (multishotMultiplier(b) - 1) * 100;
+    }
     return m;
   }
   // 最終ダメボーナス(%)：手入力の追加ボーナス → 基準100%の倍率
@@ -722,7 +754,8 @@
       frontCount:0,
       rearCount:0,
       tracking:false,
-      ero:false
+      ero:false,
+      multishot:false
     });
   }
   // key は通常のbuildフィールド名、または動的スキル用の "atk:<id>" / "other:<id>" 形式。
@@ -758,7 +791,8 @@
       {id:'front', label:'フロントアロー（矢+1本／主武器ダメup-15%）', key:'frontCount', mode:'count'},
       {id:'rear', label:'リアアロー（矢+1本）', key:'rearCount', mode:'count'},
       {id:'tracking', label:'追跡の目（主武器ダメup-10%・重複不可）', key:'tracking', mode:'toggle'},
-      {id:'ero', label:'エロージョンフィールド（被ダメup 1.35+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
+      {id:'ero', label:'エロージョンフィールド（被ダメup 1.35×実質攻撃頻度+2.25÷(実攻撃速度×会心期待値)・重複不可）', key:'ero', mode:'toggle'},
+      {id:'multishot', label:'マルチショット（被ダメup×1.7。エロージョンフィールド併用時は実質攻撃頻度に×1.7・重複不可）', key:'multishot', mode:'toggle'},
     ];
     if(build.spiritIntimidation){
       opts.push({id:'spirit', label:'精霊（攻撃力+10%・威圧所持時のみ）', key:'spiritCount', mode:'count'});
@@ -1144,7 +1178,8 @@
 
       <div class="at-subbox">
         <div class="at-subbox-title">💥 被ダメup</div>
-        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35+2.25÷(実攻撃速度×会心期待値)・エロージョンフィールド単体取得時の式）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        ${checkRow('ero', 'エロージョンフィールド', `被ダメup ${fmtNum((eroMultiplier(build)-1)*100,2)}%（1.35×実質攻撃頻度+2.25÷(実攻撃速度×会心期待値)。単体取得時は実質攻撃頻度=1）`, build.ero, build.ero?`${(eroMultiplier(build)-1)*100>=0?'+':''}${fmtNum((eroMultiplier(build)-1)*100,2)}%`:'')}
+        ${checkRow('multishot', 'マルチショット', build.ero?'エロージョンフィールドの実質攻撃頻度に×1.7として反映':'被ダメup×1.7', build.multishot, build.multishot?'×1.7':'')}
         <div class="at-hint" style="margin-top:6px;">攻撃速度ボーナス・会心率・会心ダメージ倍率は📚基本情報📚で入力してください（実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒　会心期待値：${fmtNum(critExpectation(build),3)}）。</div>
       </div>
 
@@ -1374,6 +1409,7 @@
     const correction = mainWeaponSkillCorrection(build);
     const appliedCorrection = appliedMainWeaponSkillCorrection(build);
     const eroPct = (eroMultiplier(build)-1)*100;
+    const eroFreq = attackFrequencyForEro(build);
     return `
     <div class="at-modal-backdrop" data-action="closeInfoBackdrop">
       <div class="at-modal">
@@ -1427,15 +1463,26 @@
         </div>
 
         <div class="at-subbox" style="margin-bottom:0;">
-          <div class="at-subbox-title">💥 エロージョンフィールド（単体取得時の式）</div>
+          <div class="at-subbox-title">💥 エロージョンフィールド</div>
           <div class="at-hint" style="margin-bottom:8px;">
-            エロージョンフィールドの被ダメup倍率 ＝ 1.35 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）。通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)です。
+            <b>エロージョンフィールド単体の場合</b>（主武器ダメupスキル・マルチショットを取得していない場合）：<br>
+            被ダメup倍率 ＝ 1.35 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）。通常攻撃分＝1.35、フィールド自体のDoT分＝2.25÷(実攻撃速度×会心期待値)です。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            ※フロントアロー・追跡の目・マルチショットなど他のスキルと組み合わせた場合の計算方法は現在調整中のため、今はエロージョンフィールドのみを取得した場合の式で計算しています。今後アップデートで対応予定です。
+            <b>【例外ルール】</b>エロージョンフィールドと一緒に、主武器ダメupスキル（フロントアロー・追跡の目など）やマルチショットを取得している場合は、現在のビルドと取得スキルが合わさった<b>主武器ダメup・矢の本数・マルチショット</b>が「実質攻撃頻度」としてエロージョンフィールドの計算に組み込まれます。このとき、計算結果（総攻撃力に掛かる最終的な矢の本数・主武器ダメup）は通常どおり矢の本数1本・主武器ダメupなしとして扱われます（二重計上防止）。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            被ダメup倍率 ＝ 1.35 × 実質攻撃頻度 ＋ 2.25 ÷（実攻撃速度 × 会心期待値）<br>
+            実質攻撃頻度 ＝ 矢の本数 × 主武器ダメup × マルチショット倍率
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            例：現在のビルドで矢が2本・主武器ダメup+12%のとき、取得スキルでフロントアローがエロージョンフィールドと同時にあると、実質攻撃頻度＝(2+1)×0.97（フロントアロー分の矢+1本、主武器ダメup 112%-15%=97%）。エロージョンフィールド単体（矢1本・主武器ダメup±0%・マルチショットなし）のときは実質攻撃頻度＝1となり、単体の式と一致します。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
+            マルチショットは×1.7の効果です。エロージョンフィールドと組み合わせない場合は「被ダメup」枠でそのまま×1.7（+70%）として適用されます。エロージョンフィールドと組み合わせた場合は、被ダメup枠には別途加算せず、上記の実質攻撃頻度側に×1.7として折り込まれます（二重計上防止）。
           </div>
           <div class="at-hint">
-            エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>
+            エロージョンフィールド被ダメup：<b>${build.ero?`${eroPct>=0?'+':''}${fmtNum(eroPct,2)}%`:'未取得'}</b>${build.ero?`　実質攻撃頻度：<b>${fmtNum(eroFreq,3)}</b>`:''}
           </div>
         </div>
 
