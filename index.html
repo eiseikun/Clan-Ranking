@@ -346,7 +346,8 @@
   };
   let toastMsg = null, toastTimer = null;
 
-  const PRESET_SLOT_COUNT = 3;
+  const PRESET_SLOT_MIN = 3;
+  const PRESET_SLOT_MAX = 12;
   const PRESET_FIELDS = [
     'atkInputMode','atkBase','atkBonusPct','totalAtkDirect','finalDmgBonusPct',
     'atkSpeedBonusPct','critRatePct','critDmgMultPct',
@@ -354,11 +355,16 @@
     'otherEliteOn','otherElitePct','otherBossOn','otherBossPct'
   ];
   function loadPresets(){
-    let p = loadJSON('at2_presets_v1', null);
-    if(!Array.isArray(p)) p = [];
-    p = p.slice(0, PRESET_SLOT_COUNT);
-    while(p.length < PRESET_SLOT_COUNT) p.push(null);
-    return p;
+    try{
+      const raw = localStorage.getItem('at2_presets_v1');
+      let p = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(p)) p = [];
+      p = p.slice(0, PRESET_SLOT_MAX);
+      while(p.length < PRESET_SLOT_MIN) p.push(null);
+      return p;
+    }catch(e){
+      return new Array(PRESET_SLOT_MIN).fill(null);
+    }
   }
   function savePresets(){ saveJSON('at2_presets_v1', presets); }
   function snapshotPresetData(b){
@@ -803,8 +809,11 @@
       </div>`;
     }
     return `
-    <div class="at-subbox" style="margin-bottom:0;text-align:center;color:var(--text-faint);cursor:pointer;border-style:dashed;" data-action="presetEdit" data-idx="${i}">
-      ＋ プリセット${i+1}に現在の内容を保存
+    <div class="at-subbox" style="margin-bottom:0;display:flex;align-items:center;gap:8px;border-style:dashed;">
+      <div style="flex:1;text-align:center;color:var(--text-faint);cursor:pointer;padding:2px 0;" data-action="presetEdit" data-idx="${i}">
+        ＋ プリセット${i+1}に現在の内容を保存
+      </div>
+      ${(presets.length > PRESET_SLOT_MIN) ? `<div style="color:var(--text-faint);cursor:pointer;font-size:11px;padding:4px 6px;" data-action="presetRemoveSlot" data-idx="${i}" title="この空き枠を削除">✕</div>` : ''}
     </div>`;
   }
 
@@ -1306,6 +1315,7 @@
 
   function presetModal(){
     if(!state.presetOpen) return '';
+    const canAdd = presets.length < PRESET_SLOT_MAX;
     return `
     <div class="at-modal-backdrop" data-action="closePresetBackdrop">
       <div class="at-modal">
@@ -1314,11 +1324,13 @@
           <div class="at-modal-close" data-action="closePreset">✕</div>
         </div>
 
-        <div class="at-panel-desc" style="margin-bottom:10px;">総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメupの内容を${PRESET_SLOT_COUNT}件まで保存できます。名前をタップすると「反映・編集・削除」を選べます。</div>
+        <div class="at-panel-desc" style="margin-bottom:10px;">総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメupの内容を保存できます（現在${presets.length}枠 / 最大${PRESET_SLOT_MAX}枠）。名前をタップすると「反映・編集・削除」を選べます。</div>
 
         <div style="display:flex;flex-direction:column;gap:8px;">
           ${presets.map(function(p,i){ return presetSlotHtml(p,i); }).join('')}
         </div>
+
+        <div class="at-btn at-btn-ghost at-btn-full" style="margin-top:10px;${canAdd?'':'opacity:.4;cursor:not-allowed;'}" data-action="presetAddSlot">＋ プリセット枠を追加${canAdd?'':'（上限に達しています）'}</div>
       </div>
     </div>`;
   }
@@ -1446,6 +1458,25 @@
         presets[idx] = null;
         savePresets();
         state.presetActionIdx = null;
+        render();
+      }
+      return;
+    }
+    if(action==='presetAddSlot'){
+      if(presets.length < PRESET_SLOT_MAX){
+        presets.push(null);
+        savePresets();
+        render();
+      } else {
+        showToast('プリセット枠は最大'+PRESET_SLOT_MAX+'件までです');
+      }
+      return;
+    }
+    if(action==='presetRemoveSlot'){
+      const idx = Number(el.getAttribute('data-idx'));
+      if(presets.length > PRESET_SLOT_MIN && !presets[idx]){
+        presets.splice(idx, 1);
+        savePresets();
         render();
       }
       return;
