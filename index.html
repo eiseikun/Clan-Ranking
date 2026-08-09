@@ -400,6 +400,10 @@
   const PRESET_FIELDS = [
     'atkInputMode','atkBase','atkBonusPct','totalAtkDirect','finalDmgBonusPct',
     'atkSpeedBonusPct','critRatePct','critDmgMultPct',
+    'symphony','armor',
+    'spiritIntimidation','spiritRecovery','spiritMelee',
+    'sharpTierId','sharpRuneQuality','rainTierId','voidTierId',
+    'painRing',
     'otherAirOn','otherAirPct','otherGroundOn','otherGroundPct','otherTrashOn','otherTrashPct',
     'otherEliteOn','otherElitePct','otherBossOn','otherBossPct'
   ];
@@ -483,7 +487,13 @@
     return d;
   }
   function applyPresetData(b, d){
-    PRESET_FIELDS.forEach(function(k){ if(Object.prototype.hasOwnProperty.call(d,k)) b[k] = d[k]; });
+    // プリセットごとに📚基本情報📚の内容を完全に独立させるため、
+    // そのプリセットのデータに項目が無い場合は「未設定」の初期値に戻す
+    // （古い形式で保存されたプリセットを開いた際に、直前のプリセットの値が
+    // 　残ってしまう＝別プリセット同士の内容が混ざる問題を防ぐため）。
+    PRESET_FIELDS.forEach(function(k){
+      b[k] = Object.prototype.hasOwnProperty.call(d,k) ? d[k] : DEFAULT_BUILD[k];
+    });
   }
 
   let presets = loadPresets();
@@ -932,7 +942,7 @@
           <label class="at-label">プリセット名</label>
           <input class="at-input" type="text" maxlength="20" placeholder="例：会心特化編成" value="" data-preset-name-input="${i}">
         </div>
-        <div class="at-hint" style="margin-bottom:8px;">現在入力されている📚基本情報📚の内容（総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメup）をこの名前で保存します。</div>
+        <div class="at-hint" style="margin-bottom:8px;">現在入力されている📚基本情報📚の内容（総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・矢の本数・攻撃力up・主武器ダメup（鋭利の矢／アローレイン／虚無の刃）・被ダメup・〇〇敵ダメupなど）をすべてこの名前で保存します。</div>
         <div class="at-row2">
           <div class="at-btn at-btn-gold at-btn-full" data-action="presetConfirmSave" data-idx="${i}">この内容で保存</div>
           <div class="at-btn at-btn-ghost at-btn-full" data-action="presetCancelEdit">キャンセル</div>
@@ -1516,7 +1526,7 @@
           <div class="at-modal-close" data-action="closePreset">✕</div>
         </div>
 
-        <div class="at-panel-desc" style="margin-bottom:10px;">総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・〇〇敵ダメupの内容を保存できます（現在${presets.length}枠 / 最大${PRESET_SLOT_MAX}枠）。名前をタップすると「反映・編集・削除」を選べます。</div>
+        <div class="at-panel-desc" style="margin-bottom:10px;">📚基本情報📚の内容（総攻撃力・最終ダメボーナス・攻撃速度ボーナス・会心率・会心ダメージ倍率・矢の本数・攻撃力up・主武器ダメup（鋭利の矢／アローレイン／虚無の刃）・被ダメup・〇〇敵ダメupなど）をすべて保存できます（現在${presets.length}枠 / 最大${PRESET_SLOT_MAX}枠）。プリセットごとに独立した内容として保存され、反映するとその内容だけに切り替わります。名前をタップすると「反映・編集・削除」を選べます。</div>
 
         ${presetCloudSection()}
 
