@@ -651,6 +651,8 @@
   }
   // ▼「会心なし基本攻撃力」「平均攻撃力」計算専用の共通関数：📚基本情報📚パネルに書かれている項目のみを
   // 　反映する簡易版の各倍率を使う（📖取得スキルパネル側の内容は含まない）。
+  // 　※この2つは📊計算結果パネルの表示専用（取得スキルの影響を受けない値をあえて見せるための値）。
+  // 　　エロージョンフィールドのDPS計算には calcEroBaseAtk/calcEroAvgAtk を使う（下記参照）。
   function calcNoCritBaseAtk(r, b){
     const baseAtkUp = calcBaseAtkUpMult(b);
     const baseMainUp = calcBaseMainDmgUpMult(b);
@@ -661,17 +663,33 @@
   function calcAvgAtk(r, b){
     return calcNoCritBaseAtk(r, b) * critExpectation(b);
   }
+  // ▼ エロージョンフィールドのDPS計算専用の攻撃力：📖取得スキルのうち「主武器up系」（フロントアロー・
+  // 追跡の目・主武器アップ系スキル特殊補正・マルチショット）は実質攻撃頻度側に既に織り込まれているため
+  // ここでは含めないが、それ以外の📖取得スキル（攻撃力up系スキル・取得スキル「その他」）は
+  // 実質攻撃頻度に含まれていないため、ここ（攻撃力up・その他）でしっかり反映する。
+  // 　→ 攻撃力up系スキルを取得するとエロージョンフィールドのDPSも変化する。
+  function calcEroBaseAtk(r, b){
+    const atkUp = r.atkUp; // 全反映（精霊シナジー＋精霊本数＋品質攻撃力up等の📖取得スキル含む）
+    const baseMainUp = calcBaseMainDmgUpMult(b); // 装備由来のみ（主武器up系スキルは実質攻撃頻度側で計算済み）
+    const baseDmgTakenUp = calcBaseDmgTakenUpMult(b); // 苦痛の輪のみ（マルチショットは実質攻撃頻度側で計算済み）
+    const otherSkillMult = r.otherSkillMult; // 取得スキル「その他」も反映
+    return r.totalAtk * (atkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (r.otherUp/100) * (otherSkillMult/100) * (r.finalBonus/100);
+  }
+  function calcEroAvgAtk(r, b){
+    return calcEroBaseAtk(r, b) * critExpectation(b);
+  }
   // 範囲内被ダメ倍率：エロージョンフィールドの効果範囲内に敵がいる場合の被ダメ倍率（固定値）。
   const ERO_RANGE_DMG_MULT = 1.35;
   // エロージョンフィールド取得時の1秒あたりのダメージ ＝
-  //   会心なし基本攻撃力 ×（未会心率＋会心率×会心倍率）× 実質攻撃頻度 × 基本攻撃速度 × 攻撃速度アップボーナス × 範囲内被ダメ倍率
+  //   会心なし基本攻撃力(攻撃力up系スキル・取得スキル「その他」を含む) ×（未会心率＋会心率×会心倍率）
+  //   × 実質攻撃頻度 × 基本攻撃速度 × 攻撃速度アップボーナス × 範囲内被ダメ倍率
   //   ＋ 総攻撃力 × 最終ダメボーナス × 0.5 × 範囲内被ダメ倍率 × 100/30
   // （第1項＝通常攻撃分。会心なし基本攻撃力×会心期待値＝平均攻撃力を使用。実質攻撃頻度は
-  // 　attackFrequencyForEro() で計算（矢の本数・主武器ダメup・マルチショットを含む）。
+  // 　attackFrequencyForEro() で計算（矢の本数・主武器up系スキル・マルチショットを含む）。
   // 　基本攻撃速度×攻撃速度アップボーナス＝actualAtkSpeed(build)と同一。
   // 　第2項＝フィールド自体のDoT分。範囲内被ダメ倍率は1.35固定。）
   function calcEroDPS(r, b){
-    const avgAtk = calcAvgAtk(r, b);
+    const avgAtk = calcEroAvgAtk(r, b);
     const freq = attackFrequencyForEro(b);
     const part1 = avgAtk * freq * actualAtkSpeed(b) * ERO_RANGE_DMG_MULT;
     const part2 = r.totalAtk * (r.finalBonus/100) * 0.5 * ERO_RANGE_DMG_MULT * (100/30);
@@ -1027,12 +1045,13 @@
   function simDetailHtml(r, b, dps, seconds, damage){
     const rows = [];
     if(b.ero){
-      const avgAtk = calcAvgAtk(r, b);
+      const avgAtk = calcEroAvgAtk(r, b);
       const freq = attackFrequencyForEro(b);
       const spd = actualAtkSpeed(b);
       const part1 = avgAtk * freq * spd * ERO_RANGE_DMG_MULT;
       const part2 = r.totalAtk * (r.finalBonus/100) * 0.5 * ERO_RANGE_DMG_MULT * (100/30);
       rows.push(`<div class="at-hint" style="margin-bottom:6px;"><b>エロージョンフィールド取得中のため、専用の式で計算しています。</b></div>`);
+      rows.push(`<div class="at-hint" style="margin-bottom:6px;">平均攻撃力（攻撃力up系スキル・取得スキル「その他」も反映）＝ ${fmtCompact(calcEroBaseAtk(r,b))} × 会心期待値${fmtNum(critExpectation(b),3)} ＝ <b>${fmtCompact(avgAtk)}</b></div>`);
       rows.push(`<div class="at-hint" style="margin-bottom:6px;">通常攻撃分 ＝ 平均攻撃力 × 実質攻撃頻度 × 実攻撃速度 × 範囲内被ダメ倍率<br>
         ＝ ${fmtCompact(avgAtk)} × ${fmtNum(freq,3)} × ${fmtNum(spd,3)} × ${ERO_RANGE_DMG_MULT}<br>
         ＝ <b>${fmtCompact(part1)}</b>／秒</div>`);
@@ -1482,7 +1501,7 @@
     const appliedCorrection = appliedMainWeaponSkillCorrection(build);
     const eroFreq = attackFrequencyForEro(build);
     const eroRes = calcPower(build);
-    const eroAvgAtk = calcAvgAtk(eroRes, build);
+    const eroAvgAtk = calcEroAvgAtk(eroRes, build);
     const eroPart1 = eroAvgAtk * eroFreq * actualAtkSpeed(build) * ERO_RANGE_DMG_MULT;
     const eroPart2 = eroRes.totalAtk * (eroRes.finalBonus/100) * 0.5 * ERO_RANGE_DMG_MULT * (100/30);
     const eroDPSVal = eroPart1 + eroPart2;
@@ -1553,11 +1572,14 @@
             第1項は通常攻撃分（会心なし基本攻撃力×会心期待値＝平均攻撃力を使用）、第2項はフィールド自体のDoT分です。範囲内被ダメ倍率は<b>1.35固定</b>です。基本攻撃速度×攻撃速度アップボーナス＝実攻撃速度と同じ値です。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
+            ※ここでの「会心なし基本攻撃力」は📊計算結果パネルに表示されている値（📚基本情報📚のみ反映）とは異なり、📖取得スキルのうち<b>攻撃力up系スキル（精霊本数・品質攻撃力up等）・取得スキル「その他」</b>も反映したものを使用します（主武器up系スキル・マルチショットは実質攻撃頻度側で計算済みのためここには含みません）。
+          </div>
+          <div class="at-hint" style="margin-bottom:8px;">
             実質攻撃頻度 ＝ 矢の本数（ダイアゴナル/フロント/リアアロー・シンフォニー・鎧ボーナスを含む本来の値）× 主武器ダメup（📖取得スキル由来のみ：フロントアロー・追跡の目・特殊補正）× マルチショット倍率（取得時×1.7）<br>
             ※鋭利の矢／アローレイン／虚無の刃／ルーン品質など📚基本情報📚（装備・エンチャント）由来の主武器ダメupは、既に「会心なし基本攻撃力」側で反映済みのため、実質攻撃頻度には含めません（二重計上防止）。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            ※実質攻撃頻度に矢の本数・主武器ダメup・マルチショットが織り込まれているため、通常の「矢の本数」「主武器ダメup」「被ダメup」の各枠はこの計算には使用しません（二重計上防止）。
+            ※実質攻撃頻度に矢の本数・主武器up系スキル・マルチショットが織り込まれているため、通常の「矢の本数」「主武器ダメup」「被ダメup」の各枠はこの計算には使用しません（二重計上防止）。一方、攻撃力up系スキル・取得スキル「その他」はこの計算に含まれていないため、代わりに「会心なし基本攻撃力」側でしっかり反映しています。
           </div>
           <div class="at-hint">
             現在の実質攻撃頻度：<b>${fmtNum(eroFreq,3)}</b>　通常攻撃分：<b>${fmtCompact(eroPart1)}</b>／秒　DoT分：<b>${fmtCompact(eroPart2)}</b>／秒<br>
