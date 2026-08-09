@@ -1272,14 +1272,14 @@
       <div class="at-panel-title">⏱️ シミュレーション</div>
       <div class="at-panel-desc">秒数を入力すると、現在の📚基本情報📚と📖取得スキルの内容から、その秒数で与えられるダメージ量を計算します。デフォルトは攻撃1回分（1÷実攻撃速度＝${fmtNum(defaultSimSeconds,3)}秒）です。</div>
 
+      <div class="at-field">
+        <label class="at-label">秒数（秒）</label>
+        <input class="at-input" type="number" step="0.01" value="${simSecondsInputVal}" data-bind="simSeconds">
+      </div>
+
       <div class="at-row2">
-        <div class="at-field" style="margin-bottom:0;">
-          <label class="at-label">秒数（秒）</label>
-          <input class="at-input" type="number" step="0.01" value="${simSecondsInputVal}" data-bind="simSeconds">
-        </div>
-        <div class="at-field" style="margin-bottom:0;display:flex;align-items:flex-end;">
-          <div class="at-btn at-btn-ghost at-btn-full" data-action="resetSimSeconds">攻撃1回分に戻す</div>
-        </div>
+        <div class="at-btn at-btn-ghost at-btn-full" data-action="resetSimSeconds">攻撃1回分に戻す</div>
+        <div class="at-btn at-btn-ghost at-btn-full" data-action="setSimSeconds30">30秒</div>
       </div>
 
       <div class="at-statbox" style="margin-top:12px;">
@@ -1730,6 +1730,12 @@
     }
     if(action==='resetSimSeconds'){
       build.simSeconds = null;
+      saveBuild();
+      render();
+      return;
+    }
+    if(action==='setSimSeconds30'){
+      build.simSeconds = 30;
       saveBuild();
       render();
       return;
