@@ -597,8 +597,6 @@
   // ダイアゴナル/フロント/リアアロー・追跡の目・主武器アップ系スキル特殊補正 → 総攻撃力に掛け合わせる倍率（基準100%）
   // ※エロージョンフィールド取得時は、フロントアロー／追跡の目による矢数・主武器ダメup%への影響は
   // 　エロージョンフィールド取得時は矢数を含む計算方法が異なるため、ここでは適用しない（二重計上防止）。
-  // 　（フロントアロー／追跡の目の影響を含めたフル計算は calcMainDmgUpMultFull を参照。
-  // 　　エロージョンフィールドの被ダメup倍率＝実質攻撃頻度の算出に使用する。）
   function calcMainDmgUpMultFull(b){
     let m = 100;
     m -= (Number(b.frontCount)||0) * 15;
@@ -608,6 +606,17 @@
     m += findTierPct('rain', b.rainTierId);
     m += findTierPct('voidblade', b.voidTierId);
     m += sharpRuneBonus(b.sharpRuneQuality);
+    return m;
+  }
+  // 主武器ダメup(%)：📖取得スキル由来のみ（フロントアロー・追跡の目・主武器アップ系スキル特殊補正）。
+  // 鋭利の矢／アローレイン／虚無の刃／ルーン品質などの装備・エンチャント由来（📚基本情報📚）は含まない。
+  // エロージョンフィールドの実質攻撃頻度は、装備由来の主武器ダメupを既に「会心なし基本攻撃力」側で
+  // 反映しているため、ここでスキル由来のみを掛けることで二重計上を防ぐ。
+  function calcMainDmgUpMultSkillOnly(b){
+    let m = 100;
+    m -= (Number(b.frontCount)||0) * 15;
+    if(b.tracking) m -= 10;
+    m += mainWeaponSkillCorrection(b);
     return m;
   }
   function calcMainDmgUpMult(b){
@@ -674,10 +683,11 @@
     return b.multishot ? 1.7 : 1;
   }
   // エロージョンフィールドの実質攻撃頻度 ＝ 矢の本数（本来の値。ダイアゴナル/フロント/リアアロー・
-  // シンフォニー・鎧ボーナスを含む） × 主武器ダメup(フロントアロー／追跡の目の影響を含むフル計算・÷100)
+  // シンフォニー・鎧ボーナスを含む） × 主武器ダメup(📖取得スキル由来のみ・÷100。鋭利の矢／アローレイン／
+  // 虚無の刃／ルーン品質などの装備由来は「会心なし基本攻撃力」側で反映済みのためここでは含まない)
   // × マルチショット倍率
   function attackFrequencyForEro(b){
-    return rawArrows(b) * (calcMainDmgUpMultFull(b)/100) * multishotMultiplier(b);
+    return rawArrows(b) * (calcMainDmgUpMultSkillOnly(b)/100) * multishotMultiplier(b);
   }
   // 被ダメup(%)：苦痛の輪(+20%)・マルチショット(×1.7。エロージョンフィールド取得時は実質攻撃頻度側に
   // 折り込まれるため、ここでは二重計上しない) → 総攻撃力に掛け合わせる倍率（基準100%）
@@ -1048,9 +1058,13 @@
     const res = calcPower(build);
     const noSkillBuild = calcNoAcquiredSkillsBuild(build);
     const noSkillRes = calcPower(noSkillBuild);
-    const skillMultiple = noSkillRes.damage>0 ? (res.damage/noSkillRes.damage) : null;
     const noSkillDPS = calcDPSValue(noSkillRes, noSkillBuild);
     const withSkillDPS = calcDPSValue(res, build);
+    // エロージョンフィールド取得時は専用式（加算構造）でDPSを計算するため、通常の掛け算構造を前提にした
+    // 「damage」同士の比では正しい伸び率にならない。取得中はDPS同士の比を使う。
+    const skillMultiple = build.ero
+      ? (noSkillDPS>0 ? (withSkillDPS/noSkillDPS) : null)
+      : (noSkillRes.damage>0 ? (res.damage/noSkillRes.damage) : null);
     const defaultSimSeconds = actualAtkSpeed(build) > 0 ? 1/actualAtkSpeed(build) : 0;
     const simSecondsRaw = build.simSeconds;
     const simSecondsInputVal = (simSecondsRaw===null || simSecondsRaw===undefined || simSecondsRaw==='') ? defaultSimSeconds : simSecondsRaw;
@@ -1539,7 +1553,8 @@
             第1項は通常攻撃分（会心なし基本攻撃力×会心期待値＝平均攻撃力を使用）、第2項はフィールド自体のDoT分です。範囲内被ダメ倍率は<b>1.35固定</b>です。基本攻撃速度×攻撃速度アップボーナス＝実攻撃速度と同じ値です。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
-            実質攻撃頻度 ＝ 矢の本数（ダイアゴナル/フロント/リアアロー・シンフォニー・鎧ボーナスを含む本来の値）× 主武器ダメup（フロントアロー・追跡の目・特殊補正を含むフル計算）× マルチショット倍率（取得時×1.7）
+            実質攻撃頻度 ＝ 矢の本数（ダイアゴナル/フロント/リアアロー・シンフォニー・鎧ボーナスを含む本来の値）× 主武器ダメup（📖取得スキル由来のみ：フロントアロー・追跡の目・特殊補正）× マルチショット倍率（取得時×1.7）<br>
+            ※鋭利の矢／アローレイン／虚無の刃／ルーン品質など📚基本情報📚（装備・エンチャント）由来の主武器ダメupは、既に「会心なし基本攻撃力」側で反映済みのため、実質攻撃頻度には含めません（二重計上防止）。
           </div>
           <div class="at-hint" style="margin-bottom:8px;">
             ※実質攻撃頻度に矢の本数・主武器ダメup・マルチショットが織り込まれているため、通常の「矢の本数」「主武器ダメup」「被ダメup」の各枠はこの計算には使用しません（二重計上防止）。
