@@ -813,12 +813,17 @@
   }
   // 「取得スキル」パネルの各項目（品質攻撃力up・精霊・ダイアゴナル/フロント/リアアロー・追跡の目・
   // エロージョンフィールド・その他）だけをすべて未取得の状態に戻したビルドを作る。
-  // 「現在のビルド」パネルの装備・エンチャント等はそのまま維持する。
+  // 「現在のビルド」パネルの装備・エンチャント等はそのまま維持するが、精霊シナジーボーナス
+  // （銘刻ルーン「精霊の威圧」＋回復精霊／近接精霊）は配置こそ📚基本情報📚だが計算上は
+  // 「初めから取れている取得スキル」扱いのため、ここでも未取得（オフ）に戻す。
   function calcNoAcquiredSkillsBuild(b){
     return Object.assign({}, b, {
       atkSkillCounts:{},
       otherSkillCounts:{},
       spiritCount:0,
+      spiritIntimidation:false,
+      spiritRecovery:false,
+      spiritMelee:false,
       diagonalCount:0,
       frontCount:0,
       rearCount:0,
@@ -1197,6 +1202,7 @@
             ${checkRow('spiritRecovery', '回復精霊', '単独+20%（両方で+40%）', build.spiritRecovery)}
             ${checkRow('spiritMelee', '近接精霊', '単独+20%（両方で+40%）', build.spiritMelee)}
             <div class="at-hint" style="margin-top:2px;margin-bottom:0;">現在の精霊シナジーボーナス：${spiritSynergyBonus(build)>=0?'+':''}${spiritSynergyBonus(build)}%</div>
+            <div class="at-hint" style="margin-top:2px;margin-bottom:0;font-size:9px;color:var(--text-faint);">※配置は📚基本情報📚ですが、計算上は📖取得スキルの攻撃力up扱いです（取得スキルなし比にも反映されます）。</div>
           </div>
           ` : `<div class="at-hint" style="margin-top:8px;margin-bottom:0;">「精霊の威圧」をONにすると、回復精霊・近接精霊の選択肢が表示されます。</div>`}
         </div>
