@@ -665,15 +665,16 @@
   }
   // ▼ エロージョンフィールドのDPS計算専用の攻撃力：📖取得スキルのうち「主武器up系」（フロントアロー・
   // 追跡の目・主武器アップ系スキル特殊補正・マルチショット）は実質攻撃頻度側に既に織り込まれているため
-  // ここでは含めないが、それ以外の📖取得スキル（攻撃力up系スキル・取得スキル「その他」）は
-  // 実質攻撃頻度に含まれていないため、ここ（攻撃力up・その他）でしっかり反映する。
-  // 　→ 攻撃力up系スキルを取得するとエロージョンフィールドのDPSも変化する。
+  // ここでは含めない。また「攻撃力up系スキル」もエロの式の中には含めず、エロと攻撃力upは互いに独立した
+  // 倍率として掛け合わせるため、ここでは基本情報由来の攻撃力up（精霊シナジーのみ）だけを使う
+  // （攻撃力up系スキルによる倍率は calcEroDPS() 側で全体に対して外側から掛ける）。
+  // 取得スキル「その他」はここに含める（実質攻撃頻度に含まれていないため）。
   function calcEroBaseAtk(r, b){
-    const atkUp = r.atkUp; // 全反映（精霊シナジー＋精霊本数＋品質攻撃力up等の📖取得スキル含む）
+    const baseAtkUp = calcBaseAtkUpMult(b); // 装備・精霊シナジーのみ（攻撃力up系スキルは含めない＝エロと独立）
     const baseMainUp = calcBaseMainDmgUpMult(b); // 装備由来のみ（主武器up系スキルは実質攻撃頻度側で計算済み）
     const baseDmgTakenUp = calcBaseDmgTakenUpMult(b); // 苦痛の輪のみ（マルチショットは実質攻撃頻度側で計算済み）
     const otherSkillMult = r.otherSkillMult; // 取得スキル「その他」も反映
-    return r.totalAtk * (atkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (r.otherUp/100) * (otherSkillMult/100) * (r.finalBonus/100);
+    return r.totalAtk * (baseAtkUp/100) * (baseMainUp/100) * (baseDmgTakenUp/100) * (r.otherUp/100) * (otherSkillMult/100) * (r.finalBonus/100);
   }
   function calcEroAvgAtk(r, b){
     return calcEroBaseAtk(r, b) * critExpectation(b);
@@ -681,19 +682,26 @@
   // 範囲内被ダメ倍率：エロージョンフィールドの効果範囲内に敵がいる場合の被ダメ倍率（固定値）。
   const ERO_RANGE_DMG_MULT = 1.35;
   // エロージョンフィールド取得時の1秒あたりのダメージ ＝
-  //   会心なし基本攻撃力(攻撃力up系スキル・取得スキル「その他」を含む) ×（未会心率＋会心率×会心倍率）
+  //  { 会心なし基本攻撃力(攻撃力up系スキルは含まず、取得スキル「その他」は含む) ×（未会心率＋会心率×会心倍率）
   //   × 実質攻撃頻度 × 基本攻撃速度 × 攻撃速度アップボーナス × 範囲内被ダメ倍率
-  //   ＋ 総攻撃力 × 最終ダメボーナス × 0.5 × 範囲内被ダメ倍率 × 100/30
+  //   ＋ 総攻撃力 × 最終ダメボーナス × 0.5 × 範囲内被ダメ倍率 × 100/30 } × 攻撃力up(％)÷100
   // （第1項＝通常攻撃分。会心なし基本攻撃力×会心期待値＝平均攻撃力を使用。実質攻撃頻度は
   // 　attackFrequencyForEro() で計算（矢の本数・主武器up系スキル・マルチショットを含む）。
   // 　基本攻撃速度×攻撃速度アップボーナス＝actualAtkSpeed(build)と同一。
-  // 　第2項＝フィールド自体のDoT分。範囲内被ダメ倍率は1.35固定。）
+  // 　第2項＝フィールド自体のDoT分。範囲内被ダメ倍率は1.35固定。
+  // 　攻撃力up系スキルはエロの式の中には含めず、エロ全体（第1項＋第2項の合計）に対して独立した
+  // 　倍率として最後に掛け合わせる。＝エロ単体倍率×攻撃力up倍率が成立する。）
   function calcEroDPS(r, b){
     const avgAtk = calcEroAvgAtk(r, b);
     const freq = attackFrequencyForEro(b);
     const part1 = avgAtk * freq * actualAtkSpeed(b) * ERO_RANGE_DMG_MULT;
     const part2 = r.totalAtk * (r.finalBonus/100) * 0.5 * ERO_RANGE_DMG_MULT * (100/30);
-    return part1 + part2;
+    // 攻撃力up系スキルの倍率（エロと独立）：part1にはbase分の攻撃力up（精霊シナジーのみ）が
+    // 既に織り込まれているため、ここでは「攻撃力up系スキルによる増分」の比率だけをpart1・part2
+    // 両方にまとめて掛ける（＝エロ単体倍率×攻撃力up倍率が成立する）。
+    const baseAtkUp = calcBaseAtkUpMult(b);
+    const atkUpSkillRatio = r.atkUp / baseAtkUp;
+    return (part1 + part2) * atkUpSkillRatio;
   }
   // マルチショット倍率：エロージョンフィールドの実質攻撃頻度に掛け合わせる係数。
   // 取得している場合は×1.7、未取得の場合は×1（未適用）。
