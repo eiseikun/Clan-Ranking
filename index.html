@@ -636,8 +636,9 @@
     return BASE_ATK_SPEED * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
   }
   // 会心期待値 ＝ (1-会心率) + 会心率×会心ダメージ倍率　※会心ダメージ倍率は153%入力なら1.53として扱う
+  // ※会心率は100%(=1)で頭打ち。100%を超えた入力分はダメージに影響しない。
   function critExpectation(b){
-    const cr = (Number(b.critRatePct)||0) / 100;
+    const cr = Math.min((Number(b.critRatePct)||0) / 100, 1);
     const cd = (Number(b.critDmgMultPct)||0) / 100;
     return (1 - cr) + cr * cd;
   }
