@@ -323,7 +323,9 @@
     return [];
   }
 
+  const DEFAULT_BASE_ATK_SPEED = 1.651;
   const DEFAULT_SETTINGS = {
+    baseAtkSpeed: DEFAULT_BASE_ATK_SPEED,
     atkSkills: defaultAtkSkills(),
     otherSkills: defaultOtherSkills()
   };
@@ -382,6 +384,7 @@
 
   let settings = loadJSON('at2_settings_v3', DEFAULT_SETTINGS);
   settings.atkSkills = reconcileAtkSkills(settings.atkSkills);
+  if(!(Number(settings.baseAtkSpeed) > 0)) settings.baseAtkSpeed = DEFAULT_BASE_ATK_SPEED;
   saveJSON('at2_settings_v3', settings);
   let build = loadJSON('at2_build_v3', DEFAULT_BUILD);
   let state = {
@@ -630,10 +633,13 @@
     }
     return calcMainDmgUpMultFull(b);
   }
-  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(固定1.651発/秒。攻撃速度アップボーナスなしの場合の発/秒) ×（1 + 攻撃速度ボーナス/100）
-  const BASE_ATK_SPEED = 1.651;
+  // 実攻撃速度(発/秒) ＝ 基本攻撃速度(⚙️設定で編集可能。デフォルト1.651発/秒) ×（1 + 攻撃速度ボーナス/100）
+  function getBaseAtkSpeed(){
+    const v = Number(settings.baseAtkSpeed);
+    return (v>0) ? v : DEFAULT_BASE_ATK_SPEED;
+  }
   function actualAtkSpeed(b){
-    return BASE_ATK_SPEED * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
+    return getBaseAtkSpeed() * (1 + (Number(b.atkSpeedBonusPct)||0)/100);
   }
   // 会心期待値 ＝ (1-会心率) + 会心率×会心ダメージ倍率　※会心ダメージ倍率は153%入力なら1.53として扱う
   // ※会心率は100%(=1)で頭打ち。100%を超えた入力分はダメージに影響しない。
@@ -665,6 +671,11 @@
   }
   function calcAvgAtk(r, b){
     return calcNoCritBaseAtk(r, b) * critExpectation(b);
+  }
+  // 会心時攻撃力 ＝ 会心なし基本攻撃力 × 会心ダメージ倍率（会心が発生した場合の攻撃力）
+  function calcCritAtk(r, b){
+    const cd = (Number(b.critDmgMultPct)||0) / 100;
+    return calcNoCritBaseAtk(r, b) * cd;
   }
   // ▼ エロージョンフィールドのDPS計算専用の攻撃力：📖取得スキルのうち「主武器up系」（フロントアロー・
   // 追跡の目・主武器アップ系スキル特殊補正・マルチショット）は実質攻撃頻度側に既に織り込まれているため
@@ -1115,6 +1126,7 @@
 
     const noCritBaseAtk = calcNoCritBaseAtk(res, build);
     const avgAtk = calcAvgAtk(res, build);
+    const critAtk = calcCritAtk(res, build);
 
     return `
     <div class="at-panel">
@@ -1159,7 +1171,7 @@
         </div>
         <div class="at-field" style="margin-bottom:0;">
           <label class="at-label">基本攻撃速度（発/秒）</label>
-          <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${BASE_ATK_SPEED}（固定）</div>
+          <div class="at-input" style="display:flex;align-items:center;color:var(--text-dim);">${fmtNum(getBaseAtkSpeed(),3)}（⚙️で編集可）</div>
         </div>
       </div>
       <div class="at-hint" style="margin-top:8px;margin-bottom:12px;">実攻撃速度：${fmtNum(actualAtkSpeed(build),2)}発/秒（計算式は📐計算式ガイド参照）</div>
@@ -1248,17 +1260,21 @@
         ${OTHER_DMG_CATS.filter(c=>build[c.key+'On']).map(c=>otherDmgCatRow(c.key, c.label, build[c.key+'Pct'])).join('')}
       </div>
 
-      <div class="at-row2" style="margin-top:14px;">
+      <div class="at-statgrid" style="margin-top:14px;">
         <div class="at-statbox">
           <div class="at-statbox-label">会心なし基本攻撃力</div>
           <div class="at-statbox-val">${fmtCompact(noCritBaseAtk)}</div>
+        </div>
+        <div class="at-statbox">
+          <div class="at-statbox-label">会心時攻撃力</div>
+          <div class="at-statbox-val" style="color:var(--down);">${fmtCompact(critAtk)}</div>
         </div>
         <div class="at-statbox">
           <div class="at-statbox-label">平均攻撃力</div>
           <div class="at-statbox-val cyan">${fmtCompact(avgAtk)}</div>
         </div>
       </div>
-      <div class="at-hint" style="margin-top:8px;">📖取得スキルの取得状況を変えてもこの2つの値は変化しません。矢の本数も1本として計算しています（計算式は📐計算式ガイド参照）。</div>
+      <div class="at-hint" style="margin-top:8px;">📖取得スキルの取得状況を変えてもこの3つの値は変化しません。矢の本数も1本として計算しています（計算式は📐計算式ガイド参照）。</div>
     </div>
 
     <div class="at-panel">
@@ -1447,6 +1463,14 @@
 
   function arrowsSettingsBody(){
     return `
+        <div class="at-panel-desc">基本攻撃速度（攻撃速度ボーナス0%時の発/秒）を編集できます。正式な値が判明したら数値を更新してください。</div>
+        <div class="at-field">
+          <label class="at-label">基本攻撃速度（発/秒）</label>
+          <input class="at-input" type="number" step="0.001" value="${settings.baseAtkSpeed}" data-base-atk-speed="1">
+        </div>
+
+        <div class="at-divider"></div>
+
         <div class="at-panel-desc">攻撃力up系スキルの名称と、1回取得あたりの攻撃力への効果（%）を編集できます。スキルの追加・削除も可能です。グレート／エピック／レジェンド品質攻撃力up・巨大化は固定値（10%／25%／30%／20%）のため%は編集できません。</div>
 
         <div class="at-field">
@@ -1543,9 +1567,9 @@
         <div class="at-subbox" style="margin-bottom:12px;">
           <div class="at-subbox-title">📚 基本情報</div>
           <div class="at-hint" style="margin-bottom:6px;">総攻撃力 ＝ 攻撃力 ＋｛攻撃力 × 攻撃力ボーナス÷100｝（直接入力モードでは総攻撃力をそのまま使用）</div>
-          <div class="at-hint" style="margin-bottom:6px;">実攻撃速度 ＝ 基本攻撃速度（${BASE_ATK_SPEED}発/秒・固定）×（1 + 攻撃速度ボーナス÷100）</div>
+          <div class="at-hint" style="margin-bottom:6px;">実攻撃速度 ＝ 基本攻撃速度（現在${fmtNum(getBaseAtkSpeed(),3)}発/秒・⚙️詳細設定で編集可能）×（1 + 攻撃速度ボーナス÷100）</div>
           <div class="at-hint" style="margin-bottom:6px;">会心期待値 ＝（1－会心率）＋ 会心率 × 会心ダメージ倍率</div>
-          <div class="at-hint" style="margin-bottom:0;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（最終ダメボーナス÷100）／平均攻撃力 ＝ 会心なし基本攻撃力 × 会心期待値<br>※この2つは📚基本情報📚のみを反映し、📖取得スキルパネル側の内容は含みません。</div>
+          <div class="at-hint" style="margin-bottom:0;">会心なし基本攻撃力 ＝ 総攻撃力 ×（攻撃力up÷100）×（主武器ダメup÷100）×（被ダメup÷100）×（〇〇敵ダメup÷100）×（その他÷100）×（最終ダメボーナス÷100）／会心時攻撃力 ＝ 会心なし基本攻撃力 × 会心ダメージ倍率／平均攻撃力 ＝ 会心なし基本攻撃力 × 会心期待値<br>※この3つは📚基本情報📚のみを反映し、📖取得スキルパネル側の内容は含みません。</div>
         </div>
 
         <div class="at-subbox" style="margin-bottom:12px;">
@@ -1912,7 +1936,7 @@
       return;
     }
     if(action==='resetSettings'){
-      if(confirm('攻撃力up系スキル・その他スキルの設定をすべて初期状態に戻します。よろしいですか？')){
+      if(confirm('基本攻撃速度・攻撃力up系スキル・その他スキルの設定をすべて初期状態に戻します。よろしいですか？')){
         settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         saveSettings();
         showToast('設定をリセットしました');
@@ -1938,6 +1962,14 @@
       if(e.target.type==='number') v = v===''? '' : Number(v);
       build[bind] = v;
       saveBuild();
+      render();
+      return;
+    }
+    const baseAtkSpeed = e.target.getAttribute('data-base-atk-speed');
+    if(baseAtkSpeed){
+      const v = Number(e.target.value);
+      settings.baseAtkSpeed = (v>0) ? v : DEFAULT_BASE_ATK_SPEED;
+      saveSettings();
       render();
       return;
     }
